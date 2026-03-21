@@ -1,4 +1,4 @@
--- WALLHOP (ANIMATION SYNC VERSION - CLEAN)
+-- WALLHOP + DOUBLE JUMP (ANIMATION SYNC VERSION)
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -8,7 +8,7 @@ local GuiService = game:GetService("GuiService")
 
 local Camera = workspace.CurrentCamera
 
--- UI
+-- UI (igual)
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
 local ScreenGui = Instance.new("ScreenGui", PlayerGui)
@@ -34,8 +34,13 @@ local enabled = false
 local lastFlick = 0
 local flicking = false
 
+-- DOUBLE JUMP
+local canDouble = false
+local lastDouble = 0
+local DOUBLE_CD = 3
+
 -- ANIMATION CACHE
-local jumpTrack
+local jumpTrack, fallTrack
 local animator
 
 local function setupChar(char)
@@ -47,8 +52,18 @@ local function setupChar(char)
         local name = track.Name:lower()
         if name:find("jump") then
             jumpTrack = track
+        elseif name:find("fall") then
+            fallTrack = track
         end
     end
+
+    hum.StateChanged:Connect(function(_, new)
+        if new == Enum.HumanoidStateType.Freefall then
+            canDouble = true
+        elseif new == Enum.HumanoidStateType.Landed then
+            canDouble = false
+        end
+    end)
 end
 
 if LocalPlayer.Character then
@@ -56,12 +71,30 @@ if LocalPlayer.Character then
 end
 LocalPlayer.CharacterAdded:Connect(setupChar)
 
--- PLAY REAL ANIMATION
+-- 🔥 PLAY REAL ANIMATION
 local function playJumpAnim()
     if jumpTrack then
         jumpTrack:Play(0.05, 1, 1)
     end
 end
+
+-- DOUBLE JUMP (ANIMATION SYNC)
+UserInputService.JumpRequest:Connect(function()
+    local char = LocalPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    if canDouble and tick() - lastDouble > DOUBLE_CD then
+        lastDouble = tick()
+        canDouble = false
+
+        playJumpAnim()
+
+        -- impulso sincronizado com animação
+        task.wait(0.03)
+        hrp.Velocity = Vector3.new(hrp.Velocity.X, 44, hrp.Velocity.Z)
+    end
+end)
 
 -- FLICK
 local function flick()
@@ -83,7 +116,7 @@ local function flick()
     -- boost calibrado
     hrp.Velocity = Vector3.new(hrp.Velocity.X, 50, hrp.Velocity.Z)
 
-    -- câmera
+    -- câmera (igual ao seu estilo)
     local start = Camera.CFrame
     local target = start * CFrame.Angles(0, math.rad(45), 0)
 
@@ -143,4 +176,4 @@ Button.MouseButton1Click:Connect(function()
     Button.BackgroundColor3 = enabled and Color3.fromRGB(40,40,40) or Color3.fromRGB(0,0,0)
 end)
 
-print("Animation Synced WallHop Loaded (Clean)")
+print("Animation Synced WallHop Loaded")
