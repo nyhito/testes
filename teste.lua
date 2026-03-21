@@ -125,7 +125,7 @@ local function performVideoFlick()
     isFlicking = false
 end
 
--- WALL DETECT (AJUSTADO PARA O PÉ)
+-- WALL DETECT (AJUSTADO)
 local lastHitInstance = nil
 
 RunService.Heartbeat:Connect(function()
@@ -139,8 +139,8 @@ RunService.Heartbeat:Connect(function()
     params.FilterDescendantsInstances = {char}
     params.FilterType = Enum.RaycastFilterType.Exclude
 
-    -- OFFSET PARA LINHA DO PÉ
-    local origin = hrp.Position + Vector3.new(0, -2.5, 0)
+    -- OFFSET AJUSTADO (-2.2)
+    local origin = hrp.Position + Vector3.new(0, -2.2, 0)
 
     local result = workspace:Raycast(
         origin,
@@ -168,4 +168,4 @@ TextButton.MouseButton1Click:Connect(function()
     TextButton.BackgroundColor3 = isWallHopEnabled and Color3.fromRGB(40,40,40) or Color3.fromRGB(0,0,0)
 end)
 
-print("WallHop Loaded (Animation Fix - Foot Line)")
+print("WallHop Loaded (Foot Adjust -2.2)")
