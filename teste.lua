@@ -1,4 +1,4 @@
--- AUTO WALLHOP + DOUBLE JUMP (STEALTH + VELOCIDADE DINÂMICA FTF)
+-- AUTO WALLHOP + DOUBLE JUMP (STEALTH ANIMATION FIX)
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -36,23 +36,20 @@ local isFlicking = false
 local lastFlickTime = 0
 local Camera = workspace.CurrentCamera
 
--- DOUBLE JUMP
+-- DOUBLE JUMP (NÃO ALTERADO)
 local canDoubleJump = false
 local lastDoubleJump = 0
 local DOUBLE_JUMP_COOLDOWN = 3
 
--- CONFIG DINÂMICA (baseado no FTF)
-local BASE_JUMP = 44
-local MAX_JUMP = 56
-
--- CHARACTER
 local function setupCharacter(char)
     local hum = char:WaitForChild("Humanoid")
 
     hum.StateChanged:Connect(function(_, new)
         if new == Enum.HumanoidStateType.Freefall then
             canDoubleJump = true
-        elseif new == Enum.HumanoidStateType.Landed then
+        end
+
+        if new == Enum.HumanoidStateType.Landed then
             canDoubleJump = false
         end
     end)
@@ -63,23 +60,7 @@ if LocalPlayer.Character then
 end
 LocalPlayer.CharacterAdded:Connect(setupCharacter)
 
--- FUNÇÃO: calcular impulso baseado na velocidade real
-local function getDynamicJump(hrp)
-    local velocity = hrp.Velocity
-    local planarSpeed = Vector3.new(velocity.X, 0, velocity.Z).Magnitude
-
-    -- normaliza baseado numa velocidade típica do FTF (~16-20)
-    local factor = math.clamp(planarSpeed / 18, 0.8, 1.2)
-
-    -- leve randomização humana
-    local randomOffset = math.random(-2, 2)
-
-    local jumpPower = BASE_JUMP * factor + randomOffset
-
-    return math.clamp(jumpPower, BASE_JUMP, MAX_JUMP)
-end
-
--- DOUBLE JUMP (natural)
+-- DOUBLE JUMP ORIGINAL (mantido)
 UserInputService.JumpRequest:Connect(function()
     local char = LocalPlayer.Character
     local hum = char and char:FindFirstChild("Humanoid")
@@ -90,14 +71,14 @@ UserInputService.JumpRequest:Connect(function()
         lastDoubleJump = tick()
         canDoubleJump = false
 
-        local jump = getDynamicJump(hrp)
+        hrp.Velocity = Vector3.new(hrp.Velocity.X, 42, hrp.Velocity.Z)
+        hum:ChangeState(Enum.HumanoidStateType.Jumping)
 
-        hrp.Velocity = Vector3.new(hrp.Velocity.X, jump, hrp.Velocity.Z)
-        hum.Jump = true
+        -- NÃO mexe mais em state depois disso
     end
 end)
 
--- FLICK (dinâmico)
+-- FLICK (SUAVIZADO VISUALMENTE)
 local function performVideoFlick()
     if isFlicking then return end
     isFlicking = true
@@ -110,10 +91,12 @@ local function performVideoFlick()
         return
     end
 
-    local jump = getDynamicJump(hrp)
+    -- 🔥 micro delay = animação começa antes do impulso (remove travada)
+    hum:ChangeState(Enum.HumanoidStateType.Jumping)
+    task.wait(0.015)
 
-    hum.Jump = true
-    hrp.Velocity = Vector3.new(hrp.Velocity.X, jump, hrp.Velocity.Z)
+    -- impulso original
+    hrp.Velocity = Vector3.new(hrp.Velocity.X, 52, hrp.Velocity.Z)
 
     local startCFrame = Camera.CFrame
     local targetCFrame = startCFrame * CFrame.Angles(0, math.rad(45), 0)
@@ -135,7 +118,7 @@ local function performVideoFlick()
     isFlicking = false
 end
 
--- WALL DETECT
+-- WALL DETECT (INALTERADO)
 local lastHitInstance = nil
 
 RunService.Heartbeat:Connect(function()
@@ -175,4 +158,4 @@ TextButton.MouseButton1Click:Connect(function()
     TextButton.BackgroundColor3 = isWallHopEnabled and Color3.fromRGB(40,40,40) or Color3.fromRGB(0,0,0)
 end)
 
-print("WallHop Loaded (Stealth + Dynamic Velocity)")
+print("WallHop Loaded (Stealth Animation Fix)")
