@@ -1,10 +1,10 @@
-for _, obj in ipairs(workspace:GetDescendants()) do
-    if obj:IsA("BasePart") or obj:IsA("MeshPart") then
-        local name = obj.Name:lower()
-        
-        if name:find("ccf") then
-            obj.Transparency = 1
-            obj.CanCollide = false
+-- remover folhas "ccf" (100% seguro)
+
+for _, v in pairs(workspace:GetDescendants()) do
+    if v:IsA("BasePart") then
+        if string.find(string.lower(v.Name), "ccf") then
+            v.Transparency = 1
+            v.CanCollide = false
         end
     end
 end
