@@ -1,28 +1,45 @@
--- Remove apenas folhas verdes escuras no Homestead
+local Workspace = game:GetService("Workspace")
 
-local function isDarkGreen(part)
-    local c = part.Color
-    -- Verde escuro aproximado: R < 0.2, G > 0.2 e < 0.5, B < 0.2
-    return c.R < 0.2 and c.G > 0.2 and c.G < 0.5 and c.B < 0.2
+-- Função para checar se a cor é verde aproximada
+local function isGreen(part)
+    local color = part.Color
+    return color.G > color.R and color.G > color.B -- Verde dominante
 end
 
-for _, v in pairs(workspace:GetDescendants()) do
-    if v:IsA("BasePart") then
-        -- ignora partes do jogador
-        if v:IsDescendantOf(game.Players.LocalPlayer.Character) then
-            continue
-        end
+-- Função para checar se é um tronco marrom
+local function isBrownTrunk(part)
+    local color = part.Color
+    return color.R > 0.3 and color.G > 0.15 and color.B < 0.1 -- aproximação marrom
+        and part.Size.Y > 2 -- vertical alto
+end
 
-        -- não remove portas ou objetos grandes com CanCollide
-        if v.CanCollide then
-            continue
-        end
-
-        -- só verde escuro
-        if isDarkGreen(v) then
-            v.Transparency = 1
+-- Loop por todas as partes do mapa
+for _, part in pairs(Workspace:GetDescendants()) do
+    if part:IsA("BasePart") then
+        -- Sem colisão
+        if not part.CanCollide then
+            -- Verde direto
+            if isGreen(part) then
+                part:Destroy()
+            else
+                -- Quadrado sobre tronco
+                local aboveTrunk = false
+                for _, checkPart in pairs(Workspace:GetDescendants()) do
+                    if checkPart:IsA("BasePart") and isBrownTrunk(checkPart) then
+                        -- checa se part está em cima do tronco (aproximação)
+                        local dx = math.abs(part.Position.X - checkPart.Position.X)
+                        local dz = math.abs(part.Position.Z - checkPart.Position.Z)
+                        local dy = part.Position.Y - (checkPart.Position.Y + checkPart.Size.Y/2)
+                        if dx < checkPart.Size.X/2 and dz < checkPart.Size.Z/2 and dy > 0 and dy < 10 then
+                            aboveTrunk = true
+                            break
+                        end
+                    end
+                end
+                if aboveTrunk then
+                    part:Destroy()
+                end
+            end
         end
     end
 end
-
-print("Folhas verdes escuras removidas!")
