@@ -1,44 +1,28 @@
--- Só remove FOLHAS (FTF Homestead) sem tocar no resto
+-- Remove apenas folhas verdes escuras no Homestead
 
-local function isVegetation(obj)
-    local name = obj.Name:lower()
-
-    -- elementos típicos de folhagem
-    local vegTerms = {"leaf","leaves","grass","bush","plant"}
-
-    for _, term in ipairs(vegTerms) do
-        if name:find(term) then
-            return true
-        end
-    end
-
-    -- também tenta detectar malhas que são claramente vegetação
-    if obj:IsA("MeshPart") then
-        local meshId = tostring(obj.MeshId):lower()
-        if meshId:find("leaf") or meshId:find("grass") then
-            return true
-        end
-    end
-
-    return false
+local function isDarkGreen(part)
+    local c = part.Color
+    -- Verde escuro aproximado: R < 0.2, G > 0.2 e < 0.5, B < 0.2
+    return c.R < 0.2 and c.G > 0.2 and c.G < 0.5 and c.B < 0.2
 end
 
 for _, v in pairs(workspace:GetDescendants()) do
     if v:IsA("BasePart") then
-
-        -- ignora partes essenciais do jogador
+        -- ignora partes do jogador
         if v:IsDescendantOf(game.Players.LocalPlayer.Character) then
             continue
         end
 
-        -- só vegetação não colidível e pequena
-        if (not v.CanCollide)
-        and isVegetation(v)
-        and v.Size.Magnitude < 8 -- folhas normalmente pequenas
-        then
+        -- não remove portas ou objetos grandes com CanCollide
+        if v.CanCollide then
+            continue
+        end
+
+        -- só verde escuro
+        if isDarkGreen(v) then
             v.Transparency = 1
         end
     end
 end
 
-print("Folhagens do mapa Homestead removidas com segurança!")
+print("Folhas verdes escuras removidas!")
