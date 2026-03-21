@@ -1,66 +1,70 @@
 -- LocalScript dentro de um ScreenGui
 local Players = game:GetService("Players")
-local player = Players.LocalPlayer
-local playerGui = player:WaitForChild("PlayerGui")
-local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
+local player = Players.LocalPlayer
 
--- Criando ScreenGui
+-- Criar ScreenGui
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "FTFDanceButtonGui"
-screenGui.Parent = playerGui
+screenGui.Name = "Dance2GUI"
+screenGui.Parent = player:WaitForChild("PlayerGui")
 
--- Criando botão moderno
+-- Criar botão moderno
 local button = Instance.new("TextButton")
-button.Size = UDim2.new(0,60,0,60)
-button.Position = UDim2.new(0.9,0,0.85,0)
-button.AnchorPoint = Vector2.new(0.5,0.5)
-button.BackgroundColor3 = Color3.fromRGB(0,0,0)
+button.Size = UDim2.new(0, 60, 0, 60)
+button.Position = UDim2.new(0.9, 0, 0.85, 0)
+button.AnchorPoint = Vector2.new(0.5, 0.5)
 button.Text = "💃"
 button.TextScaled = true
 button.Font = Enum.Font.GothamBold
-button.TextColor3 = Color3.fromRGB(255,255,255)
+button.TextColor3 = Color3.fromRGB(255, 255, 255)
+button.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 button.BorderSizePixel = 0
+button.AutoButtonColor = false
+button.ClipsDescendants = true
 
-local uicorner = Instance.new("UICorner")
-uicorner.CornerRadius = UDim.new(0.5,0)
-uicorner.Parent = button
+-- Sombra elegante
+local shadow = Instance.new("UIStroke")
+shadow.Color = Color3.fromRGB(255, 255, 255)
+shadow.Thickness = 2
+shadow.Transparency = 0.7
+shadow.Parent = button
 
-local uistroke = Instance.new("UIStroke")
-uistroke.Color = Color3.fromRGB(255,255,255)
-uistroke.Thickness = 2
-uistroke.Transparency = 0.7
-uistroke.Parent = button
+-- Borda arredondada
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0.5, 0)
+corner.Parent = button
 
 button.Parent = screenGui
 
--- Variáveis para arrastar
+-- Variáveis de arraste
 local dragging = false
 local dragStartPos
-local buttonStartPos
+local startPos
 local holdTime = 1
 
 button.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.Touch then
+    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
         dragStartPos = input.Position
-        buttonStartPos = Vector2.new(button.Position.X.Offset, button.Position.Y.Offset)
+        startPos = button.Position
         local held = true
-        
+
+        -- Segurar 1s para arrastar
         task.spawn(function()
             task.wait(holdTime)
             if held then
                 dragging = true
             end
         end)
-        
+
         input.Changed:Connect(function()
             if input.UserInputState == Enum.UserInputState.End then
                 if dragging then
                     dragging = false
                 else
-                    -- clique curto: envia o comando de dança
+                    -- Clique curto: envia /e dance2 via chat
                     pcall(function()
-                        ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest:FireServer("/e dance","All")
+                        ReplicatedStorage.DefaultChatSystemChatEvents.SayMessageRequest:FireServer("/e dance2", "All")
                     end)
                 end
                 held = false
@@ -69,16 +73,17 @@ button.InputBegan:Connect(function(input)
     end
 end)
 
+-- Movimentação do botão
 button.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.Touch then
+    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement then
         input.Changed:Connect(function()
             if dragging and input.UserInputState == Enum.UserInputState.Change then
                 local delta = input.Position - dragStartPos
                 button.Position = UDim2.new(
                     0,
-                    math.clamp(buttonStartPos.X + delta.X, 0, workspace.CurrentCamera.ViewportSize.X - button.AbsoluteSize.X),
+                    math.clamp(startPos.X.Offset + delta.X, 0, workspace.CurrentCamera.ViewportSize.X - button.AbsoluteSize.X),
                     0,
-                    math.clamp(buttonStartPos.Y + delta.Y, 0, workspace.CurrentCamera.ViewportSize.Y - button.AbsoluteSize.Y)
+                    math.clamp(startPos.Y.Offset + delta.Y, 0, workspace.CurrentCamera.ViewportSize.Y - button.AbsoluteSize.Y)
                 )
             end
         end)
