@@ -30,74 +30,14 @@ RunService.RenderStepped:Connect(function()
     TextButton.Position = UDim2.new(0, 150, 0, inset.Y - 58)
 end)
 
--- =========================
--- REMOÇÃO DE FOLHAS (NOVO BLOCO ISOLADO)
--- =========================
-
-local function isGreen(part)
-    local c = part.Color
-    return c.G > c.R and c.G > c.B
-end
-
-local function isBrownTrunk(part)
-    local c = part.Color
-    return c.R > 0.3 and c.G > 0.15 and c.B < 0.1 and part.Size.Y > 2
-end
-
-local function processMap()
-    local parts = workspace:GetDescendants()
-
-    for i = 1, #parts do
-        local part = parts[i]
-
-        if part:IsA("BasePart") and not part.CanCollide then
-
-            -- REMOVE VERDES DIRETO
-            if isGreen(part) then
-                part:Destroy()
-
-            else
-                -- CHECAR SE ESTÁ EM CIMA DE TRONCO
-                local pos = part.Position
-
-                for j = 1, #parts do
-                    local check = parts[j]
-
-                    if check:IsA("BasePart") and isBrownTrunk(check) then
-                        local dx = math.abs(pos.X - check.Position.X)
-                        local dz = math.abs(pos.Z - check.Position.Z)
-                        local top = check.Position.Y + (check.Size.Y / 2)
-
-                        if dx < (check.Size.X / 2)
-                        and dz < (check.Size.Z / 2)
-                        and pos.Y > top
-                        and pos.Y < top + 12 then
-                            part:Destroy()
-                            break
-                        end
-                    end
-                end
-            end
-        end
-    end
-end
-
--- roda a cada 5 segundos (não trava o jogo)
-task.spawn(function()
-    while true do
-        task.wait(5)
-        pcall(processMap)
-    end
-end)
-
--- =========================
 -- STATES
--- =========================
-
 local isWallHopEnabled = false
 local isFlicking = false
 local lastFlickTime = 0
 local Camera = workspace.CurrentCamera
+
+-- NOVO CONTROLE
+local isWallHopping = false
 
 -- DOUBLE JUMP
 local canDoubleJump = false
@@ -124,12 +64,17 @@ if LocalPlayer.Character then
 end
 LocalPlayer.CharacterAdded:Connect(setupCharacter)
 
--- DOUBLE JUMP INPUT
+-- DOUBLE JUMP INPUT (CORRIGIDO)
 UserInputService.JumpRequest:Connect(function()
+    if not isWallHopEnabled then return end
+
     local char = LocalPlayer.Character
     local hum = char and char:FindFirstChild("Humanoid")
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     if not hum or not hrp then return end
+
+    -- BLOQUEIA SE NÃO FOR WALLHOP REAL
+    if not isWallHopping then return end
 
     if canDoubleJump and tick() - lastDoubleJump > DOUBLE_JUMP_COOLDOWN then
         lastDoubleJump = tick()
@@ -150,6 +95,9 @@ end)
 local function performVideoFlick()
     if isFlicking then return end
     isFlicking = true
+
+    -- ATIVA JANELA DE WALLHOP
+    isWallHopping = true
 
     local char = LocalPlayer.Character
     local hum = char and char:FindFirstChild("Humanoid")
@@ -185,10 +133,15 @@ local function performVideoFlick()
         end
     end)
 
+    -- DESATIVA DEPOIS DE UM TEMPO CURTO
+    task.delay(0.25, function()
+        isWallHopping = false
+    end)
+
     isFlicking = false
 end
 
--- WALL DETECT
+-- WALL DETECT (MULTI-RAY FIX)
 local lastHitInstance = nil
 
 RunService.Heartbeat:Connect(function()
@@ -241,11 +194,11 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
--- TOGGLE
+-- TOGGLE (CORRIGIDO BUG DE QUEBRA DE LINHA)
 TextButton.MouseButton1Click:Connect(function()
     isWallHopEnabled = not isWallHopEnabled
     TextButton.Text = isWallHopEnabled and "Wall Hop On" or "Wall Hop Off"
     TextButton.BackgroundColor3 = isWallHopEnabled and Color3.fromRGB(40,40,40) or Color3.fromRGB(0,0,0)
 end)
 
-print("WallHop Loaded (Multi-Ray Fix + Leaf Cleaner)")
+print("WallHop Loaded (Multi-Ray Fix + DoubleJump Fix)")
