@@ -1,10 +1,20 @@
--- remover folhas "ccf" (100% seguro)
+-- CCF Parts (remove objetos visuais sem colisão)
 
 for _, v in pairs(workspace:GetDescendants()) do
     if v:IsA("BasePart") then
-        if string.find(string.lower(v.Name), "ccf") then
+        
+        -- remove partes sem colisão (folhas, efeitos, etc)
+        if v.CanCollide == false then
             v.Transparency = 1
-            v.CanCollide = false
+        end
+        
+        -- remove também texturas dentro delas
+        for _, child in pairs(v:GetChildren()) do
+            if child:IsA("Decal") or child:IsA("Texture") then
+                child.Transparency = 1
+            end
         end
     end
 end
+
+print("CCF Parts aplicado")
