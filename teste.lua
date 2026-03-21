@@ -125,7 +125,7 @@ local function performVideoFlick()
     isFlicking = false
 end
 
--- WALL DETECT (FIX LOOKVECTOR + FOOT OFFSET)
+-- WALL DETECT (MULTI-RAY FIX)
 local lastHitInstance = nil
 
 RunService.Heartbeat:Connect(function()
@@ -139,9 +139,7 @@ RunService.Heartbeat:Connect(function()
     params.FilterDescendantsInstances = {char}
     params.FilterType = Enum.RaycastFilterType.Exclude
 
-    local origin = hrp.Position + Vector3.new(0, -2.2, 0)
-
-    -- FIX: ignorar eixo Y da câmera
+    -- direção horizontal (ignora Y da câmera)
     local look = Camera.CFrame.LookVector
     local horizontal = Vector3.new(look.X, 0, look.Z)
 
@@ -149,13 +147,28 @@ RunService.Heartbeat:Connect(function()
         horizontal = horizontal.Unit
     end
 
-    local result = workspace:Raycast(
-        origin,
-        horizontal * 3,
-        params
-    )
+    local direction = horizontal * 3
 
-    if result and result.Instance and result.Instance.CanCollide then
+    local result = nil
+
+    -- MULTI-RAY (pé, meio, acima)
+    local offsets = {
+        Vector3.new(0, -2.2, 0),
+        Vector3.new(0, -1.2, 0),
+        Vector3.new(0, -0.4, 0)
+    }
+
+    for _, offset in ipairs(offsets) do
+        local origin = hrp.Position + offset
+        local ray = workspace:Raycast(origin, direction, params)
+
+        if ray and ray.Instance and ray.Instance.CanCollide then
+            result = ray
+            break
+        end
+    end
+
+    if result and result.Instance then
         if lastHitInstance and lastHitInstance ~= result.Instance then
             if hrp.Velocity.Y < -1 and tick() - lastFlickTime > 0.07 then
                 lastFlickTime = tick()
@@ -175,4 +188,4 @@ TextButton.MouseButton1Click:Connect(function()
     TextButton.BackgroundColor3 = isWallHopEnabled and Color3.fromRGB(40,40,40) or Color3.fromRGB(0,0,0)
 end)
 
-print("WallHop Loaded (Camera Fix + Foot Offset)")
+print("WallHop Loaded (Multi-Ray Fix)")
