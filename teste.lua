@@ -1,4 +1,5 @@
 -- LocalScript dentro de um ScreenGui
+
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local player = Players.LocalPlayer
@@ -8,7 +9,7 @@ local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "Dance2Button"
 screenGui.Parent = player:WaitForChild("PlayerGui")
 
--- Botão circular simples
+-- Botão circular moderno
 local button = Instance.new("TextButton")
 button.Size = UDim2.new(0, 60, 0, 60)
 button.Position = UDim2.new(0.9, 0, 0.85, 0)
@@ -27,15 +28,34 @@ corner.Parent = button
 
 button.Parent = screenGui
 
--- Função para enviar o comando de dança
+-- Função para localizar evento de chat
+local function findChatEvent(parent)
+    for _, obj in ipairs(parent:GetChildren()) do
+        if obj:IsA("RemoteEvent") and obj.Name:lower():find("say") then
+            return obj
+        elseif #obj:GetChildren() > 0 then
+            local found = findChatEvent(obj)
+            if found then return found end
+        end
+    end
+    return nil
+end
+
+-- Detectar evento de chat no ReplicatedStorage
+local chatEvent = findChatEvent(ReplicatedStorage)
+
+if not chatEvent then
+    warn("Não foi possível localizar o evento de chat para enviar /e dance2")
+end
+
+-- Função que envia /e dance2
 local function sendDance2()
-    local chatEvent = ReplicatedStorage:FindFirstChild("DefaultChatSystemChatEvents")
-    if chatEvent and chatEvent:FindFirstChild("SayMessageRequest") then
-        chatEvent.SayMessageRequest:FireServer("/e dance2","All")
+    if chatEvent then
+        chatEvent:FireServer("/e dance2","All")
     else
-        warn("Evento de chat não encontrado, dance2 não foi enviado.")
+        warn("Evento de chat não encontrado, /e dance2 não enviado")
     end
 end
 
--- Conectar clique
+-- Conectar clique do botão
 button.MouseButton1Click:Connect(sendDance2)
