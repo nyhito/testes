@@ -1,4 +1,4 @@
--- AUTO WALLHOP + DOUBLE JUMP (REFINADO - TRYHARD + FILTROS)
+-- AUTO WALLHOP + DOUBLE JUMP (TRYHARD + VERTICAL FILTER + CROUCH)
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -195,6 +195,12 @@ RunService.Heartbeat:Connect(function()
 
         if ray and ray.Instance and ray.Instance.CanCollide then
             if not isPlayerCharacter(ray.Instance) then
+                
+                -- 🚫 IGNORA PAREDES VERTICAIS PURAS
+                if math.abs(ray.Normal.Y) < 0.1 then
+                    continue
+                end
+
                 result = ray
                 break
             end
@@ -202,12 +208,6 @@ RunService.Heartbeat:Connect(function()
     end
 
     if result and result.Instance then
-        -- 🚫 BLOQUEIA PAREDE VERTICAL RETA
-        local normal = result.Normal
-        if math.abs(normal.Y) < 0.1 then
-            return
-        end
-
         if lastHitInstance and lastHitInstance ~= result.Instance then
             if hrp.Velocity.Y < -2.2 and tick() - lastFlickTime > 0.085 then
                 lastFlickTime = tick()
@@ -227,4 +227,4 @@ TextButton.MouseButton1Click:Connect(function()
     TextButton.BackgroundColor3 = isWallHopEnabled and Color3.fromRGB(40,40,40) or Color3.fromRGB(0,0,0)
 end)
 
-print("WallHop Loaded (Tryhard + Vertical Block + Crouch)")
+print("WallHop Loaded (Final Tryhard Build)")
