@@ -43,10 +43,17 @@ local canDoubleJump = false
 local lastDoubleJump = 0
 local DOUBLE_JUMP_COOLDOWN = 3
 
--- CROUCH CHECK (ADICIONADO)
-local function isCrouching(hum)
-    if not hum then return false end
-    return hum.HipHeight < 1.5
+-- CROUCH CHECK (FTF-LIKE)
+local function isCrouching(hum, hrp)
+    if not hum or not hrp then return false end
+
+    local horizontalSpeed = Vector3.new(hrp.Velocity.X, 0, hrp.Velocity.Z).Magnitude
+
+    if hum.WalkSpeed <= 9 and horizontalSpeed < 10 then
+        return true
+    end
+
+    return false
 end
 
 -- CHARACTER HANDLER
@@ -164,8 +171,8 @@ RunService.Heartbeat:Connect(function()
 
     if not hrp or not hum then return end
 
-    -- 🚫 BLOQUEIO AGACHADO (ADICIONADO)
-    if isCrouching(hum) then return end
+    -- BLOQUEIO AGACHADO
+    if isCrouching(hum, hrp) then return end
 
     local params = RaycastParams.new()
     params.FilterDescendantsInstances = {char}
@@ -178,7 +185,7 @@ RunService.Heartbeat:Connect(function()
         horizontal = horizontal.Unit
     end
 
-    -- 🔧 ALCANCE REDUZIDO (ALTERADO)
+    -- ALCANCE AJUSTADO
     local direction = horizontal * 1.8
 
     local result = nil
@@ -221,4 +228,4 @@ TextButton.MouseButton1Click:Connect(function()
     TextButton.BackgroundColor3 = isWallHopEnabled and Color3.fromRGB(40,40,40) or Color3.fromRGB(0,0,0)
 end)
 
-print("WallHop Loaded (Alcance 1.8 + Crouch Block)")
+print("WallHop Loaded (1.8 + Crouch FTF)")
