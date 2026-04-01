@@ -1,11 +1,11 @@
--- AUTO WALLHOP (SEM DOUBLE JUMP - FLICK DINÂMICO)
+-- AUTO WALLHOP (FLICK DINÂMICO + PRIORIDADE DOUBLE JUMP NATIVO)
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
 local GuiService = game:GetService("GuiService")
-local UserInputService = game:GetService("UserInputService")
 
+local Camera = workspace.CurrentCamera
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
 -- UI
@@ -34,9 +34,25 @@ end)
 local isWallHopEnabled = false
 local isFlicking = false
 local lastFlickTime = 0
-local Camera = workspace.CurrentCamera
-
 local isWallHopping = false
+
+-- DETECÇÃO DOUBLE JUMP NATIVO
+local lastYVelocity = 0
+local lastDoubleJumpTime = 0
+
+local function didUseDoubleJump(currentY)
+    -- detecta mudança brusca de queda pra subida
+    if lastYVelocity < -2 and currentY > 8 then
+        lastDoubleJumpTime = tick()
+        return true
+    end
+    return false
+end
+
+local function shouldWaitForDoubleJump(hrp)
+    -- se ainda está caindo pouco, pode ser timing do double jump
+    return hrp.Velocity.Y > -6
+end
 
 -- CROUCH CHECK
 local function isCrouching(hum, hrp)
@@ -45,26 +61,15 @@ local function isCrouching(hum, hrp)
     return hum.WalkSpeed <= 9 and horizontalSpeed < 8
 end
 
--- FLICK MELHORADO
-local function performVideoFlick()
+-- FLICK
+local function performVideoFlick(hrp)
     if isFlicking then return end
     isFlicking = true
-
     isWallHopping = true
-
-    local char = LocalPlayer.Character
-    local hum = char and char:FindFirstChild("Humanoid")
-    local hrp = char and char:FindFirstChild("HumanoidRootPart")
-    if not hum or not hrp then
-        isFlicking = false
-        return
-    end
-
-    hum:ChangeState(Enum.HumanoidStateType.Jumping)
-    hrp.Velocity = Vector3.new(hrp.Velocity.X, 44.8, hrp.Velocity.Z)
 
     local startCFrame = Camera.CFrame
 
+    -- ajuste dinâmico baseado no ângulo vertical
     local lookY = startCFrame.LookVector.Y
     local verticalInfluence = math.clamp(math.abs(lookY), 0, 1)
 
@@ -73,6 +78,9 @@ local function performVideoFlick()
 
     local flickRotation = CFrame.fromAxisAngle(startCFrame.UpVector, math.rad(dynamicAngle))
     local targetCFrame = flickRotation * startCFrame
+
+    -- impulso SEM forçar estado
+    hrp.Velocity = Vector3.new(hrp.Velocity.X, 44.8, hrp.Velocity.Z)
 
     local fastFlick = math.random() < 0.4
 
@@ -88,13 +96,7 @@ local function performVideoFlick()
         task.wait(fastFlick and 0.0045 or 0.0065)
     end
 
-    task.delay(0.1, function()
-        if hum and hum:GetState() == Enum.HumanoidStateType.Jumping then
-            hum:ChangeState(Enum.HumanoidStateType.Freefall)
-        end
-    end)
-
-    task.delay(0.25, function()
+    task.delay(0.08, function()
         isWallHopping = false
     end)
 
@@ -107,10 +109,7 @@ local lastHitInstance = nil
 local function isPlayerCharacter(instance)
     if not instance then return false end
     local model = instance:FindFirstAncestorOfClass("Model")
-    if model and model:FindFirstChildOfClass("Humanoid") then
-        return true
-    end
-    return false
+    return model and model:FindFirstChildOfClass("Humanoid")
 end
 
 RunService.Heartbeat:Connect(function()
@@ -121,8 +120,10 @@ RunService.Heartbeat:Connect(function()
     local hum = char and char:FindFirstChild("Humanoid")
 
     if not hrp or not hum then return end
-
     if isCrouching(hum, hrp) then return end
+
+    -- detectar double jump real
+    didUseDoubleJump(hrp.Velocity.Y)
 
     local params = RaycastParams.new()
     params.FilterDescendantsInstances = {char}
@@ -159,15 +160,27 @@ RunService.Heartbeat:Connect(function()
 
     if result and result.Instance then
         if lastHitInstance and lastHitInstance ~= result.Instance then
-            if hrp.Velocity.Y < -2.2 and tick() - lastFlickTime > 0.085 then
+            
+            -- ⛔ SEGURA SE ESTIVER NO TIMING DO DOUBLE JUMP
+            if shouldWaitForDoubleJump(hrp) then
+                return
+            end
+
+            -- ⚡ SE ACABOU DE USAR DOUBLE JUMP, APROVEITA
+            local boostDelay = (tick() - lastDoubleJumpTime) < 0.2
+
+            if hrp.Velocity.Y < -2.2 and tick() - lastFlickTime > (boostDelay and 0.03 or 0.085) then
                 lastFlickTime = tick()
-                performVideoFlick()
+                performVideoFlick(hrp)
             end
         end
+
         lastHitInstance = result.Instance
     else
         lastHitInstance = nil
     end
+
+    lastYVelocity = hrp.Velocity.Y
 end)
 
 -- TOGGLE
@@ -177,4 +190,4 @@ TextButton.MouseButton1Click:Connect(function()
     TextButton.BackgroundColor3 = isWallHopEnabled and Color3.fromRGB(40,40,40) or Color3.fromRGB(0,0,0)
 end)
 
-print("WallHop Loaded (Sem Double Jump)")
+print("WallHop Loaded (Double Jump Integrado)")
