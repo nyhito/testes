@@ -1,4 +1,3 @@
-
 -- AUTO WALLHOP + DOUBLE JUMP (REFINADO - FLICK DINÂMICO)
 
 local Players = game:GetService("Players")
@@ -45,10 +44,11 @@ local WALLHOP_DOUBLEJUMP_WINDOW = 0.35
 
 -- AIR WINDOW
 local lastAirTime = 0
-local AIR_DOUBLEJUMP_WINDOW = 1.2
+local AIR_DOUBLEJUMP_WINDOW = 1.4
 
--- DOUBLE JUMP
+-- DOUBLE JUMP CONTROL
 local canDoubleJump = false
+local hasUsedDoubleJump = false
 local lastDoubleJump = 0
 local DOUBLE_JUMP_COOLDOWN = 3
 
@@ -65,12 +65,15 @@ local function setupCharacter(char)
 
     hum.StateChanged:Connect(function(_, new)
         if new == Enum.HumanoidStateType.Freefall then
-            canDoubleJump = true
-            lastAirTime = tick() -- NOVO
+            if not hasUsedDoubleJump then
+                canDoubleJump = true
+                lastAirTime = tick()
+            end
         end
 
         if new == Enum.HumanoidStateType.Landed then
             canDoubleJump = false
+            hasUsedDoubleJump = false
         end
     end)
 end
@@ -97,6 +100,7 @@ UserInputService.JumpRequest:Connect(function()
     if canDoubleJump and withinAirWindow and tick() - lastDoubleJump > DOUBLE_JUMP_COOLDOWN then
         lastDoubleJump = tick()
         canDoubleJump = false
+        hasUsedDoubleJump = true
 
         hrp.Velocity = Vector3.new(hrp.Velocity.X, 34.5, hrp.Velocity.Z)
         hum:ChangeState(Enum.HumanoidStateType.Jumping)
