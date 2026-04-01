@@ -38,15 +38,7 @@ local Camera = workspace.CurrentCamera
 
 local isWallHopping = false
 
--- WALLHOP WINDOW
-local lastWallHopTime = 0
-local WALLHOP_DOUBLEJUMP_WINDOW = 0.35
-
--- AIR WINDOW
-local lastAirTime = 0
-local AIR_DOUBLEJUMP_WINDOW = 1.4
-
--- DOUBLE JUMP CONTROL
+-- DOUBLE JUMP
 local canDoubleJump = false
 local hasUsedDoubleJump = false
 local lastDoubleJump = 0
@@ -67,7 +59,6 @@ local function setupCharacter(char)
         if new == Enum.HumanoidStateType.Freefall then
             if not hasUsedDoubleJump then
                 canDoubleJump = true
-                lastAirTime = tick()
             end
         end
 
@@ -92,12 +83,10 @@ UserInputService.JumpRequest:Connect(function()
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     if not hum or not hrp then return end
 
-    local withinWallhopWindow = (tick() - lastWallHopTime) <= WALLHOP_DOUBLEJUMP_WINDOW
-    local withinAirWindow = (tick() - lastAirTime) <= AIR_DOUBLEJUMP_WINDOW
+    -- só funciona no ar
+    if hum.FloorMaterial ~= Enum.Material.Air then return end
 
-    if not isWallHopping and not withinWallhopWindow then return end
-
-    if canDoubleJump and withinAirWindow and tick() - lastDoubleJump > DOUBLE_JUMP_COOLDOWN then
+    if canDoubleJump and tick() - lastDoubleJump > DOUBLE_JUMP_COOLDOWN then
         lastDoubleJump = tick()
         canDoubleJump = false
         hasUsedDoubleJump = true
@@ -119,7 +108,6 @@ local function performVideoFlick()
     isFlicking = true
 
     isWallHopping = true
-    lastWallHopTime = tick()
 
     local char = LocalPlayer.Character
     local hum = char and char:FindFirstChild("Humanoid")
