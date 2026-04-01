@@ -38,7 +38,7 @@ local Camera = workspace.CurrentCamera
 
 local isWallHopping = false
 
--- NOVO SISTEMA
+-- DOUBLE JUMP SYSTEM
 local wallHopCharge = 0
 local REQUIRED_CHARGE = 3
 local doubleJumpReady = false
@@ -78,7 +78,6 @@ UserInputService.JumpRequest:Connect(function()
 
     local state = hum:GetState()
 
-    -- só no ar (corrigido)
     if state ~= Enum.HumanoidStateType.Freefall and state ~= Enum.HumanoidStateType.Jumping then
         return
     end
@@ -86,6 +85,7 @@ UserInputService.JumpRequest:Connect(function()
     if doubleJumpReady then
         doubleJumpReady = false
 
+        -- ALTURA ORIGINAL RESTAURADA
         hrp.Velocity = Vector3.new(hrp.Velocity.X, 34.5, hrp.Velocity.Z)
         hum:ChangeState(Enum.HumanoidStateType.Jumping)
 
@@ -176,7 +176,6 @@ RunService.Heartbeat:Connect(function(dt)
 
     if isCrouching(hum, hrp) then return end
 
-    -- NOVO: carga real de wallhop
     if isWallHopping then
         wallHopCharge += dt
         if wallHopCharge >= REQUIRED_CHARGE then
@@ -237,4 +236,4 @@ TextButton.MouseButton1Click:Connect(function()
     TextButton.BackgroundColor3 = isWallHopEnabled and Color3.fromRGB(40,40,40) or Color3.fromRGB(0,0,0)
 end)
 
-print("WallHop Loaded (Sistema corrigido sem quebrar wallhop)")
+print("WallHop Loaded (Final Ajustado)")
