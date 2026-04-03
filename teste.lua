@@ -121,7 +121,7 @@ local function performVideoFlick()
     hum.AutoRotate = false
 
     -- velocidade ajustada pra ~80° em 0.15s
-    hrp.AssemblyAngularVelocity = Vector3.new(0, math.rad(533), 0)
+    hrp.AssemblyAngularVelocity = Vector3.new(0, math.rad(833), 0)
 
     task.wait(0.15)
 
