@@ -39,11 +39,6 @@ local isWallHopping = false
 local lastWallHopTime = 0
 local WALLHOP_GRACE_TIME = 1.5
 
--- 🔥 NOVOS STATES (FIX DO BUG)
-local lastWallNormal = nil
-local WALL_RETRIGGER_BLOCK_TIME = 0.22
-local lastRealWallHop = 0
-
 -- DOUBLE JUMP
 local canDoubleJump = false
 local lastDoubleJump = 0
@@ -194,7 +189,7 @@ local function performVideoFlick()
     isFlicking = false
 end
 
--- WALL DETECT (FIX APLICADO)
+-- WALL DETECT (COM FILTRO ANTI PAREDE FANTASMA)
 local lastHitInstance = nil
 local function isPlayerCharacter(instance)
     if not instance then return false end
@@ -225,30 +220,24 @@ RunService.Heartbeat:Connect(function()
         local origin = hrp.Position + offset
         local ray = workspace:Raycast(origin, direction, params)
         if ray and ray.Instance and ray.Instance.CanCollide and not isPlayerCharacter(ray.Instance) then
-            result = ray
-            break
+            -- 🔥 FILTRO ANTI PAREDE FANTASMA
+            if ray.Normal.Y > -0.1 and ray.Normal.Y < 0.1 then
+                result = ray
+                break
+            end
         end
     end
 
     if result and result.Instance then
-        local normal = result.Normal
-
-        local sameWall = lastWallNormal and (normal:Dot(lastWallNormal) > 0.98)
-        local tooSoon = tick() - lastRealWallHop < WALL_RETRIGGER_BLOCK_TIME
-
-        if not sameWall and not tooSoon then
+        if lastHitInstance and lastHitInstance ~= result.Instance then
             if hrp.Velocity.Y < -2.2 and tick() - lastFlickTime > 0.085 then
                 lastFlickTime = tick()
-                lastRealWallHop = tick()
-                lastWallNormal = normal
                 performVideoFlick()
             end
         end
-
         lastHitInstance = result.Instance
     else
         lastHitInstance = nil
-        lastWallNormal = nil
     end
 end)
 
@@ -259,4 +248,4 @@ TextButton.MouseButton1Click:Connect(function()
     TextButton.BackgroundColor3 = isWallHopEnabled and Color3.fromRGB(40,40,40) or Color3.fromRGB(0,0,0)
 end)
 
-print("WallHop Loaded (flick original + overshoot + retrigger fix)")
+print("WallHop Loaded (filtro anti parede fantasma)")
