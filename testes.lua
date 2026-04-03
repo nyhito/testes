@@ -1,4 +1,4 @@
--- AUTO WALLHOP + DOUBLE JUMP (REFINADO + FLICK ORIGINAL COMPLETO)
+-- AUTO WALLHOP EXTREMO (FIXED)
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -39,7 +39,7 @@ local canDoubleJump = false
 local lastDoubleJump = 0
 local blockDoubleJump = false
 
--- CHARACTER SETUP
+-- CHARACTER
 local function setupCharacter(char)
     local hum = char:WaitForChild("Humanoid")
     hum.StateChanged:Connect(function(_, new)
@@ -57,6 +57,7 @@ LocalPlayer.CharacterAdded:Connect(setupCharacter)
 -- DOUBLE JUMP
 UserInputService.JumpRequest:Connect(function()
     if not isWallHopEnabled or blockDoubleJump then return end
+
     local char = LocalPlayer.Character
     local hum = char and char:FindFirstChild("Humanoid")
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
@@ -81,12 +82,10 @@ end)
 local lastFlickAngle = nil
 local function pickNextFlick()
     local minAngle, maxAngle = 50, 80
-    local attempt = 0
     local angle
     repeat
         angle = math.random(minAngle, maxAngle)
-        attempt += 1
-    until not lastFlickAngle or math.abs(angle - lastFlickAngle) >= 10 or attempt > 20
+    until not lastFlickAngle or math.abs(angle - lastFlickAngle) >= 10
     lastFlickAngle = angle
     return math.rad(angle)
 end
@@ -101,60 +100,26 @@ local function flick(hrp, hum)
     local baseYaw = hrp.Orientation.Y
     local angle = pickNextFlick()
     local steps = math.random(7,9)
-    local baseDelay = 0.01
-
-    local overshoot = math.rad(math.random(20,30))
-    local useOvershoot = math.random() < 0.9
 
     for i = 1, steps do
         local alpha = i / steps
-        local curve
-
-        if alpha <= 0.6 then
-            curve = math.sin((alpha / 0.6) * (math.pi/2))
-        else
-            curve = math.sin(((1 - alpha) / 0.4) * (math.pi/2))
-        end
+        local curve = alpha <= 0.6
+            and math.sin((alpha / 0.6) * (math.pi/2))
+            or math.sin(((1 - alpha) / 0.4) * (math.pi/2))
 
         local offset = angle * curve
         hrp.CFrame = CFrame.new(hrp.Position) * CFrame.Angles(0, math.rad(baseYaw) + offset, 0)
 
         RunService.RenderStepped:Wait()
-        task.wait(baseDelay)
+        task.wait(0.01)
     end
-
-    if useOvershoot then
-        task.delay(0.05, function()
-            local smallSteps = 4
-
-            for i = 1, smallSteps do
-                local alpha = i / smallSteps
-                local offset = -overshoot * alpha
-                hrp.CFrame = CFrame.new(hrp.Position) * CFrame.Angles(0, math.rad(baseYaw) + offset, 0)
-                RunService.RenderStepped:Wait()
-                task.wait(baseDelay)
-            end
-
-            for i = 1, smallSteps do
-                local alpha = i / smallSteps
-                local offset = -overshoot * (1 - alpha)
-                hrp.CFrame = CFrame.new(hrp.Position) * CFrame.Angles(0, math.rad(baseYaw) + offset, 0)
-                RunService.RenderStepped:Wait()
-                task.wait(baseDelay)
-            end
-
-            hrp.CFrame = CFrame.new(hrp.Position) * CFrame.Angles(0, math.rad(baseYaw), 0)
-        end)
-    end
-
-    hrp.CFrame = CFrame.new(hrp.Position) * CFrame.Angles(0, math.rad(baseYaw), 0)
 
     hum:ChangeState(Enum.HumanoidStateType.Freefall)
 
-    task.delay(0.05, function() blockDoubleJump = false end)
+    task.delay(0.05,function() blockDoubleJump = false end)
 end
 
--- WALL DETECT REFINADO
+-- WALL DETECT FIXADO
 RunService.Heartbeat:Connect(function()
     if not isWallHopEnabled then return end
 
@@ -172,6 +137,7 @@ RunService.Heartbeat:Connect(function()
     if horizontal.Magnitude > 0 then horizontal = horizontal.Unit end
 
     local direction = horizontal * 1.55
+
     local offsets = {
         Vector3.new(0,-2.2,0),
         Vector3.new(0,-1.2,0),
@@ -180,17 +146,18 @@ RunService.Heartbeat:Connect(function()
 
     for _,offset in ipairs(offsets) do
         local ray = workspace:Raycast(hrp.Position + offset, direction, params)
+
         if ray and ray.Instance and ray.Instance.CanCollide then
 
             local dot = ray.Normal:Dot(horizontal * -1)
 
-            if dot > 0.7 and math.abs(ray.Normal.Y) < 0.15 then
+            if dot > 0.65 and math.abs(ray.Normal.Y) < 0.2 then
 
-                if lastNormal and (ray.Normal - lastNormal).Magnitude < 0.1 then
+                if lastNormal and (ray.Normal - lastNormal).Magnitude < 0.12 then
                     return
                 end
 
-                if tick() - lastFlickTime < 0.12 then return end
+                if tick() - lastFlickTime < 0.07 then return end
 
                 if hrp.Velocity.Y < -2 then
                     lastFlickTime = tick()
@@ -208,4 +175,4 @@ TextButton.MouseButton1Click:Connect(function()
     TextButton.Text = isWallHopEnabled and "Wall Hop On" or "Wall Hop Off"
 end)
 
-print("WallHop Loaded (refinado + flick completo)")
+print("WallHop Loaded (EXTREMO FIXED)")
