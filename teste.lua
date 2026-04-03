@@ -1,4 +1,4 @@
--- AUTO WALLHOP + DOUBLE JUMP (FLICK FÍSICO 45° COM ALIGNORIENTATION)
+-- AUTO WALLHOP + DOUBLE JUMP (FLICK FÍSICO 45° ESTÁVEL)
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -98,7 +98,7 @@ UserInputService.JumpRequest:Connect(function()
 	end
 end)
 
--- FLICK FÍSICO COM ALIGNORIENTATION
+-- FLICK FÍSICO CORRIGIDO
 local function performVideoFlick()
 	if isFlicking then return end
 	isFlicking = true
@@ -114,44 +114,24 @@ local function performVideoFlick()
 		return
 	end
 
-	-- evita travar braço
-	if hum:GetState() == Enum.HumanoidStateType.Running then
-		hum:ChangeState(Enum.HumanoidStateType.Jumping)
-	end
-
-	-- impulso original
+	-- NÃO força Jumping (corrige braço travado)
 	hrp.Velocity = Vector3.new(hrp.Velocity.X, 44.8, hrp.Velocity.Z)
 
 	local oldAutoRotate = hum.AutoRotate
 	hum.AutoRotate = false
 
-	-- cria constraint
-	local align = Instance.new("AlignOrientation")
-	align.MaxTorque = 1e6
-	align.Responsiveness = 200
-	align.RigidityEnabled = true
-	align.Parent = hrp
+	-- 🔥 FLICK VISÍVEL (~45°)
+	hrp.AssemblyAngularVelocity = Vector3.new(0, math.rad(1300), 0)
+	task.wait(0.035)
 
-	local startCF = hrp.CFrame
-	local targetCF = startCF * CFrame.Angles(0, math.rad(45), 0)
+	-- freio rápido
+	hrp.AssemblyAngularVelocity = Vector3.new(0, math.rad(-250), 0)
+	task.wait(0.02)
 
-	-- flick
-	align.CFrame = targetCF
-	task.wait(0.05)
+	-- parar
+	hrp.AssemblyAngularVelocity = Vector3.zero
 
-	-- volta
-	align.CFrame = startCF
-	task.wait(0.05)
-
-	align:Destroy()
 	hum.AutoRotate = oldAutoRotate
-
-	-- garante animação normal
-	task.delay(0.05, function()
-		if hum then
-			hum:ChangeState(Enum.HumanoidStateType.Freefall)
-		end
-	end)
 
 	task.delay(0.25, function()
 		isWallHopping = false
@@ -236,4 +216,4 @@ TextButton.MouseButton1Click:Connect(function()
 	TextButton.BackgroundColor3 = isWallHopEnabled and Color3.fromRGB(40,40,40) or Color3.fromRGB(0,0,0)
 end)
 
-print("WallHop Loaded (flick 45° AlignOrientation)")
+print("WallHop Loaded (flick físico 45° estável)")
