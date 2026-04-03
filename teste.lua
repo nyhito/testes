@@ -1,4 +1,4 @@
--- AUTO WALLHOP + DOUBLE JUMP (FLICK LIMPO FINAL)
+-- AUTO WALLHOP + DOUBLE JUMP (FLICK SINCRONIZADO FINAL)
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -96,7 +96,7 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
--- FLICK ESTÁVEL
+-- FLICK SINCRONIZADO
 local function performVideoFlick()
     if isFlicking then return end
     isFlicking = true
@@ -113,21 +113,23 @@ local function performVideoFlick()
         return
     end
 
-    -- impulso vertical
+    -- 🔥 impulso + flick no MESMO MOMENTO
     hrp.Velocity = Vector3.new(hrp.Velocity.X, 44.8, hrp.Velocity.Z)
 
     local oldAutoRotate = hum.AutoRotate
     hum.AutoRotate = false
     hrp.AssemblyAngularVelocity = Vector3.zero
 
-    -- ângulo controlado
-    local angle = math.rad(math.random(45, 60))
+    -- ângulo variável (50°–80°)
+    local angle = math.rad(math.random(50, 80))
     local dir = 1
 
     local baseCF = hrp.CFrame
     local _, baseYaw, _ = baseCF:ToOrientation()
 
-    local steps = 10
+    -- tempo variável (rápido)
+    local flickTime = math.random(4,7) / 100 -- 0.04s – 0.07s
+    local steps = math.max(1, math.floor(flickTime / 0.008))
 
     for i = 1, steps do
         local alpha = i / steps
@@ -146,13 +148,13 @@ local function performVideoFlick()
         blockDoubleJump = false
     end)
 
-    task.delay(0.1, function()
+    task.delay(0.08, function()
         if hum then
             hum:ChangeState(Enum.HumanoidStateType.Freefall)
         end
     end)
 
-    task.delay(0.25, function()
+    task.delay(0.2, function()
         isWallHopping = false
     end)
 
@@ -234,4 +236,4 @@ TextButton.MouseButton1Click:Connect(function()
     TextButton.BackgroundColor3 = isWallHopEnabled and Color3.fromRGB(40,40,40) or Color3.fromRGB(0,0,0)
 end)
 
-print("WallHop Loaded (estável final)")
+print("WallHop Loaded (flick sincronizado)")
