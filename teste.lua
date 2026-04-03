@@ -1,4 +1,4 @@
--- AUTO WALLHOP + DOUBLE JUMP (FLICK EXTREMO AJUSTADO)
+-- AUTO WALLHOP + DOUBLE JUMP (FLICK VISUAL SEM QUEBRAR FÍSICA - 60° EM 0.15s)
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -37,6 +37,7 @@ local lastFlickTime = 0
 local Camera = workspace.CurrentCamera
 
 local isWallHopping = false
+
 local lastWallHopTime = 0
 local WALLHOP_GRACE_TIME = 1.5
 
@@ -96,7 +97,7 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
--- FLICK AJUSTADO
+-- FLICK VISUAL (60° EM 0.15s)
 local function performVideoFlick()
     if isFlicking then return end
     isFlicking = true
@@ -112,30 +113,20 @@ local function performVideoFlick()
         return
     end
 
+    -- impulso original
     hum:ChangeState(Enum.HumanoidStateType.Jumping)
+    hrp.Velocity = Vector3.new(hrp.Velocity.X, 44.8, hrp.Velocity.Z)
 
-    hrp.Velocity = Vector3.new(hrp.Velocity.X, 46, hrp.Velocity.Z)
+    local oldAutoRotate = hum.AutoRotate
+    hum.AutoRotate = false
 
-    local angleRad = math.rad(80)
-    local fastFlick = math.random() < 0.4
+    -- velocidade ajustada pra ~60° em 0.15s
+    hrp.AssemblyAngularVelocity = Vector3.new(0, math.rad(400), 0)
 
-    -- SNAP
-    hrp.CFrame = hrp.CFrame * CFrame.Angles(0, angleRad, 0)
+    task.wait(0.15)
 
-    local right = hrp.CFrame.RightVector
-    hrp.Velocity = hrp.Velocity + (right * 6)
-
-    task.wait(fastFlick and 0.035 or 0.045)
-
-    -- VOLTA
-    local steps = fastFlick and 7 or 10
-
-    for i = 1, steps do
-        local alpha = (i / steps) ^ (fastFlick and 1.6 or 2.0)
-        local stepAngle = angleRad * alpha / steps
-        hrp.CFrame = hrp.CFrame * CFrame.Angles(0, -stepAngle, 0)
-        task.wait(fastFlick and 0.008 or 0.011)
-    end
+    hrp.AssemblyAngularVelocity = Vector3.zero
+    hum.AutoRotate = oldAutoRotate
 
     task.delay(0.1, function()
         if hum and hum:GetState() == Enum.HumanoidStateType.Jumping then
@@ -150,7 +141,7 @@ local function performVideoFlick()
     isFlicking = false
 end
 
--- WALL DETECT
+-- WALL DETECT (INALTERADO)
 local lastHitInstance = nil
 
 local function isPlayerCharacter(instance)
@@ -226,5 +217,4 @@ TextButton.MouseButton1Click:Connect(function()
     TextButton.BackgroundColor3 = isWallHopEnabled and Color3.fromRGB(40,40,40) or Color3.fromRGB(0,0,0)
 end)
 
-print("WallHop Loaded (FLICK AJUSTADO LENTO)")
-
+print("WallHop Loaded (flick 60° em 0.15s)")
