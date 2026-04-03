@@ -30,7 +30,7 @@ RunService.RenderStepped:Connect(function()
     TextButton.Position = UDim2.new(0, 150, 0, inset.Y - 58)
 end)
 
--- BOTÃO DE ESCONDER/MOSTRAR (DRAGGABLE)
+-- BOTÃO DE ESCONDER/MOSTRAR
 local ToggleButton = Instance.new("TextButton")
 ToggleButton.Size = UDim2.new(0, 40, 0, 40)
 ToggleButton.Position = UDim2.new(0, 20, 0, 200)
@@ -43,21 +43,15 @@ ToggleButton.Parent = ScreenGui
 
 Instance.new("UICorner", ToggleButton).CornerRadius = UDim.new(1, 0)
 
--- ESTADO UI
 local uiVisible = true
 
 ToggleButton.MouseButton1Click:Connect(function()
     uiVisible = not uiVisible
     TextButton.Visible = uiVisible
-
-    if uiVisible then
-        ToggleButton.Text = "-"
-    else
-        ToggleButton.Text = "+"
-    end
+    ToggleButton.Text = uiVisible and "-" or "+"
 end)
 
--- DRAG SYSTEM
+-- DRAG
 local dragging = false
 local dragInput, dragStart, startPos
 
@@ -105,7 +99,7 @@ local Camera = workspace.CurrentCamera
 
 local isWallHopping = false
 
--- NOVO (janela após wallhop)
+-- NOVO
 local lastWallHopTime = 0
 local WALLHOP_GRACE_TIME = 1.5
 
@@ -121,5 +115,7 @@ local function isCrouching(hum, hrp)
     return hum.WalkSpeed <= 9 and horizontalSpeed < 8
 end
 
--- CHARACTER HANDLER
+-- CHARACTER HANDLER (FECHADO PRA NÃO DAR ERRO)
 local function setupCharacter(char)
+    -- sua lógica original aqui
+end
