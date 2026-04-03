@@ -1,4 +1,4 @@
--- AUTO WALLHOP + DOUBLE JUMP (REFINADO - FLICK DINÂMICO)
+-- AUTO WALLHOP + DOUBLE JUMP (FLICK HUMANIZADO DIREÇÃO FIXA)
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -25,7 +25,7 @@ TextButton.TextScaled = true
 TextButton.Parent = ScreenGui
 Instance.new("UICorner", TextButton).CornerRadius = UDim.new(0, 12)
 
--- POSIÇÃO ORIGINAL (CORRIGIDO)
+-- POSIÇÃO ORIGINAL
 RunService.RenderStepped:Connect(function()
 	local inset = GuiService:GetGuiInset()
 	TextButton.Position = UDim2.new(0, 150, 0, inset.Y - 58)
@@ -97,7 +97,6 @@ local lastFlickTime = 0
 local Camera = workspace.CurrentCamera
 
 local isWallHopping = false
-
 local lastWallHopTime = 0
 local WALLHOP_GRACE_TIME = 1.5
 
@@ -159,7 +158,7 @@ UserInputService.JumpRequest:Connect(function()
 	end
 end)
 
--- FLICK RESTAURADO
+-- FLICK HUMANIZADO (DIREÇÃO FIXA)
 local function performVideoFlick()
 	if isFlicking then return end
 	isFlicking = true
@@ -183,24 +182,43 @@ local function performVideoFlick()
 	local lookY = startCFrame.LookVector.Y
 	local verticalInfluence = math.clamp(math.abs(lookY), 0, 1)
 
-	local baseAngle = 45
+	local baseAngle = math.random(42, 50)
+	if math.random() < 0.25 then
+		baseAngle = 50
+	end
+
 	local dynamicAngle = baseAngle * (1 - (verticalInfluence * 0.6))
 
-	local flickRotation = CFrame.fromAxisAngle(startCFrame.UpVector, math.rad(dynamicAngle))
+	-- DIREÇÃO FIXA (sempre mesma)
+	local direction = 1 -- mude para -1 se quiser pro outro lado
+
+	local flickRotation = CFrame.fromAxisAngle(
+		startCFrame.UpVector,
+		math.rad(dynamicAngle * direction)
+	)
+
 	local targetCFrame = flickRotation * startCFrame
 
-	local fastFlick = math.random() < 0.4
+	task.wait(math.random(8, 16) / 1000)
 
 	Camera.CFrame = targetCFrame
 
-	task.wait(fastFlick and 0.013 or 0.019)
+	if math.random() < 0.35 then
+		local overshootRot = CFrame.fromAxisAngle(
+			startCFrame.UpVector,
+			math.rad(3 * direction)
+		)
+		Camera.CFrame = overshootRot * Camera.CFrame
+	end
 
-	local steps = fastFlick and 4 or 6
+	task.wait(math.random(10, 17) / 1000)
+
+	local steps = math.random(4, 7)
 
 	for i = 1, steps do
-		local alpha = (i / steps) ^ (fastFlick and 1.8 or 2.2)
+		local alpha = (i / steps) ^ (math.random(18, 24) / 10)
 		Camera.CFrame = targetCFrame:Lerp(startCFrame, alpha)
-		task.wait(fastFlick and 0.0045 or 0.0065)
+		task.wait(math.random(3, 7) / 1000)
 	end
 
 	task.delay(0.1, function()
@@ -216,7 +234,7 @@ local function performVideoFlick()
 	isFlicking = false
 end
 
--- WALL DETECT
+-- WALL DETECT (igual)
 local lastHitInstance = nil
 
 local function isPlayerCharacter(instance)
@@ -284,4 +302,4 @@ TextButton.MouseButton1Click:Connect(function()
 	TextButton.Text = isWallHopEnabled and "Wall Hop On" or "Wall Hop Off"
 end)
 
-print("WallHop Loaded (com botão oculto)")
+print("WallHop Loaded (flick humano fixo)")
