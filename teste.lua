@@ -1,4 +1,4 @@
--- AUTO WALLHOP + DOUBLE JUMP (FLICK HUMANIZADO SUAVE / 0.14s / FÍSICA CORRIGIDA)
+-- AUTO WALLHOP + DOUBLE JUMP (FLICK ORIGINAL + SEM TRAVADA)
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -123,7 +123,7 @@ local function getRandomAngle()
     return angle
 end
 
--- FLICK
+-- FLICK (ORIGINAL SNAP)
 local function performVideoFlick()
     if isFlicking then return end
     isFlicking = true
@@ -139,28 +139,21 @@ local function performVideoFlick()
         return
     end
 
-    -- PULO COM MOMENTUM REAL
+    -- PULO AJUSTADO
     local vel = hrp.Velocity
     hum:ChangeState(Enum.HumanoidStateType.Jumping)
     hum:Move(Vector3.new(0,0,0), true)
     hrp.Velocity = Vector3.new(vel.X * 1.05, 62, vel.Z * 1.05)
 
-    local oldAutoRotate = hum.AutoRotate
-    hum.AutoRotate = false
-
     local originalCF = hrp.CFrame
     local angle = math.rad(getRandomAngle())
 
-    -- FLICK SUAVE (0.14s)
-    local targetCF = originalCF * CFrame.Angles(0, angle, 0)
-
-    hrp.CFrame = hrp.CFrame:Lerp(targetCF, 0.6)
+    -- FLICK ORIGINAL (SEM LERP)
+    hrp.CFrame = originalCF * CFrame.Angles(0, angle, 0)
     task.wait(0.07)
 
-    hrp.CFrame = hrp.CFrame:Lerp(originalCF, 0.6)
+    hrp.CFrame = originalCF
     task.wait(0.07)
-
-    hum.AutoRotate = oldAutoRotate
 
     task.delay(0.25, function()
         isWallHopping = false
@@ -245,4 +238,4 @@ TextButton.MouseButton1Click:Connect(function()
     TextButton.BackgroundColor3 = isWallHopEnabled and Color3.fromRGB(40,40,40) or Color3.fromRGB(0,0,0)
 end)
 
-print("WallHop Loaded (SUAVE + FÍSICA CORRIGIDA)")
+print("WallHop Loaded (FLICK ORIGINAL RESTAURADO)")
