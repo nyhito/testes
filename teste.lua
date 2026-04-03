@@ -1,4 +1,4 @@
--- AUTO WALLHOP + DOUBLE JUMP (ULTRA CLEAN + FLICK HUMANIZADO COM OVERSHOOT)
+-- AUTO WALLHOP + DOUBLE JUMP (ULTRA CLEAN COM FLICK AJUSTADO)
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -22,6 +22,7 @@ TextButton.TextColor3 = Color3.fromRGB(255,255,255)
 TextButton.Font = Enum.Font.GothamBold
 TextButton.TextScaled = true
 TextButton.Parent = ScreenGui
+
 Instance.new("UICorner", TextButton).CornerRadius = UDim.new(0, 12)
 
 RunService.RenderStepped:Connect(function()
@@ -53,6 +54,7 @@ end
 
 local function setupCharacter(char)
     local hum = char:WaitForChild("Humanoid")
+
     hum.StateChanged:Connect(function(_, new)
         if new == Enum.HumanoidStateType.Freefall then
             canDoubleJump = true
@@ -85,7 +87,6 @@ UserInputService.JumpRequest:Connect(function()
         canDoubleJump = false
 
         hrp.Velocity = Vector3.new(hrp.Velocity.X, 34.5, hrp.Velocity.Z)
-        hum:ChangeState(Enum.HumanoidStateType.Jumping)
 
         task.delay(0.18, function()
             if hum then
@@ -95,26 +96,34 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
--- ÂNGULO COM DIFERENÇA MÍNIMA
-local lastFlickAngle = nil
-local function pickNextFlick()
-    local minAngle, maxAngle = 50, 80
-    local attempt = 0
-    local angle
+-- RANDOM CENTRAL
+local function pickCentral(values)
+    local mid = math.ceil(#values/2)
+    local total, weights = 0, {}
 
-    repeat
-        angle = math.random(minAngle, maxAngle)
-        attempt += 1
-    until not lastFlickAngle or math.abs(angle - lastFlickAngle) >= 10 or attempt > 20
+    for i=1,#values do
+        local d = math.abs(i - mid)
+        local w = 1/(1 + d^1.3)
+        weights[i] = w
+        total += w
+    end
 
-    lastFlickAngle = angle
-    return math.rad(angle)
+    local r = math.random() * total
+    for i, w in ipairs(weights) do
+        r -= w
+        if r <= 0 then
+            return values[i]
+        end
+    end
+
+    return values[#values]
 end
 
--- FLICK COM OVERSHOOT
+-- FLICK ULTRA AJUSTADO
 local function performVideoFlick()
     if isFlicking then return end
     isFlicking = true
+
     isWallHopping = true
     lastWallHopTime = tick()
     blockDoubleJump = true
@@ -127,53 +136,55 @@ local function performVideoFlick()
         return
     end
 
-    -- impulso
+    -- impulso original sem mexer na câmera
     hrp.Velocity = Vector3.new(hrp.Velocity.X, 44.8, hrp.Velocity.Z)
-    hum:ChangeState(Enum.HumanoidStateType.Jumping)
+    local oldAutoRotate = hum.AutoRotate
+    hum.AutoRotate = false
+    hrp.AssemblyAngularVelocity = Vector3.zero
 
-    local baseYaw = hrp.Orientation.Y
-    local angle = pickNextFlick()
-    local steps = math.random(7,9)
-    local baseDelay = 0.01
+    -- ângulo 45° a 80° (aleatório)
+    local angle = math.rad(math.random(45, 80))
 
-    local overshoot = math.rad(math.random(0, 12))
-    local useOvershoot = math.random() < 0.6
+    -- overshoot aproximadamente 20°
+    local overshoot = math.rad(math.random(30, 35)) -- gera cerca de 20° visíveis
+    local useOvershoot = math.random() < 0.9        -- 90% de chance
+
+    -- steps do flick (humanizado)
+    local steps = math.random(7, 9)
+    local stepDelay = 0.01
+
+    -- base Yaw
+    local baseCF = hrp.CFrame
+    local _, baseYaw, _ = baseCF:ToOrientation()
+    local dir = 1 -- lado fixo
 
     for i = 1, steps do
         local alpha = i / steps
-        local curve
+        local curve = math.sin(alpha * math.pi)
+        local offset = angle * curve * dir
 
-        if alpha <= 0.6 then
-            curve = math.sin((alpha / 0.6) * (math.pi/2))
-        else
-            local backAlpha = (alpha - 0.6) / 0.4
-            curve = math.sin((1 - backAlpha) * (math.pi/2))
-
-            if useOvershoot then
-                curve = curve - (backAlpha * overshoot / angle)
-            end
+        if useOvershoot then
+            offset = offset + overshoot * math.sin(alpha * math.pi)
         end
 
-        local offset = angle * curve
-
-        hrp.CFrame = CFrame.new(hrp.Position) * CFrame.Angles(0, math.rad(baseYaw) + offset, 0)
-
+        hrp.CFrame = CFrame.new(hrp.Position) * CFrame.Angles(0, baseYaw + offset, 0)
         RunService.RenderStepped:Wait()
-        task.wait(baseDelay * (0.8 + math.random()*0.4))
     end
 
-    -- reset
-    hrp.CFrame = CFrame.new(hrp.Position) * CFrame.Angles(0, math.rad(baseYaw), 0)
+    hum.AutoRotate = oldAutoRotate
 
-    if hum:GetState() ~= Enum.HumanoidStateType.Freefall then
-        hum:ChangeState(Enum.HumanoidStateType.Freefall)
-    end
-
+    -- libera double jump
     task.delay(0.05, function()
         blockDoubleJump = false
     end)
 
-    task.delay(0.15, function()
+    task.delay(0.1, function()
+        if hum then
+            hum:ChangeState(Enum.HumanoidStateType.Freefall)
+        end
+    end)
+
+    task.delay(0.25, function()
         isWallHopping = false
     end)
 
@@ -186,7 +197,10 @@ local lastHitInstance = nil
 local function isPlayerCharacter(instance)
     if not instance then return false end
     local model = instance:FindFirstAncestorOfClass("Model")
-    return model and model:FindFirstChildOfClass("Humanoid")
+    if model and model:FindFirstChildOfClass("Humanoid") then
+        return true
+    end
+    return false
 end
 
 RunService.Heartbeat:Connect(function()
@@ -195,7 +209,6 @@ RunService.Heartbeat:Connect(function()
     local char = LocalPlayer.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     local hum = char and char:FindFirstChild("Humanoid")
-
     if not hrp or not hum then return end
     if isCrouching(hum, hrp) then return end
 
@@ -205,6 +218,7 @@ RunService.Heartbeat:Connect(function()
 
     local look = Camera.CFrame.LookVector
     local horizontal = Vector3.new(look.X, 0, look.Z)
+
     if horizontal.Magnitude > 0 then
         horizontal = horizontal.Unit
     end
@@ -246,8 +260,9 @@ end)
 -- TOGGLE
 TextButton.MouseButton1Click:Connect(function()
     isWallHopEnabled = not isWallHopEnabled
+
     TextButton.Text = isWallHopEnabled and "Wall Hop On" or "Wall Hop Off"
     TextButton.BackgroundColor3 = isWallHopEnabled and Color3.fromRGB(40,40,40) or Color3.fromRGB(0,0,0)
 end)
 
-print("WallHop Loaded (flick humanizado + overshoot)")
+print("WallHop Loaded (flick 45°-80°, overshoot ~20°, 90% chance)")
