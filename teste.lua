@@ -1,4 +1,4 @@
--- AUTO WALLHOP + DOUBLE JUMP (FLICK NATURAL MELHORADO)
+-- AUTO WALLHOP + DOUBLE JUMP (FLICK REFINADO FINAL)
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -152,7 +152,7 @@ UserInputService.JumpRequest:Connect(function()
 	end
 end)
 
--- FLICK MELHORADO
+-- FLICK FINAL
 local function performVideoFlick()
 	if isFlicking then return end
 	isFlicking = true
@@ -173,13 +173,20 @@ local function performVideoFlick()
 
 	local start = Camera.CFrame
 
+	local direction = 1
 	local angle = math.rad(math.random(42, 60))
-	local direction = (math.random() < 0.5) and -1 or 1
 
-	local target = start * CFrame.Angles(0, angle * direction, 0)
+	local look = start.LookVector
+	local flatLook = Vector3.new(look.X, 0, look.Z).Unit
+
+	local rotatedLook =
+		(flatLook * math.cos(angle)) +
+		(Vector3.new(-flatLook.Z, 0, flatLook.X) * math.sin(angle) * direction)
+
+	local target = CFrame.new(start.Position, start.Position + rotatedLook)
 
 	local durationIn = math.random(50, 70) / 1000
-	local durationOut = math.random(30, 55) / 1000
+	local durationOut = math.random(20, 35) / 1000 -- mais rápido
 
 	-- ida
 	local t0 = tick()
@@ -187,7 +194,7 @@ local function performVideoFlick()
 		local t = (tick() - t0) / durationIn
 		if t >= 1 then break end
 
-		local alpha = t * 0.85 + (t^2) * 0.15
+		local alpha = t * 0.8 + (t^2) * 0.2
 		Camera.CFrame = start:Lerp(target, alpha)
 
 		RunService.RenderStepped:Wait()
@@ -195,19 +202,33 @@ local function performVideoFlick()
 
 	Camera.CFrame = target
 
-	task.wait(math.random(4, 9)/1000)
+	task.wait(math.random(4, 8)/1000)
 
-	-- volta com leve imprecisão
+	-- escolha controlada de retorno
+	local rand = math.random()
+
+	local offsetAngle = 0
+	if rand <= 0.4 then
+		offsetAngle = 0 -- centro
+	elseif rand <= 0.7 then
+		offsetAngle = math.rad(1.2) -- direita
+	else
+		offsetAngle = math.rad(-1.2) -- esquerda
+	end
+
+	local returnLook =
+		(flatLook * math.cos(offsetAngle)) +
+		(Vector3.new(-flatLook.Z, 0, flatLook.X) * math.sin(offsetAngle))
+
+	local imperfectReturn = CFrame.new(start.Position, start.Position + returnLook)
+
+	-- volta rápida e limpa
 	local t1 = tick()
-	local randomOffset = math.rad(math.random(-2, 2))
-	local imperfectReturn = start * CFrame.Angles(0, randomOffset, 0)
-
 	while true do
 		local t = (tick() - t1) / durationOut
 		if t >= 1 then break end
 
-		local alpha = t
-		Camera.CFrame = target:Lerp(imperfectReturn, alpha)
+		Camera.CFrame = target:Lerp(imperfectReturn, t)
 
 		RunService.RenderStepped:Wait()
 	end
@@ -283,4 +304,4 @@ TextButton.MouseButton1Click:Connect(function()
 	TextButton.Text = isWallHopEnabled and "Wall Hop On" or "Wall Hop Off"
 end)
 
-print("WallHop Loaded (flick melhorado)")
+print("WallHop Loaded (flick refinado final)")
