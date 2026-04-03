@@ -1,4 +1,4 @@
--- AUTO WALLHOP + DOUBLE JUMP (CFRAME FIX FINAL)
+-- AUTO WALLHOP + DOUBLE JUMP (FINAL FIX COMPLETO)
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -44,6 +44,7 @@ local WALLHOP_GRACE_TIME = 1.5
 local canDoubleJump = false
 local lastDoubleJump = 0
 local DOUBLE_JUMP_COOLDOWN = 3
+local blockDoubleJump = false
 
 local function isCrouching(hum, hrp)
     if not hum or not hrp then return false end
@@ -69,9 +70,9 @@ if LocalPlayer.Character then
 end
 LocalPlayer.CharacterAdded:Connect(setupCharacter)
 
--- DOUBLE JUMP
+-- DOUBLE JUMP FIX
 UserInputService.JumpRequest:Connect(function()
-    if not isWallHopEnabled then return end
+    if not isWallHopEnabled or blockDoubleJump then return end
 
     local char = LocalPlayer.Character
     local hum = char and char:FindFirstChild("Humanoid")
@@ -96,7 +97,7 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
--- RANDOM CENTRALIZADO
+-- RANDOM CENTRAL
 local function pickCentral(values)
     local mid = math.ceil(#values/2)
     local total, weights = 0, {}
@@ -119,13 +120,14 @@ local function pickCentral(values)
     return values[#values]
 end
 
--- FLICK CORRIGIDO (CFRAME SEM TRAVAR POSIÇÃO)
+-- FLICK FIX FINAL
 local function performVideoFlick()
     if isFlicking then return end
     isFlicking = true
 
     isWallHopping = true
     lastWallHopTime = tick()
+    blockDoubleJump = true
 
     local char = LocalPlayer.Character
     local hum = char and char:FindFirstChild("Humanoid")
@@ -135,7 +137,6 @@ local function performVideoFlick()
         return
     end
 
-    -- impulso original
     hum:ChangeState(Enum.HumanoidStateType.Jumping)
     hrp.Velocity = Vector3.new(hrp.Velocity.X, 44.8, hrp.Velocity.Z)
 
@@ -144,7 +145,6 @@ local function performVideoFlick()
 
     hrp.AssemblyAngularVelocity = Vector3.zero
 
-    -- escolha
     local roll = math.random()
     local values, tMin, tMax
 
@@ -169,23 +169,30 @@ local function performVideoFlick()
     local ang = pickCentral(values)
     local flickTime = math.random()*(tMax - tMin) + tMin
 
-    local angle = math.rad(ang) * flickTime
+    local totalAngle = math.rad(ang) * flickTime
     local dir = (math.random() < 0.5) and 1 or -1
+
+    local baseCF = hrp.CFrame
+    local _, baseYaw, _ = baseCF:ToOrientation()
 
     local steps = math.max(1, math.floor(flickTime / 0.005))
 
     for i = 1, steps do
         local alpha = i / steps
         local curve = math.sin(alpha * math.pi)
-        local offset = angle * curve * dir
+        local offset = totalAngle * curve * dir
 
-        local currentCF = hrp.CFrame
-        hrp.CFrame = currentCF * CFrame.Angles(0, offset, 0)
+        local pos = hrp.Position
+        hrp.CFrame = CFrame.new(pos) * CFrame.Angles(0, baseYaw + offset, 0)
 
         RunService.RenderStepped:Wait()
     end
 
     hum.AutoRotate = oldAutoRotate
+
+    task.delay(0.05, function()
+        blockDoubleJump = false
+    end)
 
     task.delay(0.1, function()
         if hum and hum:GetState() == Enum.HumanoidStateType.Jumping then
@@ -274,4 +281,4 @@ TextButton.MouseButton1Click:Connect(function()
     TextButton.BackgroundColor3 = isWallHopEnabled and Color3.fromRGB(40,40,40) or Color3.fromRGB(0,0,0)
 end)
 
-print("WallHop Loaded (final real fix)")
+print("WallHop Loaded (final corrigido de verdade)")
