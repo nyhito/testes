@@ -1,4 +1,4 @@
--- AUTO WALLHOP + DOUBLE JUMP (FLICK VISUAL RANDOM CENTRALIZADO)
+-- AUTO WALLHOP + DOUBLE JUMP (FLICK VISUAL HARD LOCK)
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -97,7 +97,7 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
--- FLICK VISUAL (RANDOM CENTRALIZADO)
+-- FLICK VISUAL (ANTI-DRIFT HARD LOCK)
 local function performVideoFlick()
     if isFlicking then return end
     isFlicking = true
@@ -113,32 +113,37 @@ local function performVideoFlick()
         return
     end
 
-    -- impulso original
+    -- guarda direção original
+    local originalVel = hrp.Velocity
+    local horizontal = Vector3.new(originalVel.X, 0, originalVel.Z)
+    local speed = horizontal.Magnitude
+    local direction = speed > 0 and horizontal.Unit or Vector3.zero
+
+    -- impulso
     hum:ChangeState(Enum.HumanoidStateType.Jumping)
-    hrp.Velocity = Vector3.new(hrp.Velocity.X, 44.8, hrp.Velocity.Z)
+    hrp.Velocity = Vector3.new(originalVel.X, 44.8, originalVel.Z)
 
     local oldAutoRotate = hum.AutoRotate
     hum.AutoRotate = false
 
-    -- valores possíveis
-    local possibleValues = {1300, 1350, 1400, 1450, 1500, 1550, 1600, 1650, 1700, 1750, 1800}
+    -- RANDOM CENTRALIZADO
+    local possibleValues = {1300,1350,1400,1450,1500,1550,1600,1650,1700,1750,1800}
 
-    -- distribuição em sino (centro mais comum, extremos raros)
     local function getRandomAngularVelocity()
         local weights = {}
         local totalWeight = 0
-        local midIndex = math.ceil(#possibleValues / 2)
+        local mid = math.ceil(#possibleValues/2)
 
         for i = 1, #possibleValues do
-            local distance = math.abs(i - midIndex)
-            local weight = 1 / (1 + distance^1.3)
-            weights[i] = weight
-            totalWeight = totalWeight + weight
+            local d = math.abs(i - mid)
+            local w = 1 / (1 + d^1.3)
+            weights[i] = w
+            totalWeight += w
         end
 
         local r = math.random() * totalWeight
-        for i, weight in ipairs(weights) do
-            r = r - weight
+        for i, w in ipairs(weights) do
+            r -= w
             if r <= 0 then
                 return possibleValues[i]
             end
@@ -149,9 +154,30 @@ local function performVideoFlick()
 
     hrp.AssemblyAngularVelocity = Vector3.new(0, math.rad(getRandomAngularVelocity()), 0)
 
+    -- HARD LOCK direção
+    local connection
+    connection = RunService.Heartbeat:Connect(function()
+        if not hrp or not hrp.Parent then
+            if connection then connection:Disconnect() end
+            return
+        end
+
+        local currentY = hrp.Velocity.Y
+        hrp.Velocity = direction * speed + Vector3.new(0, currentY, 0)
+    end)
+
     task.wait(0.15)
 
     hrp.AssemblyAngularVelocity = Vector3.zero
+
+    if connection then
+        connection:Disconnect()
+    end
+
+    -- restauração final
+    local currentY = hrp.Velocity.Y
+    hrp.Velocity = direction * speed + Vector3.new(0, currentY, 0)
+
     hum.AutoRotate = oldAutoRotate
 
     task.delay(0.1, function()
@@ -242,4 +268,4 @@ TextButton.MouseButton1Click:Connect(function()
     TextButton.BackgroundColor3 = isWallHopEnabled and Color3.fromRGB(40,40,40) or Color3.fromRGB(0,0,0)
 end)
 
-print("WallHop Loaded (flick random centralizado)")
+print("WallHop Loaded (hard lock + random flick)")
