@@ -1,4 +1,4 @@
--- AUTO WALLHOP + DOUBLE JUMP (FLICK FÍSICO 45° CORRIGIDO)
+-- AUTO WALLHOP + DOUBLE JUMP (FLICK FÍSICO 45° COM ALIGNORIENTATION)
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -98,7 +98,7 @@ UserInputService.JumpRequest:Connect(function()
 	end
 end)
 
--- FLICK FÍSICO CORRIGIDO
+-- FLICK FÍSICO COM ALIGNORIENTATION
 local function performVideoFlick()
 	if isFlicking then return end
 	isFlicking = true
@@ -114,27 +114,40 @@ local function performVideoFlick()
 		return
 	end
 
+	-- evita travar braço
+	if hum:GetState() == Enum.HumanoidStateType.Running then
+		hum:ChangeState(Enum.HumanoidStateType.Jumping)
+	end
+
 	-- impulso original
-	hum:ChangeState(Enum.HumanoidStateType.Jumping)
 	hrp.Velocity = Vector3.new(hrp.Velocity.X, 44.8, hrp.Velocity.Z)
 
 	local oldAutoRotate = hum.AutoRotate
 	hum.AutoRotate = false
 
-	-- 🔥 FLICK MAIS FORTE E VISÍVEL (~45°)
-	hrp.AssemblyAngularVelocity = Vector3.new(0, math.rad(1100), 0)
-	task.wait(0.06)
+	-- cria constraint
+	local align = Instance.new("AlignOrientation")
+	align.MaxTorque = 1e6
+	align.Responsiveness = 200
+	align.RigidityEnabled = true
+	align.Parent = hrp
 
-	-- freio leve
-	hrp.AssemblyAngularVelocity = Vector3.new(0, math.rad(-180), 0)
-	task.wait(0.02)
+	local startCF = hrp.CFrame
+	local targetCF = startCF * CFrame.Angles(0, math.rad(45), 0)
 
-	hrp.AssemblyAngularVelocity = Vector3.zero
+	-- flick
+	align.CFrame = targetCF
+	task.wait(0.05)
 
+	-- volta
+	align.CFrame = startCF
+	task.wait(0.05)
+
+	align:Destroy()
 	hum.AutoRotate = oldAutoRotate
 
-	-- força saída do estado bugado (resolve braços)
-	task.delay(0.08, function()
+	-- garante animação normal
+	task.delay(0.05, function()
 		if hum then
 			hum:ChangeState(Enum.HumanoidStateType.Freefall)
 		end
@@ -223,5 +236,4 @@ TextButton.MouseButton1Click:Connect(function()
 	TextButton.BackgroundColor3 = isWallHopEnabled and Color3.fromRGB(40,40,40) or Color3.fromRGB(0,0,0)
 end)
 
-print("WallHop Loaded (flick físico corrigido 45°)")
-
+print("WallHop Loaded (flick 45° AlignOrientation)")
