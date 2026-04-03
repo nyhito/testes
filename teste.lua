@@ -1,4 +1,4 @@
--- AUTO WALLHOP + DOUBLE JUMP (FLICK HUMANO FINAL)
+-- AUTO WALLHOP + DOUBLE JUMP (PULO ORIGINAL + FLICK SNAP)
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -71,7 +71,7 @@ if LocalPlayer.Character then
 end
 LocalPlayer.CharacterAdded:Connect(setupCharacter)
 
--- DOUBLE JUMP
+-- DOUBLE JUMP (mantido como estava)
 UserInputService.JumpRequest:Connect(function()
     if not isWallHopEnabled then return end
 
@@ -98,20 +98,16 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
--- RANDOM (extremos + sem repetir dezena)
+-- RANDOM (50–80 com foco em 70–80, sem repetir dezena)
 local function getRandomAngle()
     local angle
     local tenGroup
 
     repeat
-        if math.random() < 0.7 then
-            if math.random() < 0.5 then
-                angle = math.random(50, 60)
-            else
-                angle = math.random(80, 90)
-            end
+        if math.random() < 0.65 then
+            angle = math.random(70, 80)
         else
-            angle = math.random(60, 80)
+            angle = math.random(50, 70)
         end
 
         tenGroup = math.floor(angle / 10)
@@ -121,12 +117,7 @@ local function getRandomAngle()
     return angle
 end
 
--- easing
-local function easeOutQuad(t)
-    return 1 - (1 - t) * (1 - t)
-end
-
--- FLICK HUMANO FINAL
+-- FLICK + PULO ORIGINAL
 local function performVideoFlick()
     if isFlicking then return end
     isFlicking = true
@@ -142,41 +133,17 @@ local function performVideoFlick()
         return
     end
 
-    -- PULO ORIGINAL
+    -- PULO ORIGINAL (sem velocity)
     hum:ChangeState(Enum.HumanoidStateType.Jumping)
 
     local angle = math.rad(getRandomAngle())
 
-    local lookCF = Camera.CFrame
-    local baseLook = CFrame.new(hrp.Position, hrp.Position + lookCF.LookVector)
+    -- FLICK ORIGINAL (tempo ajustado)
+    hrp.CFrame = hrp.CFrame * CFrame.Angles(0, angle, 0)
+    task.wait(0.16)
 
-    -- IDA INSTANTÂNEA
-    hrp.CFrame = baseLook * CFrame.Angles(0, angle, 0)
-
-    task.wait(0.03)
-
-    local startCF = hrp.CFrame
-
-    -- micro variações
-    local timeOffset = (math.random() * 0.04) - 0.02
-    local duration = 0.16 + timeOffset
-
-    local microAngle = math.rad(math.random(-3, 3))
-    local midCF = baseLook * CFrame.Angles(0, microAngle, 0)
-
-    local t = 0
-    while t < duration do
-        t += RunService.RenderStepped:Wait()
-        local alpha = math.clamp(t / duration, 0, 1)
-
-        local eased = easeOutQuad(alpha)
-        local blend = math.sin(alpha * math.pi) * 0.15
-
-        local targetCF = midCF:Lerp(baseLook, alpha + blend)
-        hrp.CFrame = startCF:Lerp(targetCF, eased)
-    end
-
-    hrp.CFrame = baseLook
+    hrp.CFrame = hrp.CFrame * CFrame.Angles(0, -angle, 0)
+    task.wait(0.16)
 
     task.delay(0.25, function()
         isWallHopping = false
@@ -261,5 +228,4 @@ TextButton.MouseButton1Click:Connect(function()
     TextButton.BackgroundColor3 = isWallHopEnabled and Color3.fromRGB(40,40,40) or Color3.fromRGB(0,0,0)
 end)
 
-print("WallHop Loaded (FLICK HUMANO FINAL)")
-
+print("WallHop Loaded (PULO 100% ORIGINAL)")
