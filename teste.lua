@@ -1,4 +1,4 @@
--- AUTO WALLHOP + DOUBLE JUMP (80° + 90° / SEM RECUO REAL)
+-- AUTO WALLHOP + DOUBLE JUMP (CFRAME FLICK - ZERO RECUO)
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -8,7 +8,7 @@ local UserInputService = game:GetService("UserInputService")
 
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
--- UI (SEU ORIGINAL)
+-- UI
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "AutoWallHopGui"
 ScreenGui.ResetOnSpawn = false
@@ -69,7 +69,7 @@ if LocalPlayer.Character then
 end
 LocalPlayer.CharacterAdded:Connect(setupCharacter)
 
--- DOUBLE JUMP (SEU ORIGINAL)
+-- DOUBLE JUMP
 UserInputService.JumpRequest:Connect(function()
     if not isWallHopEnabled then return end
 
@@ -119,7 +119,7 @@ local function pickCentral(values)
     return values[#values]
 end
 
--- FLICK (ALTERADO)
+-- FLICK VIA CFRAME (SEM RECUO)
 local function performVideoFlick()
     if isFlicking then return end
     isFlicking = true
@@ -135,21 +135,14 @@ local function performVideoFlick()
         return
     end
 
-    -- direção REAL do player
-    local moveDir = hum.MoveDirection
-    local camDir = Vector3.new(Camera.CFrame.LookVector.X,0,Camera.CFrame.LookVector.Z).Unit
-    local desiredDir = moveDir.Magnitude > 0 and moveDir.Unit or camDir
-
-    local speed = Vector3.new(hrp.Velocity.X,0,hrp.Velocity.Z).Magnitude
-
-    -- impulso
+    -- impulso original
     hum:ChangeState(Enum.HumanoidStateType.Jumping)
-    hrp.Velocity = desiredDir * speed + Vector3.new(0,44.8,0)
+    hrp.Velocity = Vector3.new(hrp.Velocity.X, 44.8, hrp.Velocity.Z)
 
     local oldAutoRotate = hum.AutoRotate
     hum.AutoRotate = false
 
-    -- 90° MAIS COMUM
+    -- ESCOLHA (90° MAIS COMUM)
     local roll = math.random()
 
     local values, tMin, tMax
@@ -177,26 +170,25 @@ local function performVideoFlick()
     local ang = pickCentral(values)
     local flickTime = math.random()*(tMax - tMin) + tMin
 
-    hrp.AssemblyAngularVelocity = Vector3.new(0, math.rad(ang), 0)
+    -- CONVERSÃO PARA ÂNGULO VISUAL
+    local angle = math.rad(ang) * flickTime
+    local dir = (math.random() < 0.5) and 1 or -1
 
-    -- ANTI-RECUO REAL (FIX DEFINITIVO)
-    local connection
-    connection = RunService.Heartbeat:Connect(function()
-        if not hrp then return end
+    local startCF = hrp.CFrame
 
-        local y = hrp.Velocity.Y
+    local steps = math.max(1, math.floor(flickTime / 0.005))
+    local stepTime = flickTime / steps
 
-        -- mantém SEMPRE direção original
-        hrp.Velocity = desiredDir * speed + Vector3.new(0, y, 0)
-    end)
+    for i = 1, steps do
+        local alpha = i / steps
+        local curve = math.sin(alpha * math.pi)
+        local offset = angle * curve * dir
 
-    task.wait(flickTime)
-
-    hrp.AssemblyAngularVelocity = Vector3.zero
-
-    if connection then
-        connection:Disconnect()
+        hrp.CFrame = startCF * CFrame.Angles(0, offset, 0)
+        RunService.RenderStepped:Wait()
     end
+
+    hrp.CFrame = startCF
 
     hum.AutoRotate = oldAutoRotate
 
@@ -213,7 +205,7 @@ local function performVideoFlick()
     isFlicking = false
 end
 
--- WALL DETECT (SEU ORIGINAL)
+-- WALL DETECT (INALTERADO)
 local lastHitInstance = nil
 
 local function isPlayerCharacter(instance)
@@ -279,7 +271,7 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
--- TOGGLE (SEU ORIGINAL)
+-- TOGGLE
 TextButton.MouseButton1Click:Connect(function()
     isWallHopEnabled = not isWallHopEnabled
 
@@ -287,4 +279,4 @@ TextButton.MouseButton1Click:Connect(function()
     TextButton.BackgroundColor3 = isWallHopEnabled and Color3.fromRGB(40,40,40) or Color3.fromRGB(0,0,0)
 end)
 
-print("WallHop Loaded (80° + 90° / sem recuo real)")
+print("WallHop Loaded (CFrame flick perfeito)")
