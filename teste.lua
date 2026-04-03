@@ -1,4 +1,4 @@
--- AUTO WALLHOP + DOUBLE JUMP (FLICK VISÍVEL + BRAÇOS FIX)
+-- AUTO WALLHOP + DOUBLE JUMP (FLICK HUMANIZADO FINAL)
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -96,7 +96,7 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
--- FLICK VISÍVEL + BRAÇOS FIX
+-- FLICK HUMANIZADO
 local function performVideoFlick()
     if isFlicking then return end
     isFlicking = true
@@ -119,23 +119,25 @@ local function performVideoFlick()
     local baseCF = hrp.CFrame
     local angle = math.rad(math.random(50, 80))
 
-    local steps = 5 -- 🔥 mais visível
+    local steps = 9
 
     for i = 1, steps do
         local alpha = i / steps
-        local curve = math.sin(alpha * math.pi)
+        local curve = math.sin(alpha * math.pi * 0.95)
         local offset = angle * curve
 
         hrp.CFrame = baseCF * CFrame.Angles(0, offset, 0)
+
         RunService.RenderStepped:Wait()
+        task.wait(0.01)
     end
 
     hrp.CFrame = baseCF
 
-    -- 🔥 FIX DEFINITIVO DOS BRAÇOS
-    hum:ChangeState(Enum.HumanoidStateType.Jumping)
-    RunService.RenderStepped:Wait()
-    hum:ChangeState(Enum.HumanoidStateType.Freefall)
+    -- sem interferir na câmera
+    if hum:GetState() ~= Enum.HumanoidStateType.Freefall then
+        hum:ChangeState(Enum.HumanoidStateType.Freefall)
+    end
 
     hum.AutoRotate = true
 
@@ -225,4 +227,4 @@ TextButton.MouseButton1Click:Connect(function()
     TextButton.BackgroundColor3 = isWallHopEnabled and Color3.fromRGB(40,40,40) or Color3.fromRGB(0,0,0)
 end)
 
-print("WallHop Loaded (final real corrigido)")
+print("WallHop Loaded (flick humanizado final)")
