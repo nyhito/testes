@@ -69,6 +69,7 @@ if LocalPlayer.Character then
 end
 LocalPlayer.CharacterAdded:Connect(setupCharacter)
 
+-- DOUBLE JUMP
 UserInputService.JumpRequest:Connect(function()
     if not isWallHopEnabled then return end
 
@@ -95,7 +96,7 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
--- FLICK AJUSTADO (mais lento e visível)
+-- FLICK AJUSTADO
 local function performVideoFlick()
     if isFlicking then return end
     isFlicking = true
@@ -117,7 +118,7 @@ local function performVideoFlick()
     local oldAutoRotate = hum.AutoRotate
     hum.AutoRotate = false
 
-    -- ALTERAÇÃO AQUI
+    -- MAIS VISÍVEL
     hrp.AssemblyAngularVelocity = Vector3.new(0, math.rad(500), 0)
     task.wait(0.16)
     hrp.AssemblyAngularVelocity = Vector3.zero
@@ -130,3 +131,81 @@ local function performVideoFlick()
 
     isFlicking = false
 end
+
+-- WALL DETECT
+local lastHitInstance = nil
+
+local function isPlayerCharacter(instance)
+    if not instance then return false end
+    local model = instance:FindFirstAncestorOfClass("Model")
+    if model and model:FindFirstChildOfClass("Humanoid") then
+        return true
+    end
+    return false
+end
+
+RunService.Heartbeat:Connect(function()
+    if not isWallHopEnabled then return end
+
+    local char = LocalPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    local hum = char and char:FindFirstChild("Humanoid")
+
+    if not hrp or not hum then return end
+    if isCrouching(hum, hrp) then return end
+
+    local params = RaycastParams.new()
+    params.FilterDescendantsInstances = {char}
+    params.FilterType = Enum.RaycastFilterType.Exclude
+
+    local look = Camera.CFrame.LookVector
+    local horizontal = Vector3.new(look.X, 0, look.Z)
+
+    if horizontal.Magnitude > 0 then
+        horizontal = horizontal.Unit
+    end
+
+    local direction = horizontal * 1.55
+
+    local result = nil
+
+    local offsets = {
+        Vector3.new(0, -2.2, 0),
+        Vector3.new(0, -1.2, 0),
+        Vector3.new(0, -0.4, 0)
+    }
+
+    for _, offset in ipairs(offsets) do
+        local origin = hrp.Position + offset
+        local ray = workspace:Raycast(origin, direction, params)
+
+        if ray and ray.Instance and ray.Instance.CanCollide then
+            if not isPlayerCharacter(ray.Instance) then
+                result = ray
+                break
+            end
+        end
+    end
+
+    if result and result.Instance then
+        if lastHitInstance and lastHitInstance ~= result.Instance then
+            if hrp.Velocity.Y < -2.2 and tick() - lastFlickTime > 0.085 then
+                lastFlickTime = tick()
+                performVideoFlick()
+            end
+        end
+        lastHitInstance = result.Instance
+    else
+        lastHitInstance = nil
+    end
+end)
+
+-- TOGGLE (FIXED)
+TextButton.MouseButton1Click:Connect(function()
+    isWallHopEnabled = not isWallHopEnabled
+
+    TextButton.Text = isWallHopEnabled and "Wall Hop On" or "Wall Hop Off"
+    TextButton.BackgroundColor3 = isWallHopEnabled and Color3.fromRGB(40,40,40) or Color3.fromRGB(0,0,0)
+end)
+
+print("WallHop Loaded (versão 1 corrigida)")
