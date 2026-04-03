@@ -23,7 +23,6 @@ TextButton.Font = Enum.Font.GothamBold
 TextButton.TextScaled = true
 TextButton.Parent = ScreenGui
 
--- CORREÇÃO AQUI
 local corner = Instance.new("UICorner")
 corner.CornerRadius = UDim.new(0, 12)
 corner.Parent = TextButton
@@ -40,7 +39,6 @@ local lastFlickTime = 0
 local Camera = workspace.CurrentCamera
 
 local isWallHopping = false
-
 local lastWallHopTime = 0
 local WALLHOP_GRACE_TIME = 1.5
 
@@ -62,7 +60,6 @@ local function setupCharacter(char)
         if new == Enum.HumanoidStateType.Freefall then
             canDoubleJump = true
         end
-
         if new == Enum.HumanoidStateType.Landed then
             canDoubleJump = false
         end
@@ -131,7 +128,6 @@ local function performVideoFlick()
     task.wait(duration)
 
     hrp.AssemblyAngularVelocity = Vector3.zero
-
     hum.AutoRotate = oldAutoRotate
 
     task.delay(0.1, function()
@@ -215,12 +211,10 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
--- TOGGLE
 TextButton.MouseButton1Click:Connect(function()
     isWallHopEnabled = not isWallHopEnabled
-
     TextButton.Text = isWallHopEnabled and "Wall Hop On" or "Wall Hop Off"
     TextButton.BackgroundColor3 = isWallHopEnabled and Color3.fromRGB(40,40,40) or Color3.fromRGB(0,0,0)
 end)
 
-print("WallHop Loaded (flick lento corrigido)")
+print("WallHop Loaded (OK)")
