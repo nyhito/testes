@@ -1,4 +1,4 @@
--- AUTO WALLHOP + DOUBLE JUMP (FLICK HUMANIZADO / 0.14s / ANTI-REPEAT)
+-- AUTO WALLHOP + DOUBLE JUMP (FLICK HUMANIZADO SUAVE / 0.14s / FÍSICA CORRIGIDA)
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -40,7 +40,6 @@ local isWallHopping = false
 local lastWallHopTime = 0
 local WALLHOP_GRACE_TIME = 1.5
 
--- controle de dezena
 local lastTenGroup = nil
 
 -- DOUBLE JUMP
@@ -108,10 +107,8 @@ local function getRandomAngle()
         local chance = math.random()
 
         if chance <= 0.7 then
-            -- comum
             angle = math.random(50, 65)
         else
-            -- extremos
             if math.random() < 0.5 then
                 angle = math.random(45, 49)
             else
@@ -142,31 +139,28 @@ local function performVideoFlick()
         return
     end
 
-    -- pulo ajustado
+    -- PULO COM MOMENTUM REAL
+    local vel = hrp.Velocity
     hum:ChangeState(Enum.HumanoidStateType.Jumping)
-    hrp.Velocity = Vector3.new(hrp.Velocity.X, 56, hrp.Velocity.Z)
+    hum:Move(Vector3.new(0,0,0), true)
+    hrp.Velocity = Vector3.new(vel.X * 1.05, 62, vel.Z * 1.05)
 
     local oldAutoRotate = hum.AutoRotate
     hum.AutoRotate = false
 
     local originalCF = hrp.CFrame
-
     local angle = math.rad(getRandomAngle())
 
-    -- tempo total 0.14
-    hrp.CFrame = originalCF * CFrame.Angles(0, angle, 0)
+    -- FLICK SUAVE (0.14s)
+    local targetCF = originalCF * CFrame.Angles(0, angle, 0)
+
+    hrp.CFrame = hrp.CFrame:Lerp(targetCF, 0.6)
     task.wait(0.07)
 
-    hrp.CFrame = originalCF
+    hrp.CFrame = hrp.CFrame:Lerp(originalCF, 0.6)
     task.wait(0.07)
 
     hum.AutoRotate = oldAutoRotate
-
-    task.delay(0.1, function()
-        if hum and hum:GetState() == Enum.HumanoidStateType.Jumping then
-            hum:ChangeState(Enum.HumanoidStateType.Freefall)
-        end
-    end)
 
     task.delay(0.25, function()
         isWallHopping = false
@@ -251,4 +245,4 @@ TextButton.MouseButton1Click:Connect(function()
     TextButton.BackgroundColor3 = isWallHopEnabled and Color3.fromRGB(40,40,40) or Color3.fromRGB(0,0,0)
 end)
 
-print("WallHop Loaded (Humanizado)")
+print("WallHop Loaded (SUAVE + FÍSICA CORRIGIDA)")
