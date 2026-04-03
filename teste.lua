@@ -1,4 +1,4 @@
--- AUTO WALLHOP + DOUBLE JUMP (FLICK FÍSICO REAL)
+-- AUTO WALLHOP + DOUBLE JUMP (FLICK VISUAL NO PERSONAGEM)
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -90,6 +90,7 @@ end)
 local isWallHopEnabled = false
 local isFlicking = false
 local lastFlickTime = 0
+local Camera = workspace.CurrentCamera
 
 local isWallHopping = false
 local lastWallHopTime = 0
@@ -147,7 +148,7 @@ UserInputService.JumpRequest:Connect(function()
 	end
 end)
 
--- 🔥 FLICK FÍSICO REAL (SEM QUEBRAR WALLHOP)
+-- 🔥 FLICK VISUAL (SEM MEXER NA CÂMERA)
 local function performVideoFlick()
 	if isFlicking then return end
 	isFlicking = true
@@ -157,34 +158,40 @@ local function performVideoFlick()
 
 	local char = LocalPlayer.Character
 	local hrp = char and char:FindFirstChild("HumanoidRootPart")
-	if not hrp then
+	local hum = char and char:FindFirstChild("Humanoid")
+	if not hrp or not hum then
 		isFlicking = false
 		return
 	end
 
-	local attach = Instance.new("Attachment", hrp)
+	-- wallhop original
+	hum:ChangeState(Enum.HumanoidStateType.Jumping)
+	hrp.Velocity = Vector3.new(hrp.Velocity.X, 44.8, hrp.Velocity.Z)
 
-	local angular = Instance.new("AngularVelocity")
-	angular.Attachment0 = attach
-	angular.MaxTorque = math.huge
-	angular.RelativeTo = Enum.ActuatorRelativeTo.Attachment0
-
+	-- flick visual
+	local original = hrp.CFrame
 	local angle = math.rad(math.random(42, 50))
-	local duration = 0.08
+	local target = original * CFrame.Angles(0, angle, 0)
 
-	-- velocidade angular (ida)
-	angular.AngularVelocity = Vector3.new(0, angle / duration, 0)
-	angular.Parent = hrp
+	local t0 = tick()
+	while tick() - t0 < 0.06 do
+		local t = (tick() - t0) / 0.06
+		char:PivotTo(original:Lerp(target, t))
+		RunService.RenderStepped:Wait()
+	end
 
-	task.wait(duration)
+	char:PivotTo(target)
 
-	-- volta mais rápida
-	angular.AngularVelocity = Vector3.new(0, -(angle / (duration * 0.7)), 0)
+	task.wait(0.01)
 
-	task.wait(duration * 0.7)
+	local t1 = tick()
+	while tick() - t1 < 0.05 do
+		local t = (tick() - t1) / 0.05
+		char:PivotTo(target:Lerp(original, t))
+		RunService.RenderStepped:Wait()
+	end
 
-	angular:Destroy()
-	attach:Destroy()
+	char:PivotTo(original)
 
 	task.delay(0.25, function()
 		isWallHopping = false
@@ -216,7 +223,7 @@ RunService.Heartbeat:Connect(function()
 	params.FilterDescendantsInstances = {char}
 	params.FilterType = Enum.RaycastFilterType.Exclude
 
-	local look = workspace.CurrentCamera.CFrame.LookVector
+	local look = Camera.CFrame.LookVector
 	local horizontal = Vector3.new(look.X, 0, look.Z)
 
 	if horizontal.Magnitude > 0 then
@@ -254,4 +261,4 @@ TextButton.MouseButton1Click:Connect(function()
 	TextButton.Text = isWallHopEnabled and "Wall Hop On" or "Wall Hop Off"
 end)
 
-print("WallHop Loaded (flick físico real)")
+print("WallHop Loaded (flick visual no personagem)")
