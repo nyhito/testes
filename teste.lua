@@ -1,4 +1,4 @@
--- AUTO WALLHOP + DOUBLE JUMP (FLICK FÍSICO - SEM CÂMERA)
+-- AUTO WALLHOP + DOUBLE JUMP (FLICK FÍSICO REAL)
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -147,7 +147,7 @@ UserInputService.JumpRequest:Connect(function()
 	end
 end)
 
--- 🔥 FLICK FÍSICO (SEM CÂMERA)
+-- 🔥 FLICK FÍSICO REAL (SEM QUEBRAR WALLHOP)
 local function performVideoFlick()
 	if isFlicking then return end
 	isFlicking = true
@@ -157,50 +157,34 @@ local function performVideoFlick()
 
 	local char = LocalPlayer.Character
 	local hrp = char and char:FindFirstChild("HumanoidRootPart")
-	local hum = char and char:FindFirstChild("Humanoid")
-	if not hrp or not hum then
+	if not hrp then
 		isFlicking = false
 		return
 	end
 
-	hum:ChangeState(Enum.HumanoidStateType.Jumping)
-	hrp.Velocity = Vector3.new(hrp.Velocity.X, 44.8, hrp.Velocity.Z)
+	local attach = Instance.new("Attachment", hrp)
 
-	local startCF = hrp.CFrame
+	local angular = Instance.new("AngularVelocity")
+	angular.Attachment0 = attach
+	angular.MaxTorque = math.huge
+	angular.RelativeTo = Enum.ActuatorRelativeTo.Attachment0
 
 	local angle = math.rad(math.random(42, 50))
-	local direction = 1 -- lado fixo
+	local duration = 0.08
 
-	local targetCF = startCF * CFrame.Angles(0, angle * direction, 0)
+	-- velocidade angular (ida)
+	angular.AngularVelocity = Vector3.new(0, angle / duration, 0)
+	angular.Parent = hrp
 
-	local durationIn = 0.08
-	local durationOut = 0.06
+	task.wait(duration)
 
-	-- ida
-	local t0 = tick()
-	while true do
-		local t = (tick() - t0) / durationIn
-		if t >= 1 then break end
+	-- volta mais rápida
+	angular.AngularVelocity = Vector3.new(0, -(angle / (duration * 0.7)), 0)
 
-		hrp.CFrame = startCF:Lerp(targetCF, t)
-		RunService.RenderStepped:Wait()
-	end
+	task.wait(duration * 0.7)
 
-	hrp.CFrame = targetCF
-
-	task.wait(0.01)
-
-	-- volta
-	local t1 = tick()
-	while true do
-		local t = (tick() - t1) / durationOut
-		if t >= 1 then break end
-
-		hrp.CFrame = targetCF:Lerp(startCF, t)
-		RunService.RenderStepped:Wait()
-	end
-
-	hrp.CFrame = startCF
+	angular:Destroy()
+	attach:Destroy()
 
 	task.delay(0.25, function()
 		isWallHopping = false
@@ -209,7 +193,7 @@ local function performVideoFlick()
 	isFlicking = false
 end
 
--- WALL DETECT (igual)
+-- WALL DETECT (original)
 local lastHitInstance = nil
 
 local function isPlayerCharacter(instance)
@@ -270,4 +254,4 @@ TextButton.MouseButton1Click:Connect(function()
 	TextButton.Text = isWallHopEnabled and "Wall Hop On" or "Wall Hop Off"
 end)
 
-print("WallHop Loaded (flick físico)")
+print("WallHop Loaded (flick físico real)")
