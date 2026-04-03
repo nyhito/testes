@@ -1,4 +1,4 @@
--- AUTO WALLHOP + DOUBLE JUMP (FLICK VISUAL SEM QUEBRAR FÍSICA - 80° EM 0.15s)
+-- AUTO WALLHOP + DOUBLE JUMP (FLICK VISUAL RANDOM CENTRALIZADO)
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -97,7 +97,7 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
--- FLICK VISUAL (80° EM 0.15s)
+-- FLICK VISUAL (RANDOM CENTRALIZADO)
 local function performVideoFlick()
     if isFlicking then return end
     isFlicking = true
@@ -120,8 +120,34 @@ local function performVideoFlick()
     local oldAutoRotate = hum.AutoRotate
     hum.AutoRotate = false
 
-    -- velocidade ajustada pra ~80° em 0.15s
-    hrp.AssemblyAngularVelocity = Vector3.new(0, math.rad(1533), 0)
+    -- valores possíveis
+    local possibleValues = {1300, 1350, 1400, 1450, 1500, 1550, 1600, 1650, 1700, 1750, 1800}
+
+    -- distribuição em sino (centro mais comum, extremos raros)
+    local function getRandomAngularVelocity()
+        local weights = {}
+        local totalWeight = 0
+        local midIndex = math.ceil(#possibleValues / 2)
+
+        for i = 1, #possibleValues do
+            local distance = math.abs(i - midIndex)
+            local weight = 1 / (1 + distance^1.3)
+            weights[i] = weight
+            totalWeight = totalWeight + weight
+        end
+
+        local r = math.random() * totalWeight
+        for i, weight in ipairs(weights) do
+            r = r - weight
+            if r <= 0 then
+                return possibleValues[i]
+            end
+        end
+
+        return possibleValues[#possibleValues]
+    end
+
+    hrp.AssemblyAngularVelocity = Vector3.new(0, math.rad(getRandomAngularVelocity()), 0)
 
     task.wait(0.15)
 
@@ -141,7 +167,7 @@ local function performVideoFlick()
     isFlicking = false
 end
 
--- WALL DETECT (INALTERADO)
+-- WALL DETECT
 local lastHitInstance = nil
 
 local function isPlayerCharacter(instance)
@@ -159,8 +185,8 @@ RunService.Heartbeat:Connect(function()
     local char = LocalPlayer.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     local hum = char and char:FindFirstChild("Humanoid")
-
     if not hrp or not hum then return end
+
     if isCrouching(hum, hrp) then return end
 
     local params = RaycastParams.new()
@@ -175,7 +201,6 @@ RunService.Heartbeat:Connect(function()
     end
 
     local direction = horizontal * 1.55
-
     local result = nil
 
     local offsets = {
@@ -217,4 +242,4 @@ TextButton.MouseButton1Click:Connect(function()
     TextButton.BackgroundColor3 = isWallHopEnabled and Color3.fromRGB(40,40,40) or Color3.fromRGB(0,0,0)
 end)
 
-print("WallHop cu Loaded (flick 80° em 0.15s)")
+print("WallHop Loaded (flick random centralizado)")
