@@ -39,6 +39,11 @@ local isWallHopping = false
 local lastWallHopTime = 0
 local WALLHOP_GRACE_TIME = 1.5
 
+-- 🔥 NOVOS STATES (FIX DO BUG)
+local lastWallNormal = nil
+local WALL_RETRIGGER_BLOCK_TIME = 0.22
+local lastRealWallHop = 0
+
 -- DOUBLE JUMP
 local canDoubleJump = false
 local lastDoubleJump = 0
@@ -108,7 +113,7 @@ local function pickNextFlick()
     return math.rad(angle)
 end
 
--- FLICK HUMANIZADO (ORIGINAL + OVERSHOOT ATRASADO)
+-- FLICK HUMANIZADO
 local function performVideoFlick()
     if isFlicking then return end
     isFlicking = true
@@ -124,7 +129,6 @@ local function performVideoFlick()
         return
     end
 
-    -- impulso vertical (INALTERADO)
     hrp.Velocity = Vector3.new(hrp.Velocity.X, 44.8, hrp.Velocity.Z)
     hum:ChangeState(Enum.HumanoidStateType.Jumping)
 
@@ -133,11 +137,9 @@ local function performVideoFlick()
     local steps = math.random(7,9)
     local baseDelay = 0.01
 
-    -- OVERSHOOT CONFIG
     local overshoot = math.rad(math.random(20,30))
     local useOvershoot = math.random() < 0.9
 
-    -- FLICK NORMAL (EXATAMENTE COMO ESTAVA)
     for i = 1, steps do
         local alpha = i / steps
         local curve
@@ -154,7 +156,6 @@ local function performVideoFlick()
         task.wait(baseDelay * (0.8 + math.random()*0.4))
     end
 
-    -- OVERSHOOT ATRASADO (NÃO INTERFERE NO WALLHOP)
     if useOvershoot then
         task.delay(0.05, function()
             if not hrp then return end
@@ -181,7 +182,6 @@ local function performVideoFlick()
         end)
     end
 
-    -- reset padrão
     hrp.CFrame = CFrame.new(hrp.Position) * CFrame.Angles(0, math.rad(baseYaw), 0)
 
     if hum:GetState() ~= Enum.HumanoidStateType.Freefall then
@@ -194,7 +194,7 @@ local function performVideoFlick()
     isFlicking = false
 end
 
--- WALL DETECT (INALTERADO)
+-- WALL DETECT (FIX APLICADO)
 local lastHitInstance = nil
 local function isPlayerCharacter(instance)
     if not instance then return false end
@@ -231,15 +231,24 @@ RunService.Heartbeat:Connect(function()
     end
 
     if result and result.Instance then
-        if lastHitInstance and lastHitInstance ~= result.Instance then
+        local normal = result.Normal
+
+        local sameWall = lastWallNormal and (normal:Dot(lastWallNormal) > 0.98)
+        local tooSoon = tick() - lastRealWallHop < WALL_RETRIGGER_BLOCK_TIME
+
+        if not sameWall and not tooSoon then
             if hrp.Velocity.Y < -2.2 and tick() - lastFlickTime > 0.085 then
                 lastFlickTime = tick()
+                lastRealWallHop = tick()
+                lastWallNormal = normal
                 performVideoFlick()
             end
         end
+
         lastHitInstance = result.Instance
     else
         lastHitInstance = nil
+        lastWallNormal = nil
     end
 end)
 
@@ -250,4 +259,4 @@ TextButton.MouseButton1Click:Connect(function()
     TextButton.BackgroundColor3 = isWallHopEnabled and Color3.fromRGB(40,40,40) or Color3.fromRGB(0,0,0)
 end)
 
-print("WallHop Loaded (flick original + overshoot limpo cu)")
+print("WallHop Loaded (flick original + overshoot + retrigger fix)")
