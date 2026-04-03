@@ -1,4 +1,4 @@
--- AUTO WALLHOP + DOUBLE JUMP (COM FLICK ADICIONADO)
+-- AUTO WALLHOP + DOUBLE JUMP (SEM FLICK DE CÂMERA, AVANÇADO)
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -37,8 +37,6 @@ local lastFlickTime = 0
 local Camera = workspace.CurrentCamera
 
 local isWallHopping = false
-
--- NOVO (janela após wallhop)
 local lastWallHopTime = 0
 local WALLHOP_GRACE_TIME = 1.5
 
@@ -46,18 +44,14 @@ local WALLHOP_GRACE_TIME = 1.5
 local canDoubleJump = false
 local lastDoubleJump = 0
 local DOUBLE_JUMP_COOLDOWN = 3
-
--- ADICIONADO DO SCRIPT 2
 local blockDoubleJump = false
 
--- CROUCH CHECK
 local function isCrouching(hum, hrp)
     if not hum or not hrp then return false end
     local horizontalSpeed = Vector3.new(hrp.Velocity.X, 0, hrp.Velocity.Z).Magnitude
     return hum.WalkSpeed <= 9 and horizontalSpeed < 8
 end
 
--- CHARACTER HANDLER
 local function setupCharacter(char)
     local hum = char:WaitForChild("Humanoid")
 
@@ -65,7 +59,6 @@ local function setupCharacter(char)
         if new == Enum.HumanoidStateType.Freefall then
             canDoubleJump = true
         end
-
         if new == Enum.HumanoidStateType.Landed then
             canDoubleJump = false
         end
@@ -77,7 +70,7 @@ if LocalPlayer.Character then
 end
 LocalPlayer.CharacterAdded:Connect(setupCharacter)
 
--- DOUBLE JUMP (mantido igual, só bloqueado durante flick)
+-- DOUBLE JUMP
 UserInputService.JumpRequest:Connect(function()
     if not isWallHopEnabled or blockDoubleJump then return end
 
@@ -94,7 +87,6 @@ UserInputService.JumpRequest:Connect(function()
         canDoubleJump = false
 
         hrp.Velocity = Vector3.new(hrp.Velocity.X, 34.5, hrp.Velocity.Z)
-        hum:ChangeState(Enum.HumanoidStateType.Jumping)
 
         task.delay(0.18, function()
             if hum then
@@ -104,7 +96,7 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
--- FUNÇÃO DO SCRIPT 2 (INALTERADA)
+-- RANDOM CENTRAL
 local function pickCentral(values)
     local mid = math.ceil(#values/2)
     local total, weights = 0, {}
@@ -127,7 +119,7 @@ local function pickCentral(values)
     return values[#values]
 end
 
--- FLICK (AGORA COM O SISTEMA DO SCRIPT 2)
+-- FLICK AVANÇADO SEM EMPURRÃO
 local function performVideoFlick()
     if isFlicking then return end
     isFlicking = true
@@ -144,33 +136,54 @@ local function performVideoFlick()
         return
     end
 
-    -- impulso original
-    hum:ChangeState(Enum.HumanoidStateType.Jumping)
     hrp.Velocity = Vector3.new(hrp.Velocity.X, 44.8, hrp.Velocity.Z)
-
     local oldAutoRotate = hum.AutoRotate
     hum.AutoRotate = false
-
     hrp.AssemblyAngularVelocity = Vector3.zero
 
-    local values = {2700,2750,2800,2850,2900,2950,3000}
-    local ang = pickCentral(values)
+    -- Define ângulo do flick
+    local roll = math.random()
+    local values, tMin, tMax
+    if roll < 0.7 then
+        if math.random() < 0.5 then
+            values = {2500,2550,2600,2650,2700,2750,2800}
+            tMin, tMax = 0.085, 0.115
+        else
+            values = {2700,2750,2800,2850,2900,2950,3000,3050,3100}
+            tMin, tMax = 0.065, 0.085
+        end
+    else
+        if math.random() < 0.5 then
+            values = {1500,1550,1600,1650,1700,1750,1800,1850,1900}
+            tMin, tMax = 0.06, 0.09
+        else
+            values = {1800,1850,1900,1950,2000,2050,2100}
+            tMin, tMax = 0.085, 0.115
+        end
+    end
 
+    local ang = pickCentral(values)
+    local flickTime = math.random()*(tMax - tMin) + tMin
     local totalAngle = math.rad(math.clamp(ang / 40, 45, 90))
     local dir = 1
+    local steps = math.max(1, math.floor(flickTime / 0.005))
 
-    local baseCF = hrp.CFrame
-    local _, baseYaw, _ = baseCF:ToOrientation()
-
-    local steps = 12
-
+    -- FLICK COM CORREÇÃO DE VELOCITY
+    local prevOffset = 0
     for i = 1, steps do
         local alpha = i / steps
         local curve = math.sin(alpha * math.pi)
-        local offset = totalAngle * curve * dir
+        local currOffset = totalAngle * curve * dir
+        local delta = currOffset - prevOffset
+        prevOffset = currOffset
 
+        -- Rotação incremental
         local pos = hrp.Position
-        hrp.CFrame = CFrame.new(pos) * CFrame.Angles(0, baseYaw + offset, 0)
+        local rotation = CFrame.Angles(0, delta, 0)
+        hrp.CFrame = CFrame.new(pos) * rotation * (hrp.CFrame - pos)
+
+        -- Corrige velocity junto
+        hrp.Velocity = rotation:VectorToWorldSpace(hrp.Velocity)
 
         RunService.RenderStepped:Wait()
     end
@@ -212,9 +225,7 @@ RunService.Heartbeat:Connect(function()
     local char = LocalPlayer.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     local hum = char and char:FindFirstChild("Humanoid")
-
     if not hrp or not hum then return end
-
     if isCrouching(hum, hrp) then return end
 
     local params = RaycastParams.new()
@@ -223,13 +234,11 @@ RunService.Heartbeat:Connect(function()
 
     local look = Camera.CFrame.LookVector
     local horizontal = Vector3.new(look.X, 0, look.Z)
-
     if horizontal.Magnitude > 0 then
         horizontal = horizontal.Unit
     end
 
     local direction = horizontal * 1.55
-
     local result = nil
 
     local offsets = {
@@ -271,4 +280,4 @@ TextButton.MouseButton1Click:Connect(function()
     TextButton.BackgroundColor3 = isWallHopEnabled and Color3.fromRGB(40,40,40) or Color3.fromRGB(0,0,0)
 end)
 
-print("WallHop Loaded (com flick integrado)")
+print("WallHop Loaded (sem câmera, flick avançado sem empurrão)")
