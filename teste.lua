@@ -1,4 +1,4 @@
--- AUTO WALLHOP + DOUBLE JUMP (PULO ORIGINAL + FLICK SNAP)
+-- AUTO WALLHOP + DOUBLE JUMP (PULO ORIGINAL + FLICK FIXO CORRIGIDO)
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -72,7 +72,7 @@ if LocalPlayer.Character then
 end
 LocalPlayer.CharacterAdded:Connect(setupCharacter)
 
--- DOUBLE JUMP (mantido como estava)
+-- DOUBLE JUMP (inalterado)
 UserInputService.JumpRequest:Connect(function()
     if not isWallHopEnabled then return end
 
@@ -99,7 +99,7 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
--- RANDOM (extremos liberados + controle leve)
+-- RANDOM (mantido)
 local function getRandomAngle()
     local angle
     local tenGroup
@@ -117,7 +117,7 @@ local function getRandomAngle()
     return angle
 end
 
--- FLICK + PULO ORIGINAL
+-- FLICK CORRIGIDO (ÚNICA MUDANÇA REAL)
 local function performVideoFlick()
     if isFlicking then return end
     isFlicking = true
@@ -133,16 +133,19 @@ local function performVideoFlick()
         return
     end
 
-    -- PULO ORIGINAL (sem velocity)
+    -- pulo original
     hum:ChangeState(Enum.HumanoidStateType.Jumping)
 
+    -- BASE FIXA (ESSENCIAL)
+    local baseCF = hrp.CFrame
     local angle = math.rad(getRandomAngle())
 
-    -- FLICK SEM BUG DE CÂMERA
-    hrp.CFrame = hrp.CFrame * CFrame.Angles(0, angle, 0)
+    -- flick pra um lado só (direita)
+    hrp.CFrame = baseCF * CFrame.Angles(0, angle, 0)
     task.wait(0.07)
 
-    hrp.CFrame = hrp.CFrame * CFrame.Angles(0, -angle, 0)
+    -- volta exata
+    hrp.CFrame = baseCF
     task.wait(0.07)
 
     task.delay(0.25, function()
@@ -152,7 +155,7 @@ local function performVideoFlick()
     isFlicking = false
 end
 
--- WALL DETECT
+-- WALL DETECT (inalterado)
 local lastHitInstance = nil
 
 local function isPlayerCharacter(instance)
@@ -228,4 +231,4 @@ TextButton.MouseButton1Click:Connect(function()
     TextButton.BackgroundColor3 = isWallHopEnabled and Color3.fromRGB(40,40,40) or Color3.fromRGB(0,0,0)
 end)
 
-print("WallHop Loaded (PULO 100% ORIGINAL)")
+print("WallHop Loaded (FLICK FIXADO CORRETAMENTE)")
