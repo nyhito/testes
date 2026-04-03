@@ -1,4 +1,4 @@
--- AUTO WALLHOP + DOUBLE JUMP (FLICK VISUAL SEM QUEBRAR FÍSICA)
+-- AUTO WALLHOP + DOUBLE JUMP (FLICK VISUAL SEM QUEBRAR FÍSICA - 90°)
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -38,6 +38,7 @@ local Camera = workspace.CurrentCamera
 
 local isWallHopping = false
 
+-- NOVO (janela após wallhop)
 local lastWallHopTime = 0
 local WALLHOP_GRACE_TIME = 1.5
 
@@ -46,12 +47,14 @@ local canDoubleJump = false
 local lastDoubleJump = 0
 local DOUBLE_JUMP_COOLDOWN = 3
 
+-- CROUCH CHECK
 local function isCrouching(hum, hrp)
     if not hum or not hrp then return false end
     local horizontalSpeed = Vector3.new(hrp.Velocity.X, 0, hrp.Velocity.Z).Magnitude
     return hum.WalkSpeed <= 9 and horizontalSpeed < 8
 end
 
+-- CHARACTER HANDLER
 local function setupCharacter(char)
     local hum = char:WaitForChild("Humanoid")
 
@@ -59,6 +62,7 @@ local function setupCharacter(char)
         if new == Enum.HumanoidStateType.Freefall then
             canDoubleJump = true
         end
+
         if new == Enum.HumanoidStateType.Landed then
             canDoubleJump = false
         end
@@ -97,7 +101,7 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
--- FLICK CORRIGIDO (FÍSICO, SUAVE, SEM MEXER NA CÂMERA)
+-- FLICK VISUAL (90°)
 local function performVideoFlick()
     if isFlicking then return end
     isFlicking = true
@@ -120,39 +124,14 @@ local function performVideoFlick()
     local oldAutoRotate = hum.AutoRotate
     hum.AutoRotate = false
 
-    -- lógica do ângulo (igual câmera)
-    local lookY = Camera.CFrame.LookVector.Y
-    local verticalInfluence = math.clamp(math.abs(lookY), 0, 1)
+    -- 1200 -> ~50°
+    -- 2400 -> ~90° (dobrado)
+    hrp.AssemblyAngularVelocity = Vector3.new(0, math.rad(2400), 0)
 
-    local baseAngle = 45
-    local dynamicAngle = baseAngle * (1 - (verticalInfluence * 0.6))
+    task.wait(0.03)
 
-    local fastFlick = math.random() < 0.4
-
-    local duration = fastFlick and 0.06 or 0.09
-    local startTime = tick()
-
-    local connection
-    connection = RunService.Heartbeat:Connect(function()
-        local elapsed = tick() - startTime
-        local alpha = math.clamp(elapsed / duration, 0, 1)
-
-        -- curva suave ida/volta (igual câmera)
-        local curve = math.sin(alpha * math.pi)
-
-        local targetAngle = math.rad(dynamicAngle) * curve
-
-        hrp.AssemblyAngularVelocity = Vector3.new(0, targetAngle * 25, 0)
-
-        if alpha >= 1 then
-            hrp.AssemblyAngularVelocity = Vector3.zero
-            connection:Disconnect()
-        end
-    end)
-
-    task.delay(duration + 0.02, function()
-        hum.AutoRotate = oldAutoRotate
-    end)
+    hrp.AssemblyAngularVelocity = Vector3.zero
+    hum.AutoRotate = oldAutoRotate
 
     task.delay(0.1, function()
         if hum and hum:GetState() == Enum.HumanoidStateType.Jumping then
@@ -243,4 +222,4 @@ TextButton.MouseButton1Click:Connect(function()
     TextButton.BackgroundColor3 = isWallHopEnabled and Color3.fromRGB(40,40,40) or Color3.fromRGB(0,0,0)
 end)
 
-print("WallHop Loaded (flick físico suave, sem mover câmera)")
+print("WallHop Loaded (flick 90°)")
