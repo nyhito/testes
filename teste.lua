@@ -1,4 +1,4 @@
--- AUTO WALLHOP + DOUBLE JUMP (FLICK VISUAL PURO - SEM BACKPUSH)
+-- AUTO WALLHOP + DOUBLE JUMP (FLICK VISUAL 60° + TEMPO 0.10 + PULO AJUSTADO)
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -97,7 +97,7 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
--- FLICK VISUAL PURO (SEM FÍSICA)
+-- FLICK VISUAL AJUSTADO
 local function performVideoFlick()
     if isFlicking then return end
     isFlicking = true
@@ -113,29 +113,24 @@ local function performVideoFlick()
         return
     end
 
-    -- impulso original
+    -- PULO AJUSTADO (compensando perda da física antiga)
     hum:ChangeState(Enum.HumanoidStateType.Jumping)
-    hrp.Velocity = Vector3.new(hrp.Velocity.X, 44.8, hrp.Velocity.Z)
+    hrp.Velocity = Vector3.new(hrp.Velocity.X, 56, hrp.Velocity.Z)
 
     local oldAutoRotate = hum.AutoRotate
     hum.AutoRotate = false
 
     local originalCF = hrp.CFrame
 
-    -- direção baseada na câmera
-    local look = Camera.CFrame.LookVector
-    local horizontal = Vector3.new(look.X, 0, look.Z).Unit
+    -- ÂNGULO 60°
+    local angle = math.rad(60)
 
-    -- rotação de 50°
-    local angle = math.rad(50)
-
-    -- gira
+    -- FLICK (0.10 total)
     hrp.CFrame = originalCF * CFrame.Angles(0, angle, 0)
-    task.wait(0.04)
+    task.wait(0.05)
 
-    -- volta
     hrp.CFrame = originalCF
-    task.wait(0.04)
+    task.wait(0.05)
 
     hum.AutoRotate = oldAutoRotate
 
@@ -152,7 +147,7 @@ local function performVideoFlick()
     isFlicking = false
 end
 
--- WALL DETECT (mesmo)
+-- WALL DETECT
 local lastHitInstance = nil
 
 local function isPlayerCharacter(instance)
@@ -228,4 +223,4 @@ TextButton.MouseButton1Click:Connect(function()
     TextButton.BackgroundColor3 = isWallHopEnabled and Color3.fromRGB(40,40,40) or Color3.fromRGB(0,0,0)
 end)
 
-print("WallHop Loaded (FLICK VISUAL PURO - SEM BACKPUSH)")
+print("WallHop Loaded (60° / 0.10s / PULO AJUSTADO)")
