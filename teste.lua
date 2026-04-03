@@ -1,4 +1,4 @@
--- AUTO WALLHOP + DOUBLE JUMP (FLICK AJUSTADO 45°–60°)
+-- AUTO WALLHOP + DOUBLE JUMP (FLICK VIA HUMANOID - SEM EMPURRÃO)
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -70,7 +70,7 @@ if LocalPlayer.Character then
 end
 LocalPlayer.CharacterAdded:Connect(setupCharacter)
 
--- DOUBLE JUMP
+-- DOUBLE JUMP (PROTEGIDO)
 UserInputService.JumpRequest:Connect(function()
     if not isWallHopEnabled or blockDoubleJump then return end
 
@@ -96,30 +96,7 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
--- RANDOM CENTRAL
-local function pickCentral(values)
-    local mid = math.ceil(#values/2)
-    local total, weights = 0, {}
-
-    for i=1,#values do
-        local d = math.abs(i - mid)
-        local w = 1/(1 + d^1.3)
-        weights[i] = w
-        total += w
-    end
-
-    local r = math.random() * total
-    for i, w in ipairs(weights) do
-        r -= w
-        if r <= 0 then
-            return values[i]
-        end
-    end
-
-    return values[#values]
-end
-
--- FLICK (MESMO SISTEMA, SÓ ÂNGULO REDUZIDO)
+-- FLICK VIA HUMANOID (AVANÇADO)
 local function performVideoFlick()
     if isFlicking then return end
     isFlicking = true
@@ -136,39 +113,36 @@ local function performVideoFlick()
         return
     end
 
+    -- impulso original (mantido)
     hrp.Velocity = Vector3.new(hrp.Velocity.X, 44.8, hrp.Velocity.Z)
 
-    local oldAutoRotate = hum.AutoRotate
-    hum.AutoRotate = false
+    hum.AutoRotate = true -- importante
 
-    hrp.AssemblyAngularVelocity = Vector3.zero
+    -- direção base (igual câmera)
+    local baseDir = Camera.CFrame.LookVector
+    baseDir = Vector3.new(baseDir.X, 0, baseDir.Z).Unit
 
-    local values = {1800,1900,2000,2100,2200,2300,2400} -- menor base
-
-    local ang = pickCentral(values)
-
-    -- 🔥 AQUI FOI ALTERADO
-    local totalAngle = math.rad(math.clamp(ang / 40, 45, 60))
-
+    -- ângulo 45°–60°
+    local angle = math.rad(math.random(45, 60))
     local dir = 1
-
-    local baseCF = hrp.CFrame
-    local _, baseYaw, _ = baseCF:ToOrientation()
 
     local steps = 10
 
     for i = 1, steps do
         local alpha = i / steps
         local curve = math.sin(alpha * math.pi)
-        local offset = totalAngle * curve * dir
+        local offset = angle * curve * dir
 
-        local pos = hrp.Position
-        hrp.CFrame = CFrame.new(pos) * CFrame.Angles(0, baseYaw + offset, 0)
+        local rotated = (CFrame.Angles(0, offset, 0):VectorToWorldSpace(baseDir))
+
+        -- 🔥 AQUI ESTÁ O MÉTODO LIMPO
+        hum:Move(rotated, true)
 
         RunService.RenderStepped:Wait()
     end
 
-    hum.AutoRotate = oldAutoRotate
+    -- para o input artificial
+    hum:Move(Vector3.zero, true)
 
     task.delay(0.05, function()
         blockDoubleJump = false
@@ -207,7 +181,6 @@ RunService.Heartbeat:Connect(function()
     local hum = char and char:FindFirstChild("Humanoid")
 
     if not hrp or not hum then return end
-
     if isCrouching(hum, hrp) then return end
 
     local params = RaycastParams.new()
@@ -222,7 +195,6 @@ RunService.Heartbeat:Connect(function()
     end
 
     local direction = horizontal * 1.55
-
     local result = nil
 
     local offsets = {
@@ -264,4 +236,4 @@ TextButton.MouseButton1Click:Connect(function()
     TextButton.BackgroundColor3 = isWallHopEnabled and Color3.fromRGB(40,40,40) or Color3.fromRGB(0,0,0)
 end)
 
-print("WallHop Loaded (45°–60°)")
+print("WallHop Loaded (flick via humanoid - zero empurrão)")
