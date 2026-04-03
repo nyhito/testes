@@ -1,4 +1,4 @@
--- AUTO WALLHOP + DOUBLE JUMP (FLICK VISUAL SEM QUEBRAR FÍSICA - 90°)
+-- AUTO WALLHOP + DOUBLE JUMP (FLICK VISUAL SEM QUEBRAR FÍSICA - 90° EM 0.08s)
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -38,7 +38,6 @@ local Camera = workspace.CurrentCamera
 
 local isWallHopping = false
 
--- NOVO (janela após wallhop)
 local lastWallHopTime = 0
 local WALLHOP_GRACE_TIME = 1.5
 
@@ -47,14 +46,12 @@ local canDoubleJump = false
 local lastDoubleJump = 0
 local DOUBLE_JUMP_COOLDOWN = 3
 
--- CROUCH CHECK
 local function isCrouching(hum, hrp)
     if not hum or not hrp then return false end
     local horizontalSpeed = Vector3.new(hrp.Velocity.X, 0, hrp.Velocity.Z).Magnitude
     return hum.WalkSpeed <= 9 and horizontalSpeed < 8
 end
 
--- CHARACTER HANDLER
 local function setupCharacter(char)
     local hum = char:WaitForChild("Humanoid")
 
@@ -62,7 +59,6 @@ local function setupCharacter(char)
         if new == Enum.HumanoidStateType.Freefall then
             canDoubleJump = true
         end
-
         if new == Enum.HumanoidStateType.Landed then
             canDoubleJump = false
         end
@@ -101,7 +97,7 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
--- FLICK VISUAL (90°)
+-- FLICK VISUAL (90° EM 0.08s)
 local function performVideoFlick()
     if isFlicking then return end
     isFlicking = true
@@ -117,18 +113,17 @@ local function performVideoFlick()
         return
     end
 
-    -- impulso original (INALTERADO)
+    -- impulso original
     hum:ChangeState(Enum.HumanoidStateType.Jumping)
     hrp.Velocity = Vector3.new(hrp.Velocity.X, 44.8, hrp.Velocity.Z)
 
     local oldAutoRotate = hum.AutoRotate
     hum.AutoRotate = false
 
-    -- 1200 -> ~50°
-    -- 2400 -> ~90° (dobrado)
-    hrp.AssemblyAngularVelocity = Vector3.new(0, math.rad(2400), 0)
+    -- velocidade ajustada pra manter ~90° em 0.08s
+    hrp.AssemblyAngularVelocity = Vector3.new(0, math.rad(900), 0)
 
-    task.wait(0.03)
+    task.wait(0.08)
 
     hrp.AssemblyAngularVelocity = Vector3.zero
     hum.AutoRotate = oldAutoRotate
@@ -222,4 +217,4 @@ TextButton.MouseButton1Click:Connect(function()
     TextButton.BackgroundColor3 = isWallHopEnabled and Color3.fromRGB(40,40,40) or Color3.fromRGB(0,0,0)
 end)
 
-print("WallHop Loaded (flick 90°)")
+print("WallHop Loaded (flick 90° em 0.08s)")
