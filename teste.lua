@@ -17,7 +17,6 @@ ScreenGui.Parent = PlayerGui
 -- BOTÃO PRINCIPAL
 local TextButton = Instance.new("TextButton")
 TextButton.Size = UDim2.new(0, 140, 0, 50)
-TextButton.Position = UDim2.new(0, 150, 0, 100)
 TextButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 TextButton.Text = "Wall Hop Off"
 TextButton.TextColor3 = Color3.fromRGB(255,255,255)
@@ -26,7 +25,13 @@ TextButton.TextScaled = true
 TextButton.Parent = ScreenGui
 Instance.new("UICorner", TextButton).CornerRadius = UDim.new(0, 12)
 
--- BOTÃO FLUTUANTE (ESCONDER UI)
+-- POSIÇÃO ORIGINAL (CORRIGIDO)
+RunService.RenderStepped:Connect(function()
+	local inset = GuiService:GetGuiInset()
+	TextButton.Position = UDim2.new(0, 150, 0, inset.Y - 58)
+end)
+
+-- BOTÃO FLUTUANTE
 local ToggleUI = Instance.new("TextButton")
 ToggleUI.Size = UDim2.new(0, 50, 0, 50)
 ToggleUI.Position = UDim2.new(0, 20, 0, 200)
@@ -38,7 +43,7 @@ ToggleUI.Font = Enum.Font.GothamBold
 ToggleUI.Parent = ScreenGui
 Instance.new("UICorner", ToggleUI).CornerRadius = UDim.new(1, 0)
 
--- ARRASTAR BOTÃO
+-- DRAG
 local dragging = false
 local dragInput, dragStart, startPos
 
@@ -78,7 +83,7 @@ UserInputService.InputChanged:Connect(function(input)
 	end
 end)
 
--- ESCONDER/MOSTRAR UI
+-- MOSTRAR / ESCONDER UI
 local uiVisible = true
 ToggleUI.MouseButton1Click:Connect(function()
 	uiVisible = not uiVisible
@@ -100,12 +105,14 @@ local canDoubleJump = false
 local lastDoubleJump = 0
 local DOUBLE_JUMP_COOLDOWN = 3
 
+-- CROUCH CHECK
 local function isCrouching(hum, hrp)
 	if not hum or not hrp then return false end
 	local horizontalSpeed = Vector3.new(hrp.Velocity.X, 0, hrp.Velocity.Z).Magnitude
 	return hum.WalkSpeed <= 9 and horizontalSpeed < 8
 end
 
+-- CHARACTER
 local function setupCharacter(char)
 	local hum = char:WaitForChild("Humanoid")
 
@@ -125,6 +132,7 @@ if LocalPlayer.Character then
 end
 LocalPlayer.CharacterAdded:Connect(setupCharacter)
 
+-- DOUBLE JUMP
 UserInputService.JumpRequest:Connect(function()
 	if not isWallHopEnabled then return end
 
@@ -151,6 +159,7 @@ UserInputService.JumpRequest:Connect(function()
 	end
 end)
 
+-- FLICK RESTAURADO
 local function performVideoFlick()
 	if isFlicking then return end
 	isFlicking = true
@@ -169,6 +178,31 @@ local function performVideoFlick()
 	hum:ChangeState(Enum.HumanoidStateType.Jumping)
 	hrp.Velocity = Vector3.new(hrp.Velocity.X, 44.8, hrp.Velocity.Z)
 
+	local startCFrame = Camera.CFrame
+
+	local lookY = startCFrame.LookVector.Y
+	local verticalInfluence = math.clamp(math.abs(lookY), 0, 1)
+
+	local baseAngle = 45
+	local dynamicAngle = baseAngle * (1 - (verticalInfluence * 0.6))
+
+	local flickRotation = CFrame.fromAxisAngle(startCFrame.UpVector, math.rad(dynamicAngle))
+	local targetCFrame = flickRotation * startCFrame
+
+	local fastFlick = math.random() < 0.4
+
+	Camera.CFrame = targetCFrame
+
+	task.wait(fastFlick and 0.013 or 0.019)
+
+	local steps = fastFlick and 4 or 6
+
+	for i = 1, steps do
+		local alpha = (i / steps) ^ (fastFlick and 1.8 or 2.2)
+		Camera.CFrame = targetCFrame:Lerp(startCFrame, alpha)
+		task.wait(fastFlick and 0.0045 or 0.0065)
+	end
+
 	task.delay(0.1, function()
 		if hum and hum:GetState() == Enum.HumanoidStateType.Jumping then
 			hum:ChangeState(Enum.HumanoidStateType.Freefall)
@@ -182,6 +216,7 @@ local function performVideoFlick()
 	isFlicking = false
 end
 
+-- WALL DETECT
 local lastHitInstance = nil
 
 local function isPlayerCharacter(instance)
@@ -243,6 +278,7 @@ RunService.Heartbeat:Connect(function()
 	lastHitInstance = nil
 end)
 
+-- TOGGLE
 TextButton.MouseButton1Click:Connect(function()
 	isWallHopEnabled = not isWallHopEnabled
 	TextButton.Text = isWallHopEnabled and "Wall Hop On" or "Wall Hop Off"
