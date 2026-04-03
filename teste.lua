@@ -1,4 +1,4 @@
--- AUTO WALLHOP + DOUBLE JUMP (FLICK VISUAL NO PERSONAGEM)
+-- AUTO WALLHOP + DOUBLE JUMP (FLICK VISUAL CORRIGIDO)
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -101,7 +101,7 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
--- FLICK VISUAL NO PERSONAGEM (SEM CÂMERA)
+-- FLICK VISUAL (COM PRESERVAÇÃO DE VELOCIDADE)
 local function performVideoFlick()
     if isFlicking then return end
     isFlicking = true
@@ -121,7 +121,10 @@ local function performVideoFlick()
     hum:ChangeState(Enum.HumanoidStateType.Jumping)
     hrp.Velocity = Vector3.new(hrp.Velocity.X, 44.8, hrp.Velocity.Z)
 
-    -- FLICK VISUAL
+    -- salva velocidade
+    local originalVelocity = hrp.Velocity
+
+    -- flick visual
     local originalCFrame = hrp.CFrame
     local oldAutoRotate = hum.AutoRotate
     hum.AutoRotate = false
@@ -137,6 +140,9 @@ local function performVideoFlick()
         hrp.CFrame = flickCFrame:Lerp(originalCFrame, alpha)
         task.wait(0.005)
     end
+
+    -- restaura velocidade (corrige pulo)
+    hrp.Velocity = originalVelocity
 
     hum.AutoRotate = oldAutoRotate
 
@@ -230,4 +236,4 @@ TextButton.MouseButton1Click:Connect(function()
     TextButton.BackgroundColor3 = isWallHopEnabled and Color3.fromRGB(40,40,40) or Color3.fromRGB(0,0,0)
 end)
 
-print("WallHop Loaded (flick visual no personagem)")
+print("WallHop Loaded (flick visual corrigido)")
