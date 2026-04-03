@@ -1,4 +1,4 @@
--- AUTO WALLHOP + DOUBLE JUMP (SEM FLICK DE CÂMERA, AVANÇADO)
+-- AUTO WALLHOP + DOUBLE JUMP (FLICK AJUSTADO 45°–60°)
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -119,7 +119,7 @@ local function pickCentral(values)
     return values[#values]
 end
 
--- FLICK AVANÇADO SEM EMPURRÃO
+-- FLICK (MESMO SISTEMA, SÓ ÂNGULO REDUZIDO)
 local function performVideoFlick()
     if isFlicking then return end
     isFlicking = true
@@ -137,53 +137,33 @@ local function performVideoFlick()
     end
 
     hrp.Velocity = Vector3.new(hrp.Velocity.X, 44.8, hrp.Velocity.Z)
+
     local oldAutoRotate = hum.AutoRotate
     hum.AutoRotate = false
+
     hrp.AssemblyAngularVelocity = Vector3.zero
 
-    -- Define ângulo do flick
-    local roll = math.random()
-    local values, tMin, tMax
-    if roll < 0.7 then
-        if math.random() < 0.5 then
-            values = {2500,2550,2600,2650,2700,2750,2800}
-            tMin, tMax = 0.085, 0.115
-        else
-            values = {2700,2750,2800,2850,2900,2950,3000,3050,3100}
-            tMin, tMax = 0.065, 0.085
-        end
-    else
-        if math.random() < 0.5 then
-            values = {1500,1550,1600,1650,1700,1750,1800,1850,1900}
-            tMin, tMax = 0.06, 0.09
-        else
-            values = {1800,1850,1900,1950,2000,2050,2100}
-            tMin, tMax = 0.085, 0.115
-        end
-    end
+    local values = {1800,1900,2000,2100,2200,2300,2400} -- menor base
 
     local ang = pickCentral(values)
-    local flickTime = math.random()*(tMax - tMin) + tMin
-    local totalAngle = math.rad(math.clamp(ang / 40, 45, 90))
-    local dir = 1
-    local steps = math.max(1, math.floor(flickTime / 0.005))
 
-    -- FLICK COM CORREÇÃO DE VELOCITY
-    local prevOffset = 0
+    -- 🔥 AQUI FOI ALTERADO
+    local totalAngle = math.rad(math.clamp(ang / 40, 45, 60))
+
+    local dir = 1
+
+    local baseCF = hrp.CFrame
+    local _, baseYaw, _ = baseCF:ToOrientation()
+
+    local steps = 10
+
     for i = 1, steps do
         local alpha = i / steps
         local curve = math.sin(alpha * math.pi)
-        local currOffset = totalAngle * curve * dir
-        local delta = currOffset - prevOffset
-        prevOffset = currOffset
+        local offset = totalAngle * curve * dir
 
-        -- Rotação incremental
         local pos = hrp.Position
-        local rotation = CFrame.Angles(0, delta, 0)
-        hrp.CFrame = CFrame.new(pos) * rotation * (hrp.CFrame - pos)
-
-        -- Corrige velocity junto
-        hrp.Velocity = rotation:VectorToWorldSpace(hrp.Velocity)
+        hrp.CFrame = CFrame.new(pos) * CFrame.Angles(0, baseYaw + offset, 0)
 
         RunService.RenderStepped:Wait()
     end
@@ -225,7 +205,9 @@ RunService.Heartbeat:Connect(function()
     local char = LocalPlayer.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     local hum = char and char:FindFirstChild("Humanoid")
+
     if not hrp or not hum then return end
+
     if isCrouching(hum, hrp) then return end
 
     local params = RaycastParams.new()
@@ -234,11 +216,13 @@ RunService.Heartbeat:Connect(function()
 
     local look = Camera.CFrame.LookVector
     local horizontal = Vector3.new(look.X, 0, look.Z)
+
     if horizontal.Magnitude > 0 then
         horizontal = horizontal.Unit
     end
 
     local direction = horizontal * 1.55
+
     local result = nil
 
     local offsets = {
@@ -280,4 +264,4 @@ TextButton.MouseButton1Click:Connect(function()
     TextButton.BackgroundColor3 = isWallHopEnabled and Color3.fromRGB(40,40,40) or Color3.fromRGB(0,0,0)
 end)
 
-print("WallHop Loaded (sem câmera, flick avançado sem empurrão)")
+print("WallHop Loaded (45°–60°)")
