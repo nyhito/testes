@@ -1,4 +1,4 @@
--- AUTO WALLHOP + DOUBLE JUMP (FLICK HUMANIZADO FINAL ESTÁVEL)
+-- AUTO WALLHOP + DOUBLE JUMP (FLICK HUMANIZADO + FÍSICA NATURAL)
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -22,7 +22,6 @@ TextButton.TextColor3 = Color3.fromRGB(255,255,255)
 TextButton.Font = Enum.Font.GothamBold
 TextButton.TextScaled = true
 TextButton.Parent = ScreenGui
-
 Instance.new("UICorner", TextButton).CornerRadius = UDim.new(0, 12)
 
 RunService.RenderStepped:Connect(function()
@@ -96,11 +95,10 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
--- FLICK HUMANIZADO
+-- FLICK HUMANIZADO (sem interferir na física ou animação)
 local function performVideoFlick()
     if isFlicking then return end
     isFlicking = true
-
     isWallHopping = true
     lastWallHopTime = tick()
     blockDoubleJump = true
@@ -113,33 +111,31 @@ local function performVideoFlick()
         return
     end
 
-    -- impulso vertical
+    -- impulso vertical natural
     hrp.Velocity = Vector3.new(hrp.Velocity.X, 44.8, hrp.Velocity.Z)
 
     local baseCF = hrp.CFrame
     local angle = math.rad(math.random(50, 80))
-
-    local steps = 7 -- menos steps para não travar wallhop
+    local steps = 7
 
     for i = 1, steps do
         local alpha = i / steps
         local curve = math.sin(alpha * math.pi * 0.95)
         local offset = angle * curve
 
+        -- apenas visual, não afeta física lateral
         hrp.CFrame = baseCF * CFrame.Angles(0, offset, 0)
 
         RunService.RenderStepped:Wait()
-        task.wait(0.008) -- delay humanizado
+        task.wait(0.008)
     end
 
     hrp.CFrame = baseCF
 
-    -- sem interferir na câmera
+    -- garante estado de queda sem interferir na animação de braços
     if hum:GetState() ~= Enum.HumanoidStateType.Freefall then
         hum:ChangeState(Enum.HumanoidStateType.Freefall)
     end
-
-    hum.AutoRotate = true
 
     task.delay(0.05, function()
         blockDoubleJump = false
@@ -179,24 +175,17 @@ RunService.Heartbeat:Connect(function()
 
     local look = Camera.CFrame.LookVector
     local horizontal = Vector3.new(look.X, 0, look.Z)
-
     if horizontal.Magnitude > 0 then
         horizontal = horizontal.Unit
     end
-
     local direction = horizontal * 1.55
     local result = nil
 
-    local offsets = {
-        Vector3.new(0, -2.2, 0),
-        Vector3.new(0, -1.2, 0),
-        Vector3.new(0, -0.4, 0)
-    }
+    local offsets = {Vector3.new(0, -2.2, 0), Vector3.new(0, -1.2, 0), Vector3.new(0, -0.4, 0)}
 
     for _, offset in ipairs(offsets) do
         local origin = hrp.Position + offset
         local ray = workspace:Raycast(origin, direction, params)
-
         if ray and ray.Instance and ray.Instance.CanCollide then
             if not isPlayerCharacter(ray.Instance) then
                 result = ray
@@ -209,7 +198,7 @@ RunService.Heartbeat:Connect(function()
         if lastHitInstance and lastHitInstance ~= result.Instance then
             if hrp.Velocity.Y < -2.2 and tick() - lastFlickTime > 0.085 then
                 lastFlickTime = tick()
-                task.spawn(performVideoFlick) -- ⚡ executa em paralelo
+                task.spawn(performVideoFlick)
             end
         end
         lastHitInstance = result.Instance
@@ -221,9 +210,8 @@ end)
 -- TOGGLE
 TextButton.MouseButton1Click:Connect(function()
     isWallHopEnabled = not isWallHopEnabled
-
     TextButton.Text = isWallHopEnabled and "Wall Hop On" or "Wall Hop Off"
     TextButton.BackgroundColor3 = isWallHopEnabled and Color3.fromRGB(40,40,40) or Color3.fromRGB(0,0,0)
 end)
 
-print("WallHop Loaded (flick humanizado final estável)")
+print("WallHop Loaded (flick humanizado + física natural + braços normais)")
