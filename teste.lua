@@ -1,4 +1,4 @@
--- AUTO WALLHOP + DOUBLE JUMP (FLICK VISUAL SEM QUEBRAR FÍSICA)
+-- AUTO WALLHOP + DOUBLE JUMP (FLICK VISUAL MAIS LENTO ~50°)
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -101,7 +101,7 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
--- FLICK VISUAL (SEM QUEBRAR FÍSICA)
+-- FLICK VISUAL MAIS LENTO (~50°)
 local function performVideoFlick()
     if isFlicking then return end
     isFlicking = true
@@ -117,20 +117,19 @@ local function performVideoFlick()
         return
     end
 
-    -- impulso original (INALTERADO)
+    -- impulso original
     hum:ChangeState(Enum.HumanoidStateType.Jumping)
     hrp.Velocity = Vector3.new(hrp.Velocity.X, 44.8, hrp.Velocity.Z)
 
-    -- flick usando rotação física (não quebra pulo)
     local oldAutoRotate = hum.AutoRotate
     hum.AutoRotate = false
 
-    -- aplica rotação rápida para direita
-    hrp.AssemblyAngularVelocity = Vector3.new(0, math.rad(1200), 0)
+    -- 50° em ~0.08s (mais visível)
+    local angularSpeed = math.rad(625) -- rad/s
+    hrp.AssemblyAngularVelocity = Vector3.new(0, angularSpeed, 0)
 
-    task.wait(0.03)
+    task.wait(0.08)
 
-    -- para rotação
     hrp.AssemblyAngularVelocity = Vector3.zero
 
     hum.AutoRotate = oldAutoRotate
@@ -215,7 +214,7 @@ RunService.Heartbeat:Connect(function()
     else
         lastHitInstance = nil
     end
-end)
+end
 
 -- TOGGLE
 TextButton.MouseButton1Click:Connect(function()
@@ -225,4 +224,4 @@ TextButton.MouseButton1Click:Connect(function()
     TextButton.BackgroundColor3 = isWallHopEnabled and Color3.fromRGB(40,40,40) or Color3.fromRGB(0,0,0)
 end)
 
-print("WallHop Loaded (flick físico correto)")
+print("WallHop Loaded (flick 50° mais lento)")
