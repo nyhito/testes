@@ -1,4 +1,4 @@
--- AUTO WALLHOP + DOUBLE JUMP (FLICK VISUAL 60° + TEMPO 0.10 + PULO AJUSTADO)
+-- AUTO WALLHOP + DOUBLE JUMP (FLICK HUMANIZADO / 0.14s / ANTI-REPEAT)
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -37,9 +37,11 @@ local lastFlickTime = 0
 local Camera = workspace.CurrentCamera
 
 local isWallHopping = false
-
 local lastWallHopTime = 0
 local WALLHOP_GRACE_TIME = 1.5
+
+-- controle de dezena
+local lastTenGroup = nil
 
 -- DOUBLE JUMP
 local canDoubleJump = false
@@ -97,7 +99,34 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
--- FLICK VISUAL AJUSTADO
+-- ANGULO HUMANIZADO
+local function getRandomAngle()
+    local angle
+    local tenGroup
+
+    repeat
+        local chance = math.random()
+
+        if chance <= 0.7 then
+            -- comum
+            angle = math.random(50, 65)
+        else
+            -- extremos
+            if math.random() < 0.5 then
+                angle = math.random(45, 49)
+            else
+                angle = math.random(66, 80)
+            end
+        end
+
+        tenGroup = math.floor(angle / 10)
+    until tenGroup ~= lastTenGroup
+
+    lastTenGroup = tenGroup
+    return angle
+end
+
+-- FLICK
 local function performVideoFlick()
     if isFlicking then return end
     isFlicking = true
@@ -113,7 +142,7 @@ local function performVideoFlick()
         return
     end
 
-    -- PULO AJUSTADO (compensando perda da física antiga)
+    -- pulo ajustado
     hum:ChangeState(Enum.HumanoidStateType.Jumping)
     hrp.Velocity = Vector3.new(hrp.Velocity.X, 56, hrp.Velocity.Z)
 
@@ -122,15 +151,14 @@ local function performVideoFlick()
 
     local originalCF = hrp.CFrame
 
-    -- ÂNGULO 60°
-    local angle = math.rad(60)
+    local angle = math.rad(getRandomAngle())
 
-    -- FLICK (0.10 total)
+    -- tempo total 0.14
     hrp.CFrame = originalCF * CFrame.Angles(0, angle, 0)
-    task.wait(0.05)
+    task.wait(0.07)
 
     hrp.CFrame = originalCF
-    task.wait(0.05)
+    task.wait(0.07)
 
     hum.AutoRotate = oldAutoRotate
 
@@ -223,4 +251,4 @@ TextButton.MouseButton1Click:Connect(function()
     TextButton.BackgroundColor3 = isWallHopEnabled and Color3.fromRGB(40,40,40) or Color3.fromRGB(0,0,0)
 end)
 
-print("WallHop Loaded (60° / 0.10s / PULO AJUSTADO)")
+print("WallHop Loaded (Humanizado)")
