@@ -1,4 +1,4 @@
--- AUTO WALLHOP + DOUBLE JUMP (ULTRA CLEAN REFINED)
+-- AUTO WALLHOP + DOUBLE JUMP (REFINADO + FLICK ORIGINAL COMPLETO)
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -77,15 +77,81 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
--- FLICK (MESMO COMPORTAMENTO)
+-- FLICK COMPLETO
+local lastFlickAngle = nil
+local function pickNextFlick()
+    local minAngle, maxAngle = 50, 80
+    local attempt = 0
+    local angle
+    repeat
+        angle = math.random(minAngle, maxAngle)
+        attempt += 1
+    until not lastFlickAngle or math.abs(angle - lastFlickAngle) >= 10 or attempt > 20
+    lastFlickAngle = angle
+    return math.rad(angle)
+end
+
 local function flick(hrp, hum)
     lastWallHopTime = tick()
     blockDoubleJump = true
 
-    hrp.Velocity = Vector3.new(hrp.Velocity.X,44.8,hrp.Velocity.Z)
+    hrp.Velocity = Vector3.new(hrp.Velocity.X, 44.8, hrp.Velocity.Z)
     hum:ChangeState(Enum.HumanoidStateType.Jumping)
 
-    task.delay(0.05,function() blockDoubleJump = false end)
+    local baseYaw = hrp.Orientation.Y
+    local angle = pickNextFlick()
+    local steps = math.random(7,9)
+    local baseDelay = 0.01
+
+    local overshoot = math.rad(math.random(20,30))
+    local useOvershoot = math.random() < 0.9
+
+    for i = 1, steps do
+        local alpha = i / steps
+        local curve
+
+        if alpha <= 0.6 then
+            curve = math.sin((alpha / 0.6) * (math.pi/2))
+        else
+            curve = math.sin(((1 - alpha) / 0.4) * (math.pi/2))
+        end
+
+        local offset = angle * curve
+        hrp.CFrame = CFrame.new(hrp.Position) * CFrame.Angles(0, math.rad(baseYaw) + offset, 0)
+
+        RunService.RenderStepped:Wait()
+        task.wait(baseDelay)
+    end
+
+    if useOvershoot then
+        task.delay(0.05, function()
+            local smallSteps = 4
+
+            for i = 1, smallSteps do
+                local alpha = i / smallSteps
+                local offset = -overshoot * alpha
+                hrp.CFrame = CFrame.new(hrp.Position) * CFrame.Angles(0, math.rad(baseYaw) + offset, 0)
+                RunService.RenderStepped:Wait()
+                task.wait(baseDelay)
+            end
+
+            for i = 1, smallSteps do
+                local alpha = i / smallSteps
+                local offset = -overshoot * (1 - alpha)
+                hrp.CFrame = CFrame.new(hrp.Position) * CFrame.Angles(0, math.rad(baseYaw) + offset, 0)
+                RunService.RenderStepped:Wait()
+                task.wait(baseDelay)
+            end
+
+            hrp.CFrame = CFrame.new(hrp.Position) * CFrame.Angles(0, math.rad(baseYaw), 0)
+        end)
+    end
+
+    hrp.CFrame = CFrame.new(hrp.Position) * CFrame.Angles(0, math.rad(baseYaw), 0)
+
+    hum:ChangeState(Enum.HumanoidStateType.Freefall)
+
+    task.delay(0.05, function() blockDoubleJump = false end)
 end
 
 -- WALL DETECT REFINADO
@@ -118,15 +184,12 @@ RunService.Heartbeat:Connect(function()
 
             local dot = ray.Normal:Dot(horizontal * -1)
 
-            -- 🔥 COMBO REFINADO
             if dot > 0.7 and math.abs(ray.Normal.Y) < 0.15 then
 
-                -- 🔥 evita mesma parede disfarçada
                 if lastNormal and (ray.Normal - lastNormal).Magnitude < 0.1 then
                     return
                 end
 
-                -- 🔥 micro delay invisível
                 if tick() - lastFlickTime < 0.12 then return end
 
                 if hrp.Velocity.Y < -2 then
@@ -145,4 +208,4 @@ TextButton.MouseButton1Click:Connect(function()
     TextButton.Text = isWallHopEnabled and "Wall Hop On" or "Wall Hop Off"
 end)
 
-print("WallHop Loaded (refined)")
+print("WallHop Loaded (refinado + flick completo)")
