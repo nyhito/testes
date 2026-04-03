@@ -1,4 +1,4 @@
--- AUTO WALLHOP + DOUBLE JUMP (FLICK HUMANIZADO FINAL)
+-- AUTO WALLHOP + DOUBLE JUMP (FLICK HUMANIZADO FINAL ESTÁVEL)
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -113,13 +113,13 @@ local function performVideoFlick()
         return
     end
 
-    -- impulso
+    -- impulso vertical
     hrp.Velocity = Vector3.new(hrp.Velocity.X, 44.8, hrp.Velocity.Z)
 
     local baseCF = hrp.CFrame
     local angle = math.rad(math.random(50, 80))
 
-    local steps = 9
+    local steps = 7 -- menos steps para não travar wallhop
 
     for i = 1, steps do
         local alpha = i / steps
@@ -129,7 +129,7 @@ local function performVideoFlick()
         hrp.CFrame = baseCF * CFrame.Angles(0, offset, 0)
 
         RunService.RenderStepped:Wait()
-        task.wait(0.01)
+        task.wait(0.008) -- delay humanizado
     end
 
     hrp.CFrame = baseCF
@@ -170,7 +170,6 @@ RunService.Heartbeat:Connect(function()
     local char = LocalPlayer.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     local hum = char and char:FindFirstChild("Humanoid")
-
     if not hrp or not hum then return end
     if isCrouching(hum, hrp) then return end
 
@@ -210,7 +209,7 @@ RunService.Heartbeat:Connect(function()
         if lastHitInstance and lastHitInstance ~= result.Instance then
             if hrp.Velocity.Y < -2.2 and tick() - lastFlickTime > 0.085 then
                 lastFlickTime = tick()
-                performVideoFlick()
+                task.spawn(performVideoFlick) -- ⚡ executa em paralelo
             end
         end
         lastHitInstance = result.Instance
@@ -227,4 +226,4 @@ TextButton.MouseButton1Click:Connect(function()
     TextButton.BackgroundColor3 = isWallHopEnabled and Color3.fromRGB(40,40,40) or Color3.fromRGB(0,0,0)
 end)
 
-print("WallHop Loaded (flick humanizado final)")
+print("WallHop Loaded (flick humanizado final estável)")
