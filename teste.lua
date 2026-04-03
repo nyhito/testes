@@ -1,4 +1,4 @@
--- AUTO WALLHOP + DOUBLE JUMP (FLICK VISUAL HARD LOCK)
+-- AUTO WALLHOP + DOUBLE JUMP (FLICK HARD LOCK + RANDOM AVANÇADO)
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -97,7 +97,7 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
--- FLICK VISUAL (ANTI-DRIFT HARD LOCK)
+-- FLICK
 local function performVideoFlick()
     if isFlicking then return end
     isFlicking = true
@@ -113,7 +113,7 @@ local function performVideoFlick()
         return
     end
 
-    -- guarda direção original
+    -- direção original
     local originalVel = hrp.Velocity
     local horizontal = Vector3.new(originalVel.X, 0, originalVel.Z)
     local speed = horizontal.Magnitude
@@ -126,8 +126,8 @@ local function performVideoFlick()
     local oldAutoRotate = hum.AutoRotate
     hum.AutoRotate = false
 
-    -- RANDOM CENTRALIZADO
-    local possibleValues = {1300,1350,1400,1450,1500,1550,1600,1650,1700,1750,1800}
+    -- RANDOM VELOCITY (1500–2000, sino)
+    local possibleValues = {1500,1550,1600,1650,1700,1750,1800,1850,1900,1950,2000}
 
     local function getRandomAngularVelocity()
         local weights = {}
@@ -152,9 +152,51 @@ local function performVideoFlick()
         return possibleValues[#possibleValues]
     end
 
+    -- RANDOM TIME (0.015–0.08, sino)
+    local possibleTimes = {0.015,0.02,0.025,0.03,0.035,0.04,0.045,0.05,0.06,0.07,0.08}
+
+    local function getRandomTime()
+        local weights = {}
+        local totalWeight = 0
+        local mid = math.ceil(#possibleTimes/2)
+
+        for i = 1, #possibleTimes do
+            local d = math.abs(i - mid)
+            local w = 1 / (1 + d^1.4)
+            weights[i] = w
+            totalWeight += w
+        end
+
+        local r = math.random() * totalWeight
+        for i, w in ipairs(weights) do
+            r -= w
+            if r <= 0 then
+                return possibleTimes[i]
+            end
+        end
+
+        return possibleTimes[#possibleTimes]
+    end
+
+    -- normal da parede
+    local wallNormal = nil
+    do
+        local params = RaycastParams.new()
+        params.FilterDescendantsInstances = {char}
+        params.FilterType = Enum.RaycastFilterType.Exclude
+
+        local look = Camera.CFrame.LookVector
+        local horizontalLook = Vector3.new(look.X, 0, look.Z).Unit
+
+        local ray = workspace:Raycast(hrp.Position, horizontalLook * 2, params)
+        if ray then
+            wallNormal = ray.Normal
+        end
+    end
+
     hrp.AssemblyAngularVelocity = Vector3.new(0, math.rad(getRandomAngularVelocity()), 0)
 
-    -- HARD LOCK direção
+    -- HARD LOCK
     local connection
     connection = RunService.Heartbeat:Connect(function()
         if not hrp or not hrp.Parent then
@@ -163,10 +205,17 @@ local function performVideoFlick()
         end
 
         local currentY = hrp.Velocity.Y
-        hrp.Velocity = direction * speed + Vector3.new(0, currentY, 0)
+        local finalDir = direction
+
+        if wallNormal then
+            finalDir = (direction - wallNormal * 0.25).Unit
+        end
+
+        hrp.Velocity = finalDir * speed + Vector3.new(0, currentY, 0)
     end)
 
-    task.wait(0.15)
+    local flickTime = getRandomTime()
+    task.wait(flickTime)
 
     hrp.AssemblyAngularVelocity = Vector3.zero
 
@@ -174,7 +223,6 @@ local function performVideoFlick()
         connection:Disconnect()
     end
 
-    -- restauração final
     local currentY = hrp.Velocity.Y
     hrp.Velocity = direction * speed + Vector3.new(0, currentY, 0)
 
@@ -268,4 +316,4 @@ TextButton.MouseButton1Click:Connect(function()
     TextButton.BackgroundColor3 = isWallHopEnabled and Color3.fromRGB(40,40,40) or Color3.fromRGB(0,0,0)
 end)
 
-print("WallHop Loaded (hard lock + random flick)")
+print("WallHop Loaded (zero recuo + random avançado)")
