@@ -217,4 +217,4 @@ TextButton.MouseButton1Click:Connect(function()
     TextButton.BackgroundColor3 = isWallHopEnabled and Color3.fromRGB(40,40,40) or Color3.fromRGB(0,0,0)
 end)
 
-print("WallHop Loaded (flick 80° em 0.15s)")
+print("WallHop cu Loaded (flick 80° em 0.15s)")
