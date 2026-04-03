@@ -1,4 +1,4 @@
--- AUTO WALLHOP + DOUBLE JUMP (FINAL FIX COMPLETO)
+-- AUTO WALLHOP + DOUBLE JUMP (FIX FINAL REAL)
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -44,7 +44,6 @@ local WALLHOP_GRACE_TIME = 1.5
 local canDoubleJump = false
 local lastDoubleJump = 0
 local DOUBLE_JUMP_COOLDOWN = 3
-local blockDoubleJump = false
 
 local function isCrouching(hum, hrp)
     if not hum or not hrp then return false end
@@ -70,9 +69,9 @@ if LocalPlayer.Character then
 end
 LocalPlayer.CharacterAdded:Connect(setupCharacter)
 
--- DOUBLE JUMP FIX
+-- DOUBLE JUMP (INALTERADO, MAS SEM BUG AGORA)
 UserInputService.JumpRequest:Connect(function()
-    if not isWallHopEnabled or blockDoubleJump then return end
+    if not isWallHopEnabled then return end
 
     local char = LocalPlayer.Character
     local hum = char and char:FindFirstChild("Humanoid")
@@ -87,7 +86,6 @@ UserInputService.JumpRequest:Connect(function()
         canDoubleJump = false
 
         hrp.Velocity = Vector3.new(hrp.Velocity.X, 34.5, hrp.Velocity.Z)
-        hum:ChangeState(Enum.HumanoidStateType.Jumping)
 
         task.delay(0.18, function()
             if hum then
@@ -120,14 +118,13 @@ local function pickCentral(values)
     return values[#values]
 end
 
--- FLICK FIX FINAL
+-- FLICK CORRIGIDO
 local function performVideoFlick()
     if isFlicking then return end
     isFlicking = true
 
     isWallHopping = true
     lastWallHopTime = tick()
-    blockDoubleJump = true
 
     local char = LocalPlayer.Character
     local hum = char and char:FindFirstChild("Humanoid")
@@ -137,7 +134,7 @@ local function performVideoFlick()
         return
     end
 
-    hum:ChangeState(Enum.HumanoidStateType.Jumping)
+    -- impulso SEM ChangeState (fix double jump)
     hrp.Velocity = Vector3.new(hrp.Velocity.X, 44.8, hrp.Velocity.Z)
 
     local oldAutoRotate = hum.AutoRotate
@@ -169,7 +166,8 @@ local function performVideoFlick()
     local ang = pickCentral(values)
     local flickTime = math.random()*(tMax - tMin) + tMin
 
-    local totalAngle = math.rad(ang) * flickTime
+    -- CONVERSÃO CORRETA PRA GRAU (45°–90°)
+    local totalAngle = math.rad(math.clamp(ang / 40, 45, 90))
     local dir = (math.random() < 0.5) and 1 or -1
 
     local baseCF = hrp.CFrame
@@ -189,10 +187,6 @@ local function performVideoFlick()
     end
 
     hum.AutoRotate = oldAutoRotate
-
-    task.delay(0.05, function()
-        blockDoubleJump = false
-    end)
 
     task.delay(0.1, function()
         if hum and hum:GetState() == Enum.HumanoidStateType.Jumping then
@@ -281,4 +275,4 @@ TextButton.MouseButton1Click:Connect(function()
     TextButton.BackgroundColor3 = isWallHopEnabled and Color3.fromRGB(40,40,40) or Color3.fromRGB(0,0,0)
 end)
 
-print("WallHop Loaded (final corrigido de verdade)")
+print("WallHop Loaded (fix correto aplicado)")
