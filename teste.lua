@@ -1,4 +1,4 @@
--- AUTO WALLHOP + DOUBLE JUMP (FIX FINAL LIMPO)
+-- AUTO WALLHOP + DOUBLE JUMP (FIX SECOND JUMP)
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -70,7 +70,7 @@ if LocalPlayer.Character then
 end
 LocalPlayer.CharacterAdded:Connect(setupCharacter)
 
--- DOUBLE JUMP (FIX)
+-- DOUBLE JUMP
 UserInputService.JumpRequest:Connect(function()
     if not isWallHopEnabled or blockDoubleJump then return end
 
@@ -119,7 +119,7 @@ local function pickCentral(values)
     return values[#values]
 end
 
--- FLICK FINAL CORRIGIDO
+-- FLICK
 local function performVideoFlick()
     if isFlicking then return end
     isFlicking = true
@@ -136,15 +136,16 @@ local function performVideoFlick()
         return
     end
 
-    -- impulso SEM mudar estado (corrige braços + double jump)
-    hrp.Velocity = Vector3.new(hrp.Velocity.X, 44.8, hrp.Velocity.Z)
+    -- IMPULSO CORRIGIDO (SEM SEGUNDO PULO)
+    if hrp.Velocity.Y < 2 then
+        hrp.Velocity = Vector3.new(hrp.Velocity.X, 44.8, hrp.Velocity.Z)
+    end
 
     local oldAutoRotate = hum.AutoRotate
     hum.AutoRotate = false
 
     hrp.AssemblyAngularVelocity = Vector3.zero
 
-    -- 90° mais comum
     local roll = math.random()
     local values, tMin, tMax
 
@@ -169,11 +170,7 @@ local function performVideoFlick()
     local ang = pickCentral(values)
     local flickTime = math.random()*(tMax - tMin) + tMin
 
-    -- ângulo real (45°–90°)
     local totalAngle = math.rad(math.clamp(ang / 40, 45, 90))
-
-    -- SEMPRE PARA DIREITA
-    local dir = 1
 
     local baseCF = hrp.CFrame
     local _, baseYaw, _ = baseCF:ToOrientation()
@@ -183,7 +180,7 @@ local function performVideoFlick()
     for i = 1, steps do
         local alpha = i / steps
         local curve = math.sin(alpha * math.pi)
-        local offset = totalAngle * curve * dir
+        local offset = totalAngle * curve
 
         local pos = hrp.Position
         hrp.CFrame = CFrame.new(pos) * CFrame.Angles(0, baseYaw + offset, 0)
@@ -193,7 +190,6 @@ local function performVideoFlick()
 
     hum.AutoRotate = oldAutoRotate
 
-    -- restaura controle
     task.delay(0.05, function()
         blockDoubleJump = false
     end)
@@ -285,4 +281,4 @@ TextButton.MouseButton1Click:Connect(function()
     TextButton.BackgroundColor3 = isWallHopEnabled and Color3.fromRGB(40,40,40) or Color3.fromRGB(0,0,0)
 end)
 
-print("WallHop Loaded (cu corrigido final real)")
+print("WallHop Loaded (sem segundo pulo)")
