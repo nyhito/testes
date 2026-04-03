@@ -1,4 +1,4 @@
--- AUTO WALLHOP + DOUBLE JUMP (PULO ORIGINAL + FLICK MELHORADO SEM CÂMERA)
+-- AUTO WALLHOP + DOUBLE JUMP (FLICK PERFEITO SEM MOVER CÂMERA)
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -40,20 +40,19 @@ local isWallHopping = false
 local lastWallHopTime = 0
 local WALLHOP_GRACE_TIME = 1.5
 
-local lastTenGroup = nil
-local lastAngle = nil
-
 -- DOUBLE JUMP
 local canDoubleJump = false
 local lastDoubleJump = 0
 local DOUBLE_JUMP_COOLDOWN = 3
 
+-- CROUCH
 local function isCrouching(hum, hrp)
     if not hum or not hrp then return false end
     local horizontalSpeed = Vector3.new(hrp.Velocity.X, 0, hrp.Velocity.Z).Magnitude
     return hum.WalkSpeed <= 9 and horizontalSpeed < 8
 end
 
+-- CHARACTER
 local function setupCharacter(char)
     local hum = char:WaitForChild("Humanoid")
 
@@ -72,7 +71,7 @@ if LocalPlayer.Character then
 end
 LocalPlayer.CharacterAdded:Connect(setupCharacter)
 
--- DOUBLE JUMP
+-- DOUBLE JUMP (INALTERADO)
 UserInputService.JumpRequest:Connect(function()
     if not isWallHopEnabled then return end
 
@@ -99,25 +98,7 @@ UserInputService.JumpRequest:Connect(function()
     end
 end)
 
--- RANDOM (mantido)
-local function getRandomAngle()
-    local angle
-    local tenGroup
-
-    repeat
-        angle = math.random(50, 80)
-        tenGroup = math.floor(angle / 10)
-    until (
-        tenGroup ~= lastTenGroup
-        and (not lastAngle or math.abs(angle - lastAngle) >= 5)
-    )
-
-    lastTenGroup = tenGroup
-    lastAngle = angle
-    return angle
-end
-
--- FLICK MELHORADO (SEM MEXER NA CÂMERA)
+-- FLICK (MESMO DO SEGUNDO, MAS SEM CÂMERA)
 local function performVideoFlick()
     if isFlicking then return end
     isFlicking = true
@@ -133,35 +114,41 @@ local function performVideoFlick()
         return
     end
 
-    -- pulo original
     hum:ChangeState(Enum.HumanoidStateType.Jumping)
+    hrp.Velocity = Vector3.new(hrp.Velocity.X, 44.8, hrp.Velocity.Z)
 
-    -- leve impulso vertical (igual sensação do segundo script, mas mais controlado)
-    hrp.Velocity = Vector3.new(hrp.Velocity.X, 38, hrp.Velocity.Z)
+    local startCFrame = hrp.CFrame
 
-    local angle = math.rad(getRandomAngle())
+    local lookY = Camera.CFrame.LookVector.Y
+    local verticalInfluence = math.clamp(math.abs(lookY), 0, 1)
 
-    -- chance de flick rápido (variação natural)
+    local baseAngle = 45
+    local dynamicAngle = baseAngle * (1 - (verticalInfluence * 0.6))
+
     local fastFlick = math.random() < 0.4
-
-    local steps = fastFlick and 3 or 5
-    local totalTime = fastFlick and 0.12 or 0.16
+    local steps = fastFlick and 4 or 6
 
     -- ida
     for i = 1, steps do
         local alpha = i / steps
-        local current = angle * alpha
-        hrp.CFrame = hrp.CFrame * CFrame.Angles(0, current / steps, 0)
-        task.wait(totalTime / (steps * 2))
+        local angleStep = math.rad(dynamicAngle) * (alpha / steps)
+        hrp.CFrame = hrp.CFrame * CFrame.Angles(0, angleStep, 0)
+        task.wait(fastFlick and 0.0045 or 0.0065)
     end
 
-    -- volta suave
+    -- volta (igual lógica do original)
     for i = 1, steps do
-        local alpha = i / steps
-        local current = angle * (1 - alpha)
-        hrp.CFrame = hrp.CFrame * CFrame.Angles(0, -current / steps, 0)
-        task.wait(totalTime / (steps * 2))
+        local alpha = (i / steps) ^ (fastFlick and 1.8 or 2.2)
+        local angleStep = math.rad(dynamicAngle) * ((1 - alpha) / steps)
+        hrp.CFrame = hrp.CFrame * CFrame.Angles(0, -angleStep, 0)
+        task.wait(fastFlick and 0.0045 or 0.0065)
     end
+
+    task.delay(0.1, function()
+        if hum and hum:GetState() == Enum.HumanoidStateType.Jumping then
+            hum:ChangeState(Enum.HumanoidStateType.Freefall)
+        end
+    end)
 
     task.delay(0.25, function()
         isWallHopping = false
@@ -170,7 +157,7 @@ local function performVideoFlick()
     isFlicking = false
 end
 
--- WALL DETECT (inalterado)
+-- WALL DETECT (INALTERADO)
 local lastHitInstance = nil
 
 local function isPlayerCharacter(instance)
@@ -246,4 +233,4 @@ TextButton.MouseButton1Click:Connect(function()
     TextButton.BackgroundColor3 = isWallHopEnabled and Color3.fromRGB(40,40,40) or Color3.fromRGB(0,0,0)
 end)
 
-print("WallHop Loaded (FLICK SUAVE SEM CÂMERA)")
+print("WallHop Loaded (FLICK ORIGINAL SEM CÂMERA)")
