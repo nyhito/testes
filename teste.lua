@@ -227,3 +227,4 @@ TextButton.MouseButton1Click:Connect(function()
 end)
 
 print("WallHop Loaded (FLICK AJUSTADO LENTO)")
+
