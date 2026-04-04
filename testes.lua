@@ -104,8 +104,16 @@ local function performVideoFlick()
     hum.Jump = true
     hum:ChangeState(Enum.HumanoidStateType.Jumping)
 
-    -- impulso vertical
-    hrp.Velocity = Vector3.new(hrp.Velocity.X, math.max(hrp.Velocity.Y, 44.8), hrp.Velocity.Z)
+    -- espera 1 frame antes do impulso
+    RunService.RenderStepped:Wait()
+
+    -- impulso vertical usando AssemblyLinearVelocity
+    local currentVel = hrp.AssemblyLinearVelocity
+    hrp.AssemblyLinearVelocity = Vector3.new(
+        currentVel.X,
+        math.max(currentVel.Y, 44.8),
+        currentVel.Z
+    )
 
     -- FLICK
     for i = 1, steps do
@@ -260,4 +268,4 @@ TextButton.MouseButton1Click:Connect(function()
     TextButton.BackgroundColor3 = isWallHopEnabled and Color3.fromRGB(40,40,40) or Color3.fromRGB(0,0,0)
 end)
 
-print("WallHop Loaded (sem Freefall forçado)")
+print("WallHop Loaded (AssemblyLinearVelocity + jump 1 frame antes)")
