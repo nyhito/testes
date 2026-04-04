@@ -39,7 +39,6 @@ local isWallHopping = false
 local lastWallHopTime = 0
 local WALLHOP_GRACE_TIME = 1.5
 
--- 🔥 FIX
 local touchingWall = false
 
 -- DOUBLE JUMP
@@ -47,6 +46,9 @@ local canDoubleJump = false
 local lastDoubleJump = 0
 local DOUBLE_JUMP_COOLDOWN = 3
 local blockDoubleJump = false
+
+-- 🔥 NOVO
+local lastJumpInput = 0
 
 local function isCrouching(hum, hrp)
     if not hum or not hrp then return false end
@@ -71,8 +73,10 @@ if LocalPlayer.Character then
 end
 LocalPlayer.CharacterAdded:Connect(setupCharacter)
 
--- DOUBLE JUMP
+-- DOUBLE JUMP (FIXADO)
 UserInputService.JumpRequest:Connect(function()
+    lastJumpInput = tick() -- registra input real
+
     if not isWallHopEnabled or blockDoubleJump then return end
     local char = LocalPlayer.Character
     local hum = char and char:FindFirstChild("Humanoid")
@@ -81,6 +85,9 @@ UserInputService.JumpRequest:Connect(function()
 
     local stillValid = isWallHopping or (tick() - lastWallHopTime <= WALLHOP_GRACE_TIME)
     if not stillValid then return end
+
+    -- 🔥 ANTI GHOST JUMP
+    if tick() - lastJumpInput > 0.15 then return end
 
     if canDoubleJump and tick() - lastDoubleJump > DOUBLE_JUMP_COOLDOWN then
         lastDoubleJump = tick()
@@ -158,7 +165,7 @@ local function performVideoFlick()
     isFlicking = false
 end
 
--- WALL DETECT (FIX FINAL)
+-- WALL DETECT
 local lastHitInstance = nil
 local function isPlayerCharacter(instance)
     if not instance then return false end
@@ -206,4 +213,4 @@ TextButton.MouseButton1Click:Connect(function()
     TextButton.BackgroundColor3 = isWallHopEnabled and Color3.fromRGB(40,40,40) or Color3.fromRGB(0,0,0)
 end)
 
-print("WallHop Loaded (ghost jump fix aplicado)")
+print("WallHop Loaded (ghost vu jump FIX REAL aplicado)")
