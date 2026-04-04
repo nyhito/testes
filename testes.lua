@@ -51,11 +51,21 @@ local gemReadyEffect = nil
 local gemReadyTweening = false
 local nextGemReadyTime = 0
 local gemReadyPending = false
+local gemReadyPart = nil
 
 local function isCrouching(hum, hrp)
     if not hum or not hrp then return false end
     local horizontalSpeed = Vector3.new(hrp.Velocity.X, 0, hrp.Velocity.Z).Magnitude
     return hum.WalkSpeed <= 9 and horizontalSpeed < 8
+end
+
+local function getGemPart(char)
+    return char:FindFirstChild("RightHand")
+        or char:FindFirstChild("RightLowerArm")
+        or char:FindFirstChild("RightUpperArm")
+        or char:FindFirstChild("Right Arm")
+        or char:FindFirstChild("UpperTorso")
+        or char:FindFirstChild("HumanoidRootPart")
 end
 
 local function createGemReadyEffect(char)
@@ -64,12 +74,8 @@ local function createGemReadyEffect(char)
         old:Destroy()
     end
 
-    local rightArm = char:FindFirstChild("RightUpperArm")
-        or char:FindFirstChild("Right Arm")
-        or char:FindFirstChild("RightLowerArm")
-        or char:FindFirstChild("UpperTorso")
-
-    if not rightArm then return nil end
+    gemReadyPart = getGemPart(char)
+    if not gemReadyPart then return nil end
 
     local holder = Instance.new("BillboardGui")
     holder.Name = "GemReadyEffect"
@@ -77,17 +83,21 @@ local function createGemReadyEffect(char)
     holder.StudsOffset = Vector3.new(1.48, 0.28, 0)
     holder.AlwaysOnTop = true
     holder.LightInfluence = 0
+    holder.MaxDistance = 200
     holder.Enabled = false
-    holder.Parent = rightArm
+    holder.Adornee = gemReadyPart
+    holder.Parent = char
 
     local glow = Instance.new("ImageLabel")
     glow.Name = "Glow"
     glow.BackgroundTransparency = 1
-    glow.Size = UDim2.new(1, 0, 1, 0)
-    glow.Position = UDim2.new(0, 0, 0, 0)
+    glow.AnchorPoint = Vector2.new(0.5, 0.5)
+    glow.Position = UDim2.new(0.5, 0, 0.5, 0)
+    glow.Size = UDim2.new(0.62, 0, 0.62, 0)
     glow.Image = "rbxassetid://241594314"
     glow.ImageTransparency = 1
     glow.ScaleType = Enum.ScaleType.Fit
+    glow.ZIndex = 10
     glow.Parent = holder
 
     return holder
@@ -126,21 +136,29 @@ local function playGemReadyEffect()
     end
     if not gemReadyEffect then return end
 
+    if not gemReadyPart or not gemReadyPart.Parent then
+        gemReadyPart = getGemPart(char)
+        if not gemReadyPart then return end
+        gemReadyEffect.Adornee = gemReadyPart
+    end
+
     local glow = gemReadyEffect:FindFirstChild("Glow")
     if not glow then return end
 
     gemReadyTweening = true
     gemReadyEffect.Enabled = true
+    gemReadyEffect.Adornee = gemReadyPart
 
     glow.ImageTransparency = 1
     glow.Size = UDim2.new(0.62, 0, 0.62, 0)
-    glow.Position = UDim2.new(0.19, 0, 0.19, 0)
+    glow.Position = UDim2.new(0.5, 0, 0.5, 0)
 
     for i = 1, 8 do
         local alpha = i / 8
         glow.ImageTransparency = 1 - (0.88 * alpha)
-        glow.Size = UDim2.new(0.62 + 0.58 * alpha, 0, 0.62 + 0.58 * alpha, 0)
-        glow.Position = UDim2.new(0.19 - 0.29 * alpha, 0, 0.19 - 0.29 * alpha, 0)
+        local size = 0.62 + 0.58 * alpha
+        glow.Size = UDim2.new(size, 0, size, 0)
+        glow.Position = UDim2.new(0.5, 0, 0.5, 0)
         RunService.RenderStepped:Wait()
     end
 
@@ -149,8 +167,9 @@ local function playGemReadyEffect()
     for i = 1, 10 do
         local alpha = i / 10
         glow.ImageTransparency = 0.12 + (0.88 * alpha)
-        glow.Size = UDim2.new(1.2 + 0.5 * alpha, 0, 1.2 + 0.5 * alpha, 0)
-        glow.Position = UDim2.new(-0.1 - 0.25 * alpha, 0, -0.1 - 0.25 * alpha, 0)
+        local size = 1.2 + 0.5 * alpha
+        glow.Size = UDim2.new(size, 0, size, 0)
+        glow.Position = UDim2.new(0.5, 0, 0.5, 0)
         RunService.RenderStepped:Wait()
     end
 
@@ -160,6 +179,10 @@ end
 
 local function setupCharacter(char)
     local hum = char:WaitForChild("Humanoid")
+
+    gemReadyPending = false
+    nextGemReadyTime = 0
+    gemReadyTweening = false
 
     task.defer(function()
         gemReadyEffect = createGemReadyEffect(char)
@@ -178,11 +201,7 @@ end
 if LocalPlayer.Character then
     setupCharacter(LocalPlayer.Character)
 end
-LocalPlayer.CharacterAdded:Connect(function(char)
-    gemReadyPending = false
-    nextGemReadyTime = 0
-    setupCharacter(char)
-end)
+LocalPlayer.CharacterAdded:Connect(setupCharacter)
 
 -- DOUBLE JUMP
 UserInputService.JumpRequest:Connect(function()
@@ -422,8 +441,8 @@ RunService.Heartbeat:Connect(function()
     -- recarga do DOUBLE JUMP DO SCRIPT
     if gemReadyPending and tick() >= nextGemReadyTime then
         gemReadyPending = false
-        playGemReadyEffect()
-        playGemRechargeAnimation()
+        task.spawn(playGemReadyEffect)
+        task.spawn(playGemRechargeAnimation)
     end
 
     if not isWallHopEnabled then return end
@@ -481,4 +500,4 @@ TextButton.MouseButton1Click:Connect(function()
     TextButton.BackgroundColor3 = isWallHopEnabled and Color3.fromRGB(40,40,40) or Color3.fromRGB(0,0,0)
 end)
 
-print("cu Humanoid Wallhop - Loaded Successfully ✅")
+print("Humanoid pi Wallhop - Loaded Successfully ✅")
