@@ -4,6 +4,7 @@ local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
 local GuiService = game:GetService("GuiService")
+local UserInputService = game:GetService("UserInputService")
 
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
@@ -33,13 +34,155 @@ local isWallHopEnabled = false
 local isFlicking = false
 local lastFlickTime = 0
 local Camera = workspace.CurrentCamera
+
+local isWallHopping = false
+local lastWallHopTime = 0
+local WALLHOP_GRACE_TIME = 1.5
 local WALLHOP_COOLDOWN = 0.18
+
+-- DOUBLE JUMP
+local canDoubleJump = false
+local lastDoubleJump = 0
+local DOUBLE_JUMP_COOLDOWN = 3
+local blockDoubleJump = false
+
+-- GEM EFFECT
+local gemReadyEffect = nil
+local gemReadyTweening = false
 
 local function isCrouching(hum, hrp)
     if not hum or not hrp then return false end
     local horizontalSpeed = Vector3.new(hrp.Velocity.X, 0, hrp.Velocity.Z).Magnitude
     return hum.WalkSpeed <= 9 and horizontalSpeed < 8
 end
+
+local function createGemReadyEffect(char)
+    local rightArm = char:FindFirstChild("RightUpperArm")
+        or char:FindFirstChild("Right Arm")
+        or char:FindFirstChild("RightLowerArm")
+        or char:FindFirstChild("UpperTorso")
+
+    if not rightArm then return nil end
+
+    local holder = Instance.new("BillboardGui")
+    holder.Name = "GemReadyEffect"
+    holder.Size = UDim2.new(0, 90, 0, 90)
+    holder.StudsOffset = Vector3.new(1.0, 0.15, 0)
+    holder.AlwaysOnTop = true
+    holder.LightInfluence = 0
+    holder.Enabled = false
+    holder.Parent = rightArm
+
+    local glow = Instance.new("ImageLabel")
+    glow.Name = "Glow"
+    glow.BackgroundTransparency = 1
+    glow.Size = UDim2.new(1, 0, 1, 0)
+    glow.Position = UDim2.new(0, 0, 0, 0)
+    glow.Image = "rbxassetid://241594314"
+    glow.ImageTransparency = 1
+    glow.ScaleType = Enum.ScaleType.Fit
+    glow.Parent = holder
+
+    return holder
+end
+
+local function playGemReadyEffect()
+    if gemReadyTweening then return end
+
+    local char = LocalPlayer.Character
+    if not char then return end
+
+    if not gemReadyEffect or not gemReadyEffect.Parent then
+        gemReadyEffect = createGemReadyEffect(char)
+    end
+    if not gemReadyEffect then return end
+
+    local glow = gemReadyEffect:FindFirstChild("Glow")
+    if not glow then return end
+
+    gemReadyTweening = true
+    gemReadyEffect.Enabled = true
+
+    glow.ImageTransparency = 1
+    glow.Size = UDim2.new(0.65, 0, 0.65, 0)
+    glow.Position = UDim2.new(0.175, 0, 0.175, 0)
+
+    for i = 1, 8 do
+        local alpha = i / 8
+        glow.ImageTransparency = 1 - (0.85 * alpha)
+        glow.Size = UDim2.new(0.65 + 0.55 * alpha, 0, 0.65 + 0.55 * alpha, 0)
+        glow.Position = UDim2.new(0.175 - 0.275 * alpha, 0, 0.175 - 0.275 * alpha, 0)
+        RunService.RenderStepped:Wait()
+    end
+
+    task.wait(0.08)
+
+    for i = 1, 10 do
+        local alpha = i / 10
+        glow.ImageTransparency = 0.15 + (0.85 * alpha)
+        glow.Size = UDim2.new(1.2 + 0.45 * alpha, 0, 1.2 + 0.45 * alpha, 0)
+        glow.Position = UDim2.new(-0.1 - 0.225 * alpha, 0, -0.1 - 0.225 * alpha, 0)
+        RunService.RenderStepped:Wait()
+    end
+
+    gemReadyEffect.Enabled = false
+    gemReadyTweening = false
+end
+
+local function setupCharacter(char)
+    local hum = char:WaitForChild("Humanoid")
+
+    task.defer(function()
+        gemReadyEffect = createGemReadyEffect(char)
+    end)
+
+    hum.StateChanged:Connect(function(_, new)
+        if new == Enum.HumanoidStateType.Freefall then
+            canDoubleJump = true
+        end
+        if new == Enum.HumanoidStateType.Landed then
+            canDoubleJump = false
+        end
+    end)
+end
+
+if LocalPlayer.Character then
+    setupCharacter(LocalPlayer.Character)
+end
+LocalPlayer.CharacterAdded:Connect(setupCharacter)
+
+-- DOUBLE JUMP
+UserInputService.JumpRequest:Connect(function()
+    if not isWallHopEnabled or blockDoubleJump then return end
+    local char = LocalPlayer.Character
+    local hum = char and char:FindFirstChild("Humanoid")
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if not hum or not hrp then return end
+
+    local stillValid = isWallHopping or (tick() - lastWallHopTime <= WALLHOP_GRACE_TIME)
+    if not stillValid then return end
+
+    if canDoubleJump and tick() - lastDoubleJump > DOUBLE_JUMP_COOLDOWN then
+        lastDoubleJump = tick()
+
+        task.delay(DOUBLE_JUMP_COOLDOWN, function()
+            if LocalPlayer.Character and tick() - lastDoubleJump >= DOUBLE_JUMP_COOLDOWN - 0.05 then
+                playGemReadyEffect()
+            end
+        end)
+
+        canDoubleJump = false
+
+        hrp.Velocity = Vector3.new(hrp.Velocity.X, 30, hrp.Velocity.Z)
+        hum:ChangeState(Enum.HumanoidStateType.Jumping)
+
+        task.delay(0.18, function()
+            if hum then
+                hum:ChangeState(Enum.HumanoidStateType.Freefall)
+            end
+        end)
+    end
+end)
 
 -- LAST FLICK ANGLE
 local lastFlickAngle = nil
@@ -55,10 +198,13 @@ local function pickNextFlick()
     return math.rad(angle)
 end
 
--- FLICK HUMANIZADO (SEM DOUBLE JUMP DO SCRIPT / MENOS INTERFERÊNCIA NO ESTADO)
+-- FLICK HUMANIZADO (ORIGINAL + OVERSHOOT ATRASADO)
 local function performVideoFlick()
     if isFlicking then return end
     isFlicking = true
+    isWallHopping = true
+    lastWallHopTime = tick()
+    blockDoubleJump = true
 
     local char = LocalPlayer.Character
     local hum = char and char:FindFirstChild("Humanoid")
@@ -68,8 +214,9 @@ local function performVideoFlick()
         return
     end
 
-    -- mantém o impulso do wallhop, mas sem forçar Jumping/Freefall
+    -- impulso vertical (INALTERADO)
     hrp.Velocity = Vector3.new(hrp.Velocity.X, 44.8, hrp.Velocity.Z)
+    hum:ChangeState(Enum.HumanoidStateType.Jumping)
 
     local baseYaw = hrp.Orientation.Y
     local angle = -pickNextFlick() -- esquerda
@@ -150,6 +297,13 @@ local function performVideoFlick()
 
     -- reset padrão
     hrp.CFrame = CFrame.new(hrp.Position) * CFrame.Angles(0, math.rad(baseYaw), 0)
+
+    if hum:GetState() ~= Enum.HumanoidStateType.Freefall then
+        hum:ChangeState(Enum.HumanoidStateType.Freefall)
+    end
+
+    task.delay(0.05, function() blockDoubleJump = false end)
+    task.delay(0.15, function() isWallHopping = false end)
 
     isFlicking = false
 end
@@ -301,4 +455,4 @@ TextButton.MouseButton1Click:Connect(function()
     TextButton.BackgroundColor3 = isWallHopEnabled and Color3.fromRGB(40,40,40) or Color3.fromRGB(0,0,0)
 end)
 
-print("Humanoid Wallhop - Loaded cu Successfully ✅")
+print("Humanoid Wallhop cu - Loaded Successfully ✅")
