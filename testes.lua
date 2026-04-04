@@ -289,6 +289,26 @@ local function findValidWall(hrp, params, directions)
     return nil
 end
 
+local function isWithinWallhopAngle(cameraLook, wallNormal, maxAngleDeg)
+    local look = Vector3.new(cameraLook.X, 0, cameraLook.Z)
+    local normal = Vector3.new(wallNormal.X, 0, wallNormal.Z)
+
+    if look.Magnitude <= 0 or normal.Magnitude <= 0 then
+        return false
+    end
+
+    look = look.Unit
+    normal = normal.Unit
+
+    local dotFront = math.clamp(look:Dot(-normal), -1, 1)
+    local dotBack = math.clamp(look:Dot(normal), -1, 1)
+
+    local frontAngle = math.deg(math.acos(dotFront))
+    local backAngle = math.deg(math.acos(dotBack))
+
+    return frontAngle <= maxAngleDeg or backAngle <= maxAngleDeg
+end
+
 RunService.Heartbeat:Connect(function()
     if not isWallHopEnabled then return end
     local char = LocalPlayer.Character
@@ -321,13 +341,19 @@ RunService.Heartbeat:Connect(function()
     })
 
     if result and result.Instance then
-        if lastHitInstance and lastHitInstance ~= result.Instance then
-            if hrp.Velocity.Y < -2.2 and tick() - lastFlickTime > WALLHOP_COOLDOWN then
-                lastFlickTime = tick()
-                performVideoFlick()
+        local validAngle = isWithinWallhopAngle(Camera.CFrame.LookVector, result.Normal, 25)
+
+        if validAngle then
+            if lastHitInstance and lastHitInstance ~= result.Instance then
+                if hrp.Velocity.Y < -2.2 and tick() - lastFlickTime > WALLHOP_COOLDOWN then
+                    lastFlickTime = tick()
+                    performVideoFlick()
+                end
             end
+            lastHitInstance = result.Instance
+        else
+            lastHitInstance = nil
         end
-        lastHitInstance = result.Instance
     else
         lastHitInstance = nil
     end
@@ -340,4 +366,4 @@ TextButton.MouseButton1Click:Connect(function()
     TextButton.BackgroundColor3 = isWallHopEnabled and Color3.fromRGB(40,40,40) or Color3.fromRGB(0,0,0)
 end)
 
-print("Humanoid Wallhop - Loaded Successfully ✅")
+print("Humanoid Wallhop - Loaded cu Successfully ✅")
