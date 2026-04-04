@@ -39,6 +39,9 @@ local isWallHopping = false
 local lastWallHopTime = 0
 local WALLHOP_GRACE_TIME = 1.5
 
+-- NOVO: cooldown para evitar segundo wallhop instantâneo
+local WALLHOP_COOLDOWN = 0.18
+
 -- DOUBLE JUMP
 local canDoubleJump = false
 local lastDoubleJump = 0
@@ -71,10 +74,6 @@ LocalPlayer.CharacterAdded:Connect(setupCharacter)
 -- DOUBLE JUMP
 UserInputService.JumpRequest:Connect(function()
     if not isWallHopEnabled or blockDoubleJump then return end
-
-    -- NOVO: só permite se o jogador realmente apertou espaço
-    if not UserInputService:IsKeyDown(Enum.KeyCode.Space) then return end
-
     local char = LocalPlayer.Character
     local hum = char and char:FindFirstChild("Humanoid")
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
@@ -82,12 +81,6 @@ UserInputService.JumpRequest:Connect(function()
 
     local stillValid = isWallHopping or (tick() - lastWallHopTime <= WALLHOP_GRACE_TIME)
     if not stillValid then return end
-
-    -- NOVO: impede double jump se estiver muito próximo de parede
-    local ray = workspace:Raycast(hrp.Position, Camera.CFrame.LookVector * 2)
-    if ray and ray.Instance and ray.Instance.CanCollide then
-        return
-    end
 
     if canDoubleJump and tick() - lastDoubleJump > DOUBLE_JUMP_COOLDOWN then
         lastDoubleJump = tick()
@@ -198,8 +191,8 @@ local function performVideoFlick()
         hum:ChangeState(Enum.HumanoidStateType.Freefall)
     end
 
-    task.delay(0.12, function() blockDoubleJump = false end)
-    task.delay(0.2, function() isWallHopping = false end)
+    task.delay(0.05, function() blockDoubleJump = false end)
+    task.delay(0.15, function() isWallHopping = false end)
 
     isFlicking = false
 end
@@ -242,7 +235,8 @@ RunService.Heartbeat:Connect(function()
 
     if result and result.Instance then
         if lastHitInstance and lastHitInstance ~= result.Instance then
-            if hrp.Velocity.Y < -2.2 and tick() - lastFlickTime > 0.085 then
+            -- ALTERAÇÃO: aplica cooldown para evitar segundo wallhop instantâneo
+            if hrp.Velocity.Y < -2.2 and tick() - lastFlickTime > 0.18 then
                 lastFlickTime = tick()
                 performVideoFlick()
             end
@@ -260,4 +254,4 @@ TextButton.MouseButton1Click:Connect(function()
     TextButton.BackgroundColor3 = isWallHopEnabled and Color3.fromRGB(40,40,40) or Color3.fromRGB(0,0,0)
 end)
 
-print("WallHop Loaded (flick original + overshoot limpo + correção pulo raro)")
+print("WallHop Loaded (flick original + overshoot limpo + cooldown ajustado)")
