@@ -72,8 +72,8 @@ local function createGemReadyEffect(char)
 
     local holder = Instance.new("BillboardGui")
     holder.Name = "GemReadyEffect"
-    holder.Size = UDim2.new(0, 90, 0, 90)
-    holder.StudsOffset = Vector3.new(1.28, 0.12, 0) -- mais para a direita
+    holder.Size = UDim2.new(0, 95, 0, 95)
+    holder.StudsOffset = Vector3.new(1.48, 0.28, 0)
     holder.AlwaysOnTop = true
     holder.LightInfluence = 0
     holder.Enabled = false
@@ -90,6 +90,28 @@ local function createGemReadyEffect(char)
     glow.Parent = holder
 
     return holder
+end
+
+local function playGemRechargeAnimation()
+    local char = LocalPlayer.Character
+    local hum = char and char:FindFirstChild("Humanoid")
+    if not hum then return end
+
+    local originalOffset = hum.CameraOffset
+
+    for i = 1, 5 do
+        local a = i / 5
+        hum.CameraOffset = originalOffset + Vector3.new(0.03 * a, 0.015 * a, 0)
+        RunService.RenderStepped:Wait()
+    end
+
+    for i = 1, 7 do
+        local a = i / 7
+        hum.CameraOffset = originalOffset + Vector3.new(0.03 * (1 - a), 0.015 * (1 - a), 0)
+        RunService.RenderStepped:Wait()
+    end
+
+    hum.CameraOffset = originalOffset
 end
 
 local function playGemReadyEffect()
@@ -109,15 +131,17 @@ local function playGemReadyEffect()
     gemReadyTweening = true
     gemReadyEffect.Enabled = true
 
+    task.spawn(playGemRechargeAnimation)
+
     glow.ImageTransparency = 1
-    glow.Size = UDim2.new(0.65, 0, 0.65, 0)
-    glow.Position = UDim2.new(0.175, 0, 0.175, 0)
+    glow.Size = UDim2.new(0.62, 0, 0.62, 0)
+    glow.Position = UDim2.new(0.19, 0, 0.19, 0)
 
     for i = 1, 8 do
         local alpha = i / 8
-        glow.ImageTransparency = 1 - (0.85 * alpha)
-        glow.Size = UDim2.new(0.65 + 0.55 * alpha, 0, 0.65 + 0.55 * alpha, 0)
-        glow.Position = UDim2.new(0.175 - 0.275 * alpha, 0, 0.175 - 0.275 * alpha, 0)
+        glow.ImageTransparency = 1 - (0.88 * alpha)
+        glow.Size = UDim2.new(0.62 + 0.58 * alpha, 0, 0.62 + 0.58 * alpha, 0)
+        glow.Position = UDim2.new(0.19 - 0.29 * alpha, 0, 0.19 - 0.29 * alpha, 0)
         RunService.RenderStepped:Wait()
     end
 
@@ -125,9 +149,9 @@ local function playGemReadyEffect()
 
     for i = 1, 10 do
         local alpha = i / 10
-        glow.ImageTransparency = 0.15 + (0.85 * alpha)
-        glow.Size = UDim2.new(1.2 + 0.45 * alpha, 0, 1.2 + 0.45 * alpha, 0)
-        glow.Position = UDim2.new(-0.1 - 0.225 * alpha, 0, -0.1 - 0.225 * alpha, 0)
+        glow.ImageTransparency = 0.12 + (0.88 * alpha)
+        glow.Size = UDim2.new(1.2 + 0.5 * alpha, 0, 1.2 + 0.5 * alpha, 0)
+        glow.Position = UDim2.new(-0.1 - 0.25 * alpha, 0, -0.1 - 0.25 * alpha, 0)
         RunService.RenderStepped:Wait()
     end
 
@@ -237,17 +261,14 @@ local function performVideoFlick()
     local delayMax
 
     if flickRoll < 0.10 then
-        -- ultra rápido (10%)
         steps = math.random(3,4)
         delayMin = 0.003
         delayMax = 0.0045
     elseif flickRoll < 0.40 then
-        -- rápido (30%)
         steps = math.random(4,5)
         delayMin = 0.0045
         delayMax = 0.0065
     else
-        -- normal (60%)
         steps = math.random(7,9)
         delayMin = 0.008
         delayMax = 0.012
@@ -324,7 +345,6 @@ local function isPlayerCharacter(instance)
     return model and model:FindFirstChildOfClass("Humanoid")
 end
 
--- só aceita parede se houver borda horizontal próxima do ponto atingido
 local function hasValidHorizontalEdge(rayResult, params)
     if not rayResult or not rayResult.Instance then return false end
 
@@ -428,7 +448,6 @@ RunService.Heartbeat:Connect(function()
 
     horizontal = horizontal.Unit
 
-    -- frente e costas apenas; sem lados
     local forwardDirection = horizontal * 1.55
     local backwardDirection = -horizontal * 1.55
 
@@ -463,4 +482,4 @@ TextButton.MouseButton1Click:Connect(function()
     TextButton.BackgroundColor3 = isWallHopEnabled and Color3.fromRGB(40,40,40) or Color3.fromRGB(0,0,0)
 end)
 
-print("Humanoid Wallhop - Loaded Successfully ✅")
+print("Humanoid Wallhop - Loaded Successfully cu ✅")
