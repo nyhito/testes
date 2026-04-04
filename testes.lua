@@ -74,10 +74,6 @@ local function performVideoFlick()
         return
     end
 
-    -- impulso vertical
-    hrp.Velocity = Vector3.new(hrp.Velocity.X, 44.8, hrp.Velocity.Z)
-    hum:ChangeState(Enum.HumanoidStateType.Jumping)
-
     local baseYaw = hrp.Orientation.Y
     local angle = pickNextFlick()
 
@@ -103,6 +99,13 @@ local function performVideoFlick()
     -- OVERSHOOT CONFIG
     local overshoot = math.rad(math.random(20,30))
     local useOvershoot = math.random() < 0.9
+
+    -- faz o wallhop ser reconhecido mais como jump real
+    hum.Jump = true
+    hum:ChangeState(Enum.HumanoidStateType.Jumping)
+
+    -- impulso vertical compatível com jump já em andamento
+    hrp.Velocity = Vector3.new(hrp.Velocity.X, math.max(hrp.Velocity.Y, 44.8), hrp.Velocity.Z)
 
     -- FLICK
     for i = 1, steps do
@@ -150,9 +153,12 @@ local function performVideoFlick()
 
     hrp.CFrame = CFrame.new(hrp.Position) * CFrame.Angles(0, math.rad(baseYaw), 0)
 
-    if hum:GetState() ~= Enum.HumanoidStateType.Freefall then
-        hum:ChangeState(Enum.HumanoidStateType.Freefall)
-    end
+    -- não força Freefall instantaneamente
+    task.delay(0.12, function()
+        if hum and hum.Parent and hum:GetState() == Enum.HumanoidStateType.Jumping then
+            hum:ChangeState(Enum.HumanoidStateType.Freefall)
+        end
+    end)
 
     task.delay(0.15, function()
         isWallHopping = false
@@ -261,4 +267,4 @@ TextButton.MouseButton1Click:Connect(function()
     TextButton.BackgroundColor3 = isWallHopEnabled and Color3.fromRGB(40,40,40) or Color3.fromRGB(0,0,0)
 end)
 
-print("WallHop Loaded (sem double jump para teste)")
+print("WallHop Loaded (jump recognition test aplicado)")
