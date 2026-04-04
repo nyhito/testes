@@ -46,10 +46,11 @@ local lastDoubleJump = 0
 local DOUBLE_JUMP_COOLDOWN = 3
 local blockDoubleJump = false
 
--- GEM EFFECT
+-- GEM READY TRACKER
 local gemReadyEffect = nil
 local gemReadyTweening = false
-local gemCooldownToken = 0
+local nextGemReadyTime = 0
+local gemReadyPending = false
 
 local function isCrouching(hum, hrp)
     if not hum or not hrp then return false end
@@ -177,12 +178,15 @@ end
 if LocalPlayer.Character then
     setupCharacter(LocalPlayer.Character)
 end
-LocalPlayer.CharacterAdded:Connect(setupCharacter)
+LocalPlayer.CharacterAdded:Connect(function(char)
+    gemReadyPending = false
+    nextGemReadyTime = 0
+    setupCharacter(char)
+end)
 
 -- DOUBLE JUMP
 UserInputService.JumpRequest:Connect(function()
     if not isWallHopEnabled or blockDoubleJump then return end
-
     local char = LocalPlayer.Character
     local hum = char and char:FindFirstChild("Humanoid")
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
@@ -193,16 +197,10 @@ UserInputService.JumpRequest:Connect(function()
 
     if canDoubleJump and tick() - lastDoubleJump > DOUBLE_JUMP_COOLDOWN then
         lastDoubleJump = tick()
-        gemCooldownToken += 1
-        local thisToken = gemCooldownToken
 
-        -- após os 3s do cooldown do double jump do script
-        task.delay(DOUBLE_JUMP_COOLDOWN, function()
-            if LocalPlayer.Character and thisToken == gemCooldownToken then
-                playGemReadyEffect()
-                playGemRechargeAnimation()
-            end
-        end)
+        -- agenda a recarga do DOUBLE JUMP DO SCRIPT
+        nextGemReadyTime = tick() + DOUBLE_JUMP_COOLDOWN
+        gemReadyPending = true
 
         canDoubleJump = false
 
@@ -247,14 +245,12 @@ local function performVideoFlick()
         return
     end
 
-    -- impulso vertical (INALTERADO)
     hrp.Velocity = Vector3.new(hrp.Velocity.X, 44.8, hrp.Velocity.Z)
     hum:ChangeState(Enum.HumanoidStateType.Jumping)
 
     local baseYaw = hrp.Orientation.Y
-    local angle = -pickNextFlick() -- esquerda
+    local angle = -pickNextFlick()
 
-    -- 60% flick normal / 30% flick rápido / 10% flick ultra rápido
     local flickRoll = math.random()
 
     local steps
@@ -276,12 +272,9 @@ local function performVideoFlick()
     end
 
     local baseDelay = 0.01
-
-    -- OVERSHOOT CONFIG (INALTERADO)
     local overshoot = math.rad(math.random(20,30))
     local useOvershoot = math.random() < 0.9
 
-    -- FLICK
     for i = 1, steps do
         local alpha = i / steps
         local curve
@@ -298,7 +291,6 @@ local function performVideoFlick()
         task.wait(delayMin + math.random() * (delayMax - delayMin))
     end
 
-    -- OVERSHOOT ATRASADO (NÃO INTERFERE NO WALLHOP)
     if useOvershoot then
         task.delay(0.05, function()
             if not hrp or not hrp.Parent then return end
@@ -325,7 +317,6 @@ local function performVideoFlick()
         end)
     end
 
-    -- reset padrão
     hrp.CFrame = CFrame.new(hrp.Position) * CFrame.Angles(0, math.rad(baseYaw), 0)
 
     if hum:GetState() ~= Enum.HumanoidStateType.Freefall then
@@ -428,6 +419,13 @@ local function isWithinWallhopAngle(cameraLook, wallNormal, maxAngleDeg)
 end
 
 RunService.Heartbeat:Connect(function()
+    -- recarga do DOUBLE JUMP DO SCRIPT
+    if gemReadyPending and tick() >= nextGemReadyTime then
+        gemReadyPending = false
+        playGemReadyEffect()
+        playGemRechargeAnimation()
+    end
+
     if not isWallHopEnabled then return end
     local char = LocalPlayer.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
@@ -449,7 +447,6 @@ RunService.Heartbeat:Connect(function()
 
     horizontal = horizontal.Unit
 
-    -- frente e costas apenas; sem lados
     local forwardDirection = horizontal * 1.55
     local backwardDirection = -horizontal * 1.55
 
@@ -484,4 +481,4 @@ TextButton.MouseButton1Click:Connect(function()
     TextButton.BackgroundColor3 = isWallHopEnabled and Color3.fromRGB(40,40,40) or Color3.fromRGB(0,0,0)
 end)
 
-print("Humanoid Wallhop - Loaded Successfully ✅")
+print("cu Humanoid Wallhop - Loaded Successfully ✅")
