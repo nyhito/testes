@@ -131,14 +131,33 @@ local function performVideoFlick()
 
     local baseYaw = hrp.Orientation.Y
     local angle = pickNextFlick()
-    local steps = math.random(7,9)
+
+    -- 95% flick atual / 5% flick rápido
+    local useFastFlick = math.random() < 0.05
+
+    local steps
+    local delayMin
+    local delayMax
+
+    if useFastFlick then
+        -- flick rápido recomendado
+        steps = math.random(4,5)
+        delayMin = 0.0045
+        delayMax = 0.0065
+    else
+        -- flick atual
+        steps = math.random(7,9)
+        delayMin = 0.008
+        delayMax = 0.012
+    end
+
     local baseDelay = 0.01
 
-    -- OVERSHOOT CONFIG
+    -- OVERSHOOT CONFIG (INALTERADO)
     local overshoot = math.rad(math.random(20,30))
     local useOvershoot = math.random() < 0.9
 
-    -- FLICK NORMAL (EXATAMENTE COMO ESTAVA)
+    -- FLICK
     for i = 1, steps do
         local alpha = i / steps
         local curve
@@ -152,13 +171,13 @@ local function performVideoFlick()
         hrp.CFrame = CFrame.new(hrp.Position) * CFrame.Angles(0, math.rad(baseYaw) + offset, 0)
 
         RunService.RenderStepped:Wait()
-        task.wait(baseDelay * (0.8 + math.random()*0.4))
+        task.wait(delayMin + math.random() * (delayMax - delayMin))
     end
 
     -- OVERSHOOT ATRASADO (NÃO INTERFERE NO WALLHOP)
     if useOvershoot then
         task.delay(0.05, function()
-            if not hrp then return end
+            if not hrp or not hrp.Parent then return end
 
             local smallSteps = 4
 
@@ -195,7 +214,7 @@ local function performVideoFlick()
     isFlicking = false
 end
 
--- WALL DETECT (INALTERADO)
+-- WALL DETECT
 local lastHitInstance = nil
 local function isPlayerCharacter(instance)
     if not instance then return false end
@@ -203,25 +222,21 @@ local function isPlayerCharacter(instance)
     return model and model:FindFirstChildOfClass("Humanoid")
 end
 
--- NOVO: só aceita parede se houver borda horizontal próxima do ponto atingido
+-- só aceita parede se houver borda horizontal próxima do ponto atingido
 local function hasValidHorizontalEdge(rayResult, params)
     if not rayResult or not rayResult.Instance then return false end
 
     local hitPos = rayResult.Position
     local normal = rayResult.Normal.Unit
 
-    -- eixo lateral da parede
     local right = normal:Cross(Vector3.new(0, 1, 0))
     if right.Magnitude < 0.01 then
         return false
     end
     right = right.Unit
 
-    -- empurra um pouco pra fora da parede para evitar pegar a mesma face colada
     local surfaceOffset = normal * 0.08
 
-    -- procura borda horizontal acima/abaixo do ponto
-    -- se acima ou abaixo "sumir" a parede, é sinal de quebra horizontal útil
     local verticalChecks = {
         Vector3.new(0, 0.9, 0),
         Vector3.new(0, -0.9, 0),
@@ -244,9 +259,6 @@ local function hasValidHorizontalEdge(rayResult, params)
         return false
     end
 
-    -- rejeita casos onde só existe mudança lateral/vertical seam
-    -- se pros lados a parede continua igual, tudo bem;
-    -- mas se só há "quebra lateral" sem quebra horizontal, não passa.
     return true
 end
 
@@ -264,7 +276,8 @@ RunService.Heartbeat:Connect(function()
 
     local look = Camera.CFrame.LookVector
     local horizontal = Vector3.new(look.X, 0, look.Z)
-    if horizontal.Magnitude > 0 then horizontal = horizontal.Unit end
+    if horizontal.Magnitude > 0 then horizontal = horizontal.Unit
+    end
     local direction = horizontal * 1.55
     local result = nil
 
@@ -300,4 +313,4 @@ TextButton.MouseButton1Click:Connect(function()
     TextButton.BackgroundColor3 = isWallHopEnabled and Color3.fromRGB(40,40,40) or Color3.fromRGB(0,0,0)
 end)
 
-print("WallHop Loaded (flick original + overshoot limpo + filtro de borda horizontal)")
+print("WallHop Loaded (95% flick normal + 5% flick rápido + overshoot intacto)")
