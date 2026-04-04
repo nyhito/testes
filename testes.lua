@@ -131,8 +131,6 @@ local function playGemReadyEffect()
     gemReadyTweening = true
     gemReadyEffect.Enabled = true
 
-    task.spawn(playGemRechargeAnimation)
-
     glow.ImageTransparency = 1
     glow.Size = UDim2.new(0.62, 0, 0.62, 0)
     glow.Position = UDim2.new(0.19, 0, 0.19, 0)
@@ -184,6 +182,7 @@ LocalPlayer.CharacterAdded:Connect(setupCharacter)
 -- DOUBLE JUMP
 UserInputService.JumpRequest:Connect(function()
     if not isWallHopEnabled or blockDoubleJump then return end
+
     local char = LocalPlayer.Character
     local hum = char and char:FindFirstChild("Humanoid")
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
@@ -197,9 +196,11 @@ UserInputService.JumpRequest:Connect(function()
         gemCooldownToken += 1
         local thisToken = gemCooldownToken
 
+        -- após os 3s do cooldown do double jump do script
         task.delay(DOUBLE_JUMP_COOLDOWN, function()
             if LocalPlayer.Character and thisToken == gemCooldownToken then
                 playGemReadyEffect()
+                playGemRechargeAnimation()
             end
         end)
 
@@ -448,6 +449,7 @@ RunService.Heartbeat:Connect(function()
 
     horizontal = horizontal.Unit
 
+    -- frente e costas apenas; sem lados
     local forwardDirection = horizontal * 1.55
     local backwardDirection = -horizontal * 1.55
 
@@ -482,4 +484,4 @@ TextButton.MouseButton1Click:Connect(function()
     TextButton.BackgroundColor3 = isWallHopEnabled and Color3.fromRGB(40,40,40) or Color3.fromRGB(0,0,0)
 end)
 
-print("Humanoid Wallhop - Loaded Successfully cu ✅")
+print("Humanoid Wallhop - Loaded Successfully ✅")
