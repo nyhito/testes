@@ -50,7 +50,6 @@ local blockDoubleJump = false
 local gemReadyEffect = nil
 local gemReadyTweening = false
 local gemReadyPart = nil
-local gemRechargeCycle = 0
 local hasUsedFirstScriptDoubleJump = false
 
 local function isCrouching(hum, hrp)
@@ -180,7 +179,6 @@ end
 local function setupCharacter(char)
     local hum = char:WaitForChild("Humanoid")
 
-    gemRechargeCycle = 0
     gemReadyTweening = false
     hasUsedFirstScriptDoubleJump = false
 
@@ -218,16 +216,11 @@ UserInputService.JumpRequest:Connect(function()
         lastDoubleJump = tick()
         canDoubleJump = false
 
-        -- IGNORA O PRIMEIRO DOUBLE JUMP DO SCRIPT
-        -- E SÓ AVISA A RECARGA NOS PRÓXIMOS
+        -- ignora o primeiro double jump do script
+        -- e avisa a recarga só nos próximos
         if hasUsedFirstScriptDoubleJump then
-            gemRechargeCycle += 1
-            local myCycle = gemRechargeCycle
-
             task.delay(DOUBLE_JUMP_COOLDOWN, function()
-                if myCycle ~= gemRechargeCycle then return end
                 if not LocalPlayer.Character then return end
-
                 task.spawn(playGemReadyEffect)
                 task.spawn(playGemRechargeAnimation)
             end)
@@ -505,4 +498,4 @@ TextButton.MouseButton1Click:Connect(function()
     TextButton.BackgroundColor3 = isWallHopEnabled and Color3.fromRGB(40,40,40) or Color3.fromRGB(0,0,0)
 end)
 
-print("Humanoid Wallhop - Loaded Successfully ✅")
+print("Humanoid cu Wallhop - Loaded Successfully ✅")
