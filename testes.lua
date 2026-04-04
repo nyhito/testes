@@ -51,6 +51,8 @@ local gemReadyEffect = nil
 local gemReadyTweening = false
 local gemReadyPart = nil
 local hasUsedFirstScriptDoubleJump = false
+local nextGemNotifyAt = 0
+local gemNotifyPending = false
 
 local function isCrouching(hum, hrp)
     if not hum or not hrp then return false end
@@ -181,6 +183,8 @@ local function setupCharacter(char)
 
     gemReadyTweening = false
     hasUsedFirstScriptDoubleJump = false
+    nextGemNotifyAt = 0
+    gemNotifyPending = false
 
     task.defer(function()
         gemReadyEffect = createGemReadyEffect(char)
@@ -219,11 +223,8 @@ UserInputService.JumpRequest:Connect(function()
         -- ignora o primeiro double jump do script
         -- e avisa a recarga só nos próximos
         if hasUsedFirstScriptDoubleJump then
-            task.delay(DOUBLE_JUMP_COOLDOWN, function()
-                if not LocalPlayer.Character then return end
-                task.spawn(playGemReadyEffect)
-                task.spawn(playGemRechargeAnimation)
-            end)
+            nextGemNotifyAt = lastDoubleJump + DOUBLE_JUMP_COOLDOWN
+            gemNotifyPending = true
         else
             hasUsedFirstScriptDoubleJump = true
         end
@@ -443,6 +444,13 @@ local function isWithinWallhopAngle(cameraLook, wallNormal, maxAngleDeg)
 end
 
 RunService.Heartbeat:Connect(function()
+    -- aviso preso ao cooldown real do double jump do script
+    if gemNotifyPending and tick() >= nextGemNotifyAt then
+        gemNotifyPending = false
+        task.spawn(playGemReadyEffect)
+        task.spawn(playGemRechargeAnimation)
+    end
+
     if not isWallHopEnabled then return end
     local char = LocalPlayer.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
@@ -498,4 +506,4 @@ TextButton.MouseButton1Click:Connect(function()
     TextButton.BackgroundColor3 = isWallHopEnabled and Color3.fromRGB(40,40,40) or Color3.fromRGB(0,0,0)
 end)
 
-print("Humanoid cu Wallhop - Loaded Successfully ✅")
+print("Humanoid Wallhop - Loaded Successfullyyyy ✅")
