@@ -39,6 +39,7 @@ local isWallHopping = false
 local lastWallHopTime = 0
 local WALLHOP_GRACE_TIME = 1.5
 
+-- 🔥 FIX
 local touchingWall = false
 
 -- DOUBLE JUMP
@@ -157,7 +158,7 @@ local function performVideoFlick()
     isFlicking = false
 end
 
--- WALL DETECT (FIX REAL)
+-- WALL DETECT (FIX FINAL)
 local lastHitInstance = nil
 local function isPlayerCharacter(instance)
     if not instance then return false end
@@ -181,30 +182,9 @@ RunService.Heartbeat:Connect(function()
     local horizontal = Vector3.new(look.X, 0, look.Z)
     if horizontal.Magnitude > 0 then horizontal = horizontal.Unit end
 
-    local result = nil
+    local result = workspace:Raycast(hrp.Position, horizontal * 1.55, params)
 
-    local offsets = {
-        Vector3.new(0,-2.2,0),
-        Vector3.new(0,-1.2,0),
-        Vector3.new(0,-0.4,0)
-    }
-
-    for _, offset in ipairs(offsets) do
-        local origin = hrp.Position + offset
-        local ray = workspace:Raycast(origin, horizontal * 1.55, params)
-
-        if ray and ray.Instance and ray.Instance.CanCollide and not isPlayerCharacter(ray.Instance) then
-            
-            local dot = ray.Normal:Dot(horizontal * -1)
-
-            if dot > 0.7 and math.abs(ray.Normal.Y) < 0.2 then
-                result = ray
-                break
-            end
-        end
-    end
-
-    if result and result.Instance then
+    if result and result.Instance and result.Instance.CanCollide and not isPlayerCharacter(result.Instance) then
         if not touchingWall then
             if hrp.Velocity.Y < -2.2 and tick() - lastFlickTime > 0.085 then
                 lastFlickTime = tick()
@@ -226,4 +206,4 @@ TextButton.MouseButton1Click:Connect(function()
     TextButton.BackgroundColor3 = isWallHopEnabled and Color3.fromRGB(40,40,40) or Color3.fromRGB(0,0,0)
 end)
 
-print("WallHop Loaded (ghost jump FIX REAL aplicado)")
+print("WallHop Loaded (ghost jump fix aplicado)")
