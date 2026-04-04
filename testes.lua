@@ -51,6 +51,7 @@ local gemReadyEffect = nil
 local gemReadyTweening = false
 local gemReadyPart = nil
 local gemRechargeCycle = 0
+local hasUsedFirstScriptDoubleJump = false
 
 local function isCrouching(hum, hrp)
     if not hum or not hrp then return false end
@@ -181,6 +182,7 @@ local function setupCharacter(char)
 
     gemRechargeCycle = 0
     gemReadyTweening = false
+    hasUsedFirstScriptDoubleJump = false
 
     task.defer(function()
         gemReadyEffect = createGemReadyEffect(char)
@@ -216,17 +218,22 @@ UserInputService.JumpRequest:Connect(function()
         lastDoubleJump = tick()
         canDoubleJump = false
 
-        -- agenda APENAS a recarga visual do DOUBLE JUMP DO SCRIPT
-        gemRechargeCycle += 1
-        local myCycle = gemRechargeCycle
+        -- IGNORA O PRIMEIRO DOUBLE JUMP DO SCRIPT
+        -- E SÓ AVISA A RECARGA NOS PRÓXIMOS
+        if hasUsedFirstScriptDoubleJump then
+            gemRechargeCycle += 1
+            local myCycle = gemRechargeCycle
 
-        task.delay(DOUBLE_JUMP_COOLDOWN, function()
-            if myCycle ~= gemRechargeCycle then return end
-            if not LocalPlayer.Character then return end
+            task.delay(DOUBLE_JUMP_COOLDOWN, function()
+                if myCycle ~= gemRechargeCycle then return end
+                if not LocalPlayer.Character then return end
 
-            task.spawn(playGemReadyEffect)
-            task.spawn(playGemRechargeAnimation)
-        end)
+                task.spawn(playGemReadyEffect)
+                task.spawn(playGemRechargeAnimation)
+            end)
+        else
+            hasUsedFirstScriptDoubleJump = true
+        end
 
         hrp.Velocity = Vector3.new(hrp.Velocity.X, 30, hrp.Velocity.Z)
         hum:ChangeState(Enum.HumanoidStateType.Jumping)
@@ -498,4 +505,4 @@ TextButton.MouseButton1Click:Connect(function()
     TextButton.BackgroundColor3 = isWallHopEnabled and Color3.fromRGB(40,40,40) or Color3.fromRGB(0,0,0)
 end)
 
-print("Humanoid Wallhop cu - Loaded Successfully ✅")
+print("Humanoid Wallhop - Loaded Successfully ✅")
