@@ -46,8 +46,9 @@ local lastDoubleJump = 0
 local DOUBLE_JUMP_COOLDOWN = 3
 local blockDoubleJump = false
 
--- GEM READY TRACKER
+-- GEM READY TRACKER (AGORA 100% DO SCRIPT)
 local scriptDoubleJumpUses = 0
+local rechargeNotifyId = 0
 
 local function isCrouching(hum, hrp)
     if not hum or not hrp then return false end
@@ -83,6 +84,11 @@ local function playGemReadyEffect()
 
     local hrp = char:FindFirstChild("HumanoidRootPart")
     if not hrp then return end
+
+    local old = char:FindFirstChild("GemReadyEffectTemp")
+    if old then
+        old:Destroy()
+    end
 
     local holder = Instance.new("BillboardGui")
     holder.Name = "GemReadyEffectTemp"
@@ -124,12 +130,36 @@ local function playGemReadyEffect()
         RunService.RenderStepped:Wait()
     end
 
-    holder:Destroy()
+    if holder and holder.Parent then
+        holder:Destroy()
+    end
+end
+
+local function scheduleScriptRechargeNotice()
+    rechargeNotifyId += 1
+    local myId = rechargeNotifyId
+
+    task.delay(DOUBLE_JUMP_COOLDOWN, function()
+        if myId ~= rechargeNotifyId then
+            return
+        end
+
+        if not isWallHopEnabled then
+            return
+        end
+
+        task.spawn(playGemReadyEffect)
+        task.spawn(playGemRechargeAnimation)
+    end)
 end
 
 local function setupCharacter(char)
     local hum = char:WaitForChild("Humanoid")
+
+    canDoubleJump = false
+    blockDoubleJump = false
     scriptDoubleJumpUses = 0
+    rechargeNotifyId = 0
 
     hum.StateChanged:Connect(function(_, new)
         if new == Enum.HumanoidStateType.Freefall then
@@ -163,16 +193,9 @@ UserInputService.JumpRequest:Connect(function()
         canDoubleJump = false
         scriptDoubleJumpUses += 1
 
+        -- ignora o primeiro uso; do segundo em diante, o script agenda seu próprio aviso
         if scriptDoubleJumpUses > 1 then
-            local expectedTime = lastDoubleJump
-
-            task.delay(DOUBLE_JUMP_COOLDOWN, function()
-                if lastDoubleJump ~= expectedTime then return end
-                if not LocalPlayer.Character or LocalPlayer.Character ~= char then return end
-
-                task.spawn(playGemReadyEffect)
-                task.spawn(playGemRechargeAnimation)
-            end)
+            scheduleScriptRechargeNotice()
         end
 
         hrp.Velocity = Vector3.new(hrp.Velocity.X, 30, hrp.Velocity.Z)
@@ -396,7 +419,6 @@ end
 
 RunService.Heartbeat:Connect(function()
     if not isWallHopEnabled then return end
-
     local char = LocalPlayer.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     local hum = char and char:FindFirstChild("Humanoid")
@@ -451,4 +473,4 @@ TextButton.MouseButton1Click:Connect(function()
     TextButton.BackgroundColor3 = isWallHopEnabled and Color3.fromRGB(40,40,40) or Color3.fromRGB(0,0,0)
 end)
 
-print("Humanoid Wallhop - LLLLLoaded Successfully ✅")
+print("Humanoid Wallllllhop - Loaded Successfully ✅")
