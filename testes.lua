@@ -174,6 +174,7 @@ local function buildPCGui()
 	MainFrame.Size = UDim2.new(0, 265, 0, 164)
 	MainFrame.Position = UDim2.new(0.5, -132, 0.5, -82)
 	MainFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+	MainFrame.BackgroundTransparency = 0
 	MainFrame.BorderSizePixel = 0
 	MainFrame.Parent = ScreenGui
 	Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 16)
@@ -211,7 +212,7 @@ local function buildPCGui()
 	local MinimizeButton = Instance.new("TextButton")
 	MinimizeButton.Size = UDim2.new(0, 22, 0, 22)
 	MinimizeButton.Position = UDim2.new(1, -29, 0, 8)
-	MinimizeButton.BackgroundColor3 = Color3.fromRGB(8, 8, 8)
+	MinimizeButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 	MinimizeButton.Text = "—"
 	MinimizeButton.TextColor3 = Color3.fromRGB(225, 225, 225)
 	MinimizeButton.Font = Enum.Font.GothamBold
@@ -229,7 +230,7 @@ local function buildPCGui()
 	local ToggleButton = Instance.new("TextButton")
 	ToggleButton.Size = UDim2.new(1, 0, 0, 34)
 	ToggleButton.Position = UDim2.new(0, 0, 0, 0)
-	ToggleButton.BackgroundColor3 = Color3.fromRGB(4, 4, 4)
+	ToggleButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 	ToggleButton.Text = "Wall Hop Off"
 	ToggleButton.TextColor3 = Color3.fromRGB(255,255,255)
 	ToggleButton.Font = Enum.Font.GothamBold
@@ -245,7 +246,7 @@ local function buildPCGui()
 	local HideGuiBindButton = Instance.new("TextButton")
 	HideGuiBindButton.Size = UDim2.new(1, 0, 0, 28)
 	HideGuiBindButton.Position = UDim2.new(0, 0, 0, 40)
-	HideGuiBindButton.BackgroundColor3 = Color3.fromRGB(4, 4, 4)
+	HideGuiBindButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 	HideGuiBindButton.Text = "Keybind Hide GUI: RightShift"
 	HideGuiBindButton.TextColor3 = Color3.fromRGB(225,225,225)
 	HideGuiBindButton.Font = Enum.Font.Gotham
@@ -261,8 +262,8 @@ local function buildPCGui()
 	local ToggleBindButton = Instance.new("TextButton")
 	ToggleBindButton.Size = UDim2.new(1, 0, 0, 28)
 	ToggleBindButton.Position = UDim2.new(0, 0, 0, 72)
-	ToggleBindButton.BackgroundColor3 = Color3.fromRGB(4, 4, 4)
-	ToggleBindButton.Text = "Keybind WH On/Off: Q"
+	ToggleBindButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+	ToggleBindButton.Text = "Keybind Toggle Wallhop: Q"
 	ToggleBindButton.TextColor3 = Color3.fromRGB(225,225,225)
 	ToggleBindButton.Font = Enum.Font.Gotham
 	ToggleBindButton.TextSize = 12
