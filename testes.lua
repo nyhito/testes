@@ -1,5 +1,5 @@
 -- (Wallhop Humanoid Type - Made by NT)
--- PC version beautified: draggable window, minimize button, saved keybinds, subtle top-right notifications
+-- PC version beautified: black GUI, draggable window, saved keybinds, subtle top-right notifications
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -71,11 +71,9 @@ local function saveSettings()
 		toggleScriptKey = toggleScriptKey.Name,
 	}
 
-	local ok = pcall(function()
+	pcall(function()
 		writefile(SETTINGS_FILE, HttpService:JSONEncode(data))
 	end)
-
-	return ok
 end
 
 local function loadSettings()
@@ -110,23 +108,23 @@ local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Size = UDim2.new(0, 270, 0, 210)
 MainFrame.Position = UDim2.new(0, 150, 0, 40)
-MainFrame.BackgroundColor3 = Color3.fromRGB(13, 13, 16)
+MainFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 MainFrame.BorderSizePixel = 0
 MainFrame.Parent = ScreenGui
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 16)
 
 local MainGradient = Instance.new("UIGradient")
 MainGradient.Color = ColorSequence.new({
-	ColorSequenceKeypoint.new(0, Color3.fromRGB(18, 18, 22)),
-	ColorSequenceKeypoint.new(1, Color3.fromRGB(10, 10, 13))
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(8, 8, 8)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 0, 0))
 })
 MainGradient.Rotation = 90
 MainGradient.Parent = MainFrame
 
 local Stroke = Instance.new("UIStroke")
-Stroke.Color = Color3.fromRGB(58, 58, 68)
+Stroke.Color = Color3.fromRGB(35, 35, 35)
 Stroke.Thickness = 1
-Stroke.Transparency = 0.15
+Stroke.Transparency = 0.2
 Stroke.Parent = MainFrame
 
 local Shadow = Instance.new("ImageLabel")
@@ -134,10 +132,11 @@ Shadow.Name = "Shadow"
 Shadow.BackgroundTransparency = 1
 Shadow.AnchorPoint = Vector2.new(0.5, 0.5)
 Shadow.Position = UDim2.new(0.5, 0, 0.5, 4)
-Shadow.Size = UDim2.new(1, 36, 1, 40)
+Shadow.Size = UDim2.new(1, 60, 1, 60)
 Shadow.ZIndex = 0
 Shadow.Image = "rbxassetid://1316045217"
-Shadow.ImageTransparency = 0.55
+Shadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
+Shadow.ImageTransparency = 0.28
 Shadow.ScaleType = Enum.ScaleType.Slice
 Shadow.SliceCenter = Rect.new(10, 10, 118, 118)
 Shadow.Parent = MainFrame
@@ -149,7 +148,7 @@ TopBar.BackgroundTransparency = 1
 TopBar.Parent = MainFrame
 
 local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1, -78, 1, 0)
+Title.Size = UDim2.new(1, -20, 1, 0)
 Title.Position = UDim2.new(0, 14, 0, 0)
 Title.BackgroundTransparency = 1
 Title.Text = "Wallhop PC"
@@ -160,39 +159,32 @@ Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.Parent = TopBar
 
 local Subtitle = Instance.new("TextLabel")
-Subtitle.Size = UDim2.new(1, -120, 0, 14)
+Subtitle.Size = UDim2.new(1, -20, 0, 14)
 Subtitle.Position = UDim2.new(0, 14, 0, 22)
 Subtitle.BackgroundTransparency = 1
 Subtitle.Text = "netzwii panel"
-Subtitle.TextColor3 = Color3.fromRGB(130,130,145)
+Subtitle.TextColor3 = Color3.fromRGB(95,95,95)
 Subtitle.Font = Enum.Font.Gotham
 Subtitle.TextSize = 11
 Subtitle.TextXAlignment = Enum.TextXAlignment.Left
 Subtitle.Parent = TopBar
 
 local MinimizeButton = Instance.new("TextButton")
-MinimizeButton.Size = UDim2.new(0, 26, 0, 26)
-MinimizeButton.Position = UDim2.new(1, -58, 0, 6)
-MinimizeButton.BackgroundColor3 = Color3.fromRGB(24, 24, 29)
+MinimizeButton.Size = UDim2.new(0, 24, 0, 24)
+MinimizeButton.Position = UDim2.new(1, -30, 0, 7)
+MinimizeButton.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
 MinimizeButton.Text = "—"
-MinimizeButton.TextColor3 = Color3.fromRGB(220,220,225)
+MinimizeButton.TextColor3 = Color3.fromRGB(220,220,220)
 MinimizeButton.Font = Enum.Font.GothamBold
-MinimizeButton.TextSize = 16
+MinimizeButton.TextSize = 15
 MinimizeButton.AutoButtonColor = true
 MinimizeButton.Parent = TopBar
 Instance.new("UICorner", MinimizeButton).CornerRadius = UDim.new(1, 0)
 
-local CloseAccent = Instance.new("TextButton")
-CloseAccent.Size = UDim2.new(0, 26, 0, 26)
-CloseAccent.Position = UDim2.new(1, -28, 0, 6)
-CloseAccent.BackgroundColor3 = Color3.fromRGB(24, 24, 29)
-CloseAccent.Text = "•"
-CloseAccent.TextColor3 = Color3.fromRGB(150,150,165)
-CloseAccent.Font = Enum.Font.GothamBold
-CloseAccent.TextSize = 18
-CloseAccent.AutoButtonColor = false
-CloseAccent.Parent = TopBar
-Instance.new("UICorner", CloseAccent).CornerRadius = UDim.new(1, 0)
+local MinStroke = Instance.new("UIStroke")
+MinStroke.Color = Color3.fromRGB(35, 35, 35)
+MinStroke.Transparency = 0.2
+MinStroke.Parent = MinimizeButton
 
 local ContentFrame = Instance.new("Frame")
 ContentFrame.Name = "ContentFrame"
@@ -204,7 +196,7 @@ ContentFrame.Parent = MainFrame
 local ToggleButton = Instance.new("TextButton")
 ToggleButton.Size = UDim2.new(1, 0, 0, 44)
 ToggleButton.Position = UDim2.new(0, 0, 0, 0)
-ToggleButton.BackgroundColor3 = Color3.fromRGB(18, 18, 22)
+ToggleButton.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
 ToggleButton.Text = "Wall Hop Off"
 ToggleButton.TextColor3 = Color3.fromRGB(255,255,255)
 ToggleButton.Font = Enum.Font.GothamBold
@@ -213,38 +205,38 @@ ToggleButton.Parent = ContentFrame
 Instance.new("UICorner", ToggleButton).CornerRadius = UDim.new(0, 12)
 
 local ToggleStroke = Instance.new("UIStroke")
-ToggleStroke.Color = Color3.fromRGB(60, 60, 70)
-ToggleStroke.Transparency = 0.25
+ToggleStroke.Color = Color3.fromRGB(28, 28, 28)
+ToggleStroke.Transparency = 0.15
 ToggleStroke.Parent = ToggleButton
 
 local HideGuiBindButton = Instance.new("TextButton")
 HideGuiBindButton.Size = UDim2.new(1, 0, 0, 36)
 HideGuiBindButton.Position = UDim2.new(0, 0, 0, 58)
-HideGuiBindButton.BackgroundColor3 = Color3.fromRGB(20, 20, 24)
-HideGuiBindButton.TextColor3 = Color3.fromRGB(225,225,230)
+HideGuiBindButton.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
+HideGuiBindButton.TextColor3 = Color3.fromRGB(225,225,225)
 HideGuiBindButton.Font = Enum.Font.Gotham
 HideGuiBindButton.TextSize = 14
 HideGuiBindButton.Parent = ContentFrame
 Instance.new("UICorner", HideGuiBindButton).CornerRadius = UDim.new(0, 11)
 
 local HideStroke = Instance.new("UIStroke")
-HideStroke.Color = Color3.fromRGB(52, 52, 62)
-HideStroke.Transparency = 0.3
+HideStroke.Color = Color3.fromRGB(28, 28, 28)
+HideStroke.Transparency = 0.15
 HideStroke.Parent = HideGuiBindButton
 
 local ToggleBindButton = Instance.new("TextButton")
 ToggleBindButton.Size = UDim2.new(1, 0, 0, 36)
 ToggleBindButton.Position = UDim2.new(0, 0, 0, 101)
-ToggleBindButton.BackgroundColor3 = Color3.fromRGB(20, 20, 24)
-ToggleBindButton.TextColor3 = Color3.fromRGB(225,225,230)
+ToggleBindButton.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
+ToggleBindButton.TextColor3 = Color3.fromRGB(225,225,225)
 ToggleBindButton.Font = Enum.Font.Gotham
 ToggleBindButton.TextSize = 14
 ToggleBindButton.Parent = ContentFrame
 Instance.new("UICorner", ToggleBindButton).CornerRadius = UDim.new(0, 11)
 
 local ToggleBindStroke = Instance.new("UIStroke")
-ToggleBindStroke.Color = Color3.fromRGB(52, 52, 62)
-ToggleBindStroke.Transparency = 0.3
+ToggleBindStroke.Color = Color3.fromRGB(28, 28, 28)
+ToggleBindStroke.Transparency = 0.15
 ToggleBindStroke.Parent = ToggleBindButton
 
 local InfoLabel = Instance.new("TextLabel")
@@ -252,18 +244,17 @@ InfoLabel.Size = UDim2.new(1, -2, 0, 16)
 InfoLabel.Position = UDim2.new(0, 2, 1, -18)
 InfoLabel.BackgroundTransparency = 1
 InfoLabel.Text = "Draggable • Saved binds • PC only"
-InfoLabel.TextColor3 = Color3.fromRGB(126,126,140)
+InfoLabel.TextColor3 = Color3.fromRGB(80,80,80)
 InfoLabel.Font = Enum.Font.Gotham
 InfoLabel.TextSize = 11
 InfoLabel.TextXAlignment = Enum.TextXAlignment.Left
 InfoLabel.Parent = ContentFrame
 
--- MINIMIZED PILL
 local MiniButton = Instance.new("TextButton")
 MiniButton.Name = "MiniButton"
 MiniButton.Size = UDim2.new(0, 140, 0, 40)
 MiniButton.Position = UDim2.new(0, 150, 0, 40)
-MiniButton.BackgroundColor3 = Color3.fromRGB(14, 14, 17)
+MiniButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 MiniButton.BorderSizePixel = 0
 MiniButton.Visible = false
 MiniButton.Text = "Wallhop PC"
@@ -274,41 +265,36 @@ MiniButton.Parent = ScreenGui
 Instance.new("UICorner", MiniButton).CornerRadius = UDim.new(1, 0)
 
 local MiniStroke = Instance.new("UIStroke")
-MiniStroke.Color = Color3.fromRGB(60, 60, 70)
-MiniStroke.Transparency = 0.2
+MiniStroke.Color = Color3.fromRGB(35, 35, 35)
+MiniStroke.Transparency = 0.18
 MiniStroke.Parent = MiniButton
 
 -- NOTICE GUI
 local NoticeHolder = Instance.new("Frame")
 NoticeHolder.Name = "NoticeHolder"
 NoticeHolder.AnchorPoint = Vector2.new(1, 0)
-NoticeHolder.Position = UDim2.new(1, -20, 0, 20)
-NoticeHolder.Size = UDim2.new(0, 300, 0, 44)
+NoticeHolder.Position = UDim2.new(1, -14, 0, 8)
+NoticeHolder.Size = UDim2.new(0, 220, 0, 34)
 NoticeHolder.BackgroundTransparency = 1
 NoticeHolder.Parent = ScreenGui
 
 local Notice = Instance.new("TextLabel")
 Notice.AnchorPoint = Vector2.new(1, 0)
-Notice.Position = UDim2.new(1, 340, 0, 0)
-Notice.Size = UDim2.new(0, 280, 0, 42)
-Notice.BackgroundColor3 = Color3.fromRGB(14, 14, 18)
-Notice.BackgroundTransparency = 0.1
+Notice.Position = UDim2.new(1, 260, 0, 0)
+Notice.Size = UDim2.new(0, 210, 0, 32)
+Notice.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+Notice.BackgroundTransparency = 0.18
 Notice.TextTransparency = 1
 Notice.Text = ""
 Notice.TextColor3 = Color3.fromRGB(255,255,255)
 Notice.Font = Enum.Font.GothamBold
-Notice.TextSize = 14
-Notice.TextXAlignment = Enum.TextXAlignment.Left
+Notice.TextSize = 12
+Notice.TextXAlignment = Enum.TextXAlignment.Center
 Notice.Parent = NoticeHolder
-Instance.new("UICorner", Notice).CornerRadius = UDim.new(0, 12)
-
-local NoticePadding = Instance.new("UIPadding")
-NoticePadding.PaddingLeft = UDim.new(0, 14)
-NoticePadding.PaddingRight = UDim.new(0, 14)
-NoticePadding.Parent = Notice
+Instance.new("UICorner", Notice).CornerRadius = UDim.new(1, 0)
 
 local NoticeStroke = Instance.new("UIStroke")
-NoticeStroke.Color = Color3.fromRGB(62,62,72)
+NoticeStroke.Color = Color3.fromRGB(28, 28, 28)
 NoticeStroke.Transparency = 1
 NoticeStroke.Parent = Notice
 
@@ -318,18 +304,18 @@ local function showNotice(text)
 	local noticeId = activeNoticeId
 
 	Notice.Text = text
-	Notice.Position = UDim2.new(1, 340, 0, 0)
-	Notice.BackgroundTransparency = 0.22
+	Notice.Position = UDim2.new(1, 240, 0, 0)
+	Notice.BackgroundTransparency = 0.18
 	Notice.TextTransparency = 1
 	NoticeStroke.Transparency = 1
 
-	local slideIn = TweenService:Create(Notice, TweenInfo.new(0.22, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+	local slideIn = TweenService:Create(Notice, TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
 		Position = UDim2.new(1, 0, 0, 0),
 		TextTransparency = 0
 	})
 
-	local strokeIn = TweenService:Create(NoticeStroke, TweenInfo.new(0.18), {
-		Transparency = 0.05
+	local strokeIn = TweenService:Create(NoticeStroke, TweenInfo.new(0.16), {
+		Transparency = 0.15
 	})
 
 	slideIn:Play()
@@ -341,13 +327,13 @@ local function showNotice(text)
 			return
 		end
 
-		local slideOut = TweenService:Create(Notice, TweenInfo.new(0.32, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-			Position = UDim2.new(1, 330, 0, 0),
+		local slideOut = TweenService:Create(Notice, TweenInfo.new(0.28, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+			Position = UDim2.new(1, 250, 0, 0),
 			TextTransparency = 1,
 			BackgroundTransparency = 1
 		})
 
-		local strokeOut = TweenService:Create(NoticeStroke, TweenInfo.new(0.26), {
+		local strokeOut = TweenService:Create(NoticeStroke, TweenInfo.new(0.22), {
 			Transparency = 1
 		})
 
@@ -358,8 +344,8 @@ end
 
 local function updateToggleButton()
 	ToggleButton.Text = isWallHopEnabled and "Wall Hop On" or "Wall Hop Off"
-	ToggleButton.BackgroundColor3 = isWallHopEnabled and Color3.fromRGB(28, 40, 30) or Color3.fromRGB(18, 18, 22)
-	ToggleStroke.Color = isWallHopEnabled and Color3.fromRGB(90, 130, 92) or Color3.fromRGB(60, 60, 70)
+	ToggleButton.BackgroundColor3 = isWallHopEnabled and Color3.fromRGB(10, 18, 10) or Color3.fromRGB(5, 5, 5)
+	ToggleStroke.Color = isWallHopEnabled and Color3.fromRGB(50, 85, 50) or Color3.fromRGB(28, 28, 28)
 	MiniButton.Text = isWallHopEnabled and "Wallhop PC • ON" or "Wallhop PC • OFF"
 end
 
@@ -394,7 +380,7 @@ local function setMinimized(state)
 	end
 end
 
--- DRAG SYSTEM
+-- DRAG
 local dragging = false
 local dragStart
 local startPos
@@ -443,7 +429,6 @@ UserInputService.InputChanged:Connect(function(input)
 	end
 end)
 
--- DEFAULT POSITION WITH GUI INSET
 RunService.RenderStepped:Connect(function()
 	local inset = GuiService:GetGuiInset()
 
@@ -836,4 +821,4 @@ updateToggleButton()
 updateBindButtons()
 applyVisibility()
 
-print("Made by netzwii | HHumanoid Wallhop PC - Beautified Loaded Successfully ✅")
+print("Made by netzwiiiii | Humanoid Wallhop PC - Black UI Loaded Successfully ✅")
