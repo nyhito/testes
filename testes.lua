@@ -320,7 +320,8 @@ local function buildPCGui()
 	Instance.new("UICorner", Shadow1).CornerRadius = UDim.new(0, 18)
 
 	local Shadow2 = Instance.new("Frame")
-	Shadow2.AnchorPoint = Vector2.new(0.5, 0, 0.5, 5)
+	Shadow2.AnchorPoint = Vector2.new(0.5, 0.5)
+	Shadow2.Position = UDim2.new(0.5, 0, 0.5, 5)
 	Shadow2.Size = UDim2.new(1, 16, 1, 16)
 	Shadow2.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 	Shadow2.BackgroundTransparency = 0.9
@@ -455,7 +456,6 @@ local function buildPCGui()
 	MiniButton.TextSize = 14
 	MiniButton.Parent = ScreenGui
 	Instance.new("UICorner", MiniButton).CornerRadius = UDim.new(1, 0)
-
 	local MiniShadow1 = Instance.new("Frame")
 	MiniShadow1.AnchorPoint = Vector2.new(0.5, 0.5)
 	MiniShadow1.Position = UDim2.new(0.5, 0, 0.5, 2)
@@ -660,6 +660,48 @@ UserInputService.JumpRequest:Connect(function()
 	local char = LocalPlayer.Character
 	local hum = char and char:FindFirstChild("Humanoid")
 	local hrp = char and char:FindFirstChild("HumanoidRootPart")
+	if not hum or not hrp then return end
+
+	local stillValid = isWallHopping or (tick() - lastWallHopTime <= WALLHOP_GRACE_TIME)
+	if not stillValid then return end
+
+	if canDoubleJump and tick() - lastDoubleJump > DOUBLE_JUMP_COOLDOWN then
+		lastDoubleJump = tick()
+		canDoubleJump = false
+
+		hrp.Velocity = Vector3.new(hrp.Velocity.X, 30, hrp.Velocity.Z)
+		hum:ChangeState(Enum.HumanoidStateType.Jumping)
+
+		task.delay(0.18, function()
+			if hum then
+				hum:ChangeState(Enum.HumanoidStateType.Freefall)
+			end
+		end)
+	end
+end)
+
+local function pickNextFlick()
+	local minAngle, maxAngle = 50, 80
+	local attempt = 0
+	local angle
+	repeat
+		angle = math.random(minAngle, maxAngle)
+		attempt += 1
+	until not lastFlickAngle or math.abs(angle - lastFlickAngle) >= 10 or attempt > 20
+	lastFlickAngle = angle
+	return math.rad(angle)
+end
+
+local function performVideoFlick()
+	if isFlicking then return end
+	isFlicking = true
+	isWallHopping = true
+	lastWallHopTime = tick()
+	blockDoubleJump = true
+
+	local char = LocalPlayer.Character
+	local hum = char and char:FindFirstChild("Humanoid")
+	local hrp = char and char:FindFirstChild("HumanoidRootPart")
 	if not hum or not hrp then
 		isFlicking = false
 		return
@@ -751,8 +793,8 @@ UserInputService.JumpRequest:Connect(function()
 	end)
 
 	isFlicking = false
-	end
-	local function isPlayerCharacter(instance)
+end
+local function isPlayerCharacter(instance)
 	if not instance then return false end
 	local model = instance:FindFirstAncestorOfClass("Model")
 	return model and model:FindFirstChildOfClass("Humanoid")
