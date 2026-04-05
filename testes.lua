@@ -3,6 +3,7 @@ local LocalPlayer = Players.LocalPlayer
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local GuiService = game:GetService("GuiService")
+local TweenService = game:GetService("TweenService")
 
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
@@ -12,14 +13,17 @@ local MainFrame
 local MiniButton
 local MobileButton
 local MobileHideButton
+local Notice
+local NoticeStroke
 
-local function addTrueRoundedShadow(parent, cornerRadius, strength)
+local function addTrueRoundedShadow(parent, cornerRadius, strength, shadowColor)
 	strength = strength or 1
+	shadowColor = shadowColor or Color3.fromRGB(255, 255, 255)
 
 	local layers = {
-		{grow = math.floor(6 * strength),  transparency = 0.78, y = 1},
-		{grow = math.floor(12 * strength), transparency = 0.87, y = 2},
-		{grow = math.floor(18 * strength), transparency = 0.93, y = 3},
+		{grow = math.floor(6 * strength),  transparency = 0.92, y = 1},
+		{grow = math.floor(12 * strength), transparency = 0.96, y = 2},
+		{grow = math.floor(18 * strength), transparency = 0.985, y = 3},
 	}
 
 	for _, cfg in ipairs(layers) do
@@ -28,7 +32,7 @@ local function addTrueRoundedShadow(parent, cornerRadius, strength)
 		shadow.AnchorPoint = Vector2.new(0.5, 0.5)
 		shadow.Position = UDim2.new(0.5, 0, 0.5, cfg.y)
 		shadow.Size = UDim2.new(1, cfg.grow, 1, cfg.grow)
-		shadow.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+		shadow.BackgroundColor3 = shadowColor
 		shadow.BackgroundTransparency = cfg.transparency
 		shadow.BorderSizePixel = 0
 		shadow.ZIndex = 0
@@ -46,6 +50,48 @@ local function pointInside(button, point)
 		and point.Y <= absPos.Y + absSize.Y
 end
 
+local activeNoticeId = 0
+local function showNotice(text)
+	if selectedMode ~= "PC" or not Notice or not NoticeStroke then
+		return
+	end
+
+	activeNoticeId += 1
+	local noticeId = activeNoticeId
+
+	Notice.Text = text
+	Notice.Position = UDim2.new(1, 240, 0, 0)
+	Notice.TextTransparency = 1
+	Notice.BackgroundTransparency = 0.08
+	NoticeStroke.Transparency = 1
+
+	TweenService:Create(Notice, TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+		Position = UDim2.new(1, 0, 0, 0),
+		TextTransparency = 0
+	}):Play()
+
+	TweenService:Create(NoticeStroke, TweenInfo.new(0.14), {
+		Transparency = 0.45
+	}):Play()
+
+	task.spawn(function()
+		task.wait(1)
+		if noticeId ~= activeNoticeId then
+			return
+		end
+
+		TweenService:Create(Notice, TweenInfo.new(0.24, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+			Position = UDim2.new(1, 250, 0, 0),
+			TextTransparency = 1,
+			BackgroundTransparency = 1
+		}):Play()
+
+		TweenService:Create(NoticeStroke, TweenInfo.new(0.2), {
+			Transparency = 1
+		}):Play()
+	end)
+end
+
 local function createModeSelector(onPick)
 	local selectorGui = Instance.new("ScreenGui")
 	selectorGui.Name = "WallhopModeSelector"
@@ -61,7 +107,7 @@ local function createModeSelector(onPick)
 	frame.Parent = selectorGui
 	Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 16)
 
-	addTrueRoundedShadow(frame, 16, 1.45)
+	addTrueRoundedShadow(frame, 16, 1.45, Color3.fromRGB(255, 255, 255))
 
 	local title = Instance.new("TextLabel")
 	title.Size = UDim2.new(1, -20, 0, 28)
@@ -132,7 +178,7 @@ local function buildPCGui()
 	MainFrame.Parent = ScreenGui
 	Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 16)
 
-	addTrueRoundedShadow(MainFrame, 16, 1)
+	addTrueRoundedShadow(MainFrame, 16, 1, Color3.fromRGB(255, 255, 255))
 
 	local TopBar = Instance.new("Frame")
 	TopBar.Name = "TopBar"
@@ -200,7 +246,7 @@ local function buildPCGui()
 	HideGuiBindButton.Size = UDim2.new(1, 0, 0, 28)
 	HideGuiBindButton.Position = UDim2.new(0, 0, 0, 40)
 	HideGuiBindButton.BackgroundColor3 = Color3.fromRGB(4, 4, 4)
-	HideGuiBindButton.Text = "Hide GUI Key: RightShift"
+	HideGuiBindButton.Text = "Keybind Hide GUI: RightShift"
 	HideGuiBindButton.TextColor3 = Color3.fromRGB(225,225,225)
 	HideGuiBindButton.Font = Enum.Font.Gotham
 	HideGuiBindButton.TextSize = 12
@@ -216,7 +262,7 @@ local function buildPCGui()
 	ToggleBindButton.Size = UDim2.new(1, 0, 0, 28)
 	ToggleBindButton.Position = UDim2.new(0, 0, 0, 72)
 	ToggleBindButton.BackgroundColor3 = Color3.fromRGB(4, 4, 4)
-	ToggleBindButton.Text = "Toggle Script Key: Q"
+	ToggleBindButton.Text = "Keybind WH On/Off: Q"
 	ToggleBindButton.TextColor3 = Color3.fromRGB(225,225,225)
 	ToggleBindButton.Font = Enum.Font.Gotham
 	ToggleBindButton.TextSize = 12
@@ -252,19 +298,52 @@ local function buildPCGui()
 	MiniButton.Parent = ScreenGui
 	Instance.new("UICorner", MiniButton).CornerRadius = UDim.new(1, 0)
 
-	addTrueRoundedShadow(MiniButton, 999, 0.8)
+	addTrueRoundedShadow(MiniButton, 999, 0.8, Color3.fromRGB(255, 255, 255))
+
+	local NoticeHolder = Instance.new("Frame")
+	NoticeHolder.Name = "NoticeHolder"
+	NoticeHolder.AnchorPoint = Vector2.new(1, 0)
+	NoticeHolder.Position = UDim2.new(1, -10, 0, 8)
+	NoticeHolder.Size = UDim2.new(0, 210, 0, 28)
+	NoticeHolder.BackgroundTransparency = 1
+	NoticeHolder.Parent = ScreenGui
+
+	Notice = Instance.new("TextLabel")
+	Notice.AnchorPoint = Vector2.new(1, 0)
+	Notice.Position = UDim2.new(1, 240, 0, 0)
+	Notice.Size = UDim2.new(0, 200, 0, 26)
+	Notice.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+	Notice.BackgroundTransparency = 0.08
+	Notice.TextTransparency = 1
+	Notice.Text = ""
+	Notice.TextColor3 = Color3.fromRGB(255,255,255)
+	Notice.Font = Enum.Font.GothamBold
+	Notice.TextSize = 11
+	Notice.TextXAlignment = Enum.TextXAlignment.Center
+	Notice.Parent = NoticeHolder
+	Instance.new("UICorner", Notice).CornerRadius = UDim.new(1, 0)
+
+	NoticeStroke = Instance.new("UIStroke")
+	NoticeStroke.Color = Color3.fromRGB(255,255,255)
+	NoticeStroke.Transparency = 1
+	NoticeStroke.Thickness = 1
+	NoticeStroke.Parent = Notice
 
 	MinimizeButton.MouseButton1Click:Connect(function()
 		MainFrame.Visible = false
 		MiniButton.Visible = true
 		MiniButton.Position = MainFrame.Position
+		showNotice("GUI minimized")
 	end)
 
 	MiniButton.MouseButton1Click:Connect(function()
 		MainFrame.Position = MiniButton.Position
 		MainFrame.Visible = true
 		MiniButton.Visible = false
+		showNotice("GUI restored")
 	end)
+
+	showNotice("PC version loaded")
 end
 
 local function buildMobileGui()
@@ -284,7 +363,7 @@ local function buildMobileGui()
 	MobileButton.Parent = ScreenGui
 	Instance.new("UICorner", MobileButton).CornerRadius = UDim.new(0, 12)
 
-	addTrueRoundedShadow(MobileButton, 14, 1)
+	addTrueRoundedShadow(MobileButton, 14, 1, Color3.fromRGB(255, 255, 255))
 
 	MobileHideButton = Instance.new("TextButton")
 	MobileHideButton.Size = UDim2.new(0, 54, 0, 54)
@@ -297,7 +376,7 @@ local function buildMobileGui()
 	MobileHideButton.Parent = ScreenGui
 	Instance.new("UICorner", MobileHideButton).CornerRadius = UDim.new(1, 0)
 
-	addTrueRoundedShadow(MobileHideButton, 999, 1)
+	addTrueRoundedShadow(MobileHideButton, 999, 1, Color3.fromRGB(255, 255, 255))
 
 	RunService.RenderStepped:Connect(function()
 		if selectedMode ~= "Mobile" then return end
