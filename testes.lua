@@ -14,29 +14,29 @@ local MiniButton
 local MobileButton
 local MobileHideButton
 
-local function addBlurShadow(parent, cornerRadius, spread, baseTransparency)
-	spread = spread or 14
-	baseTransparency = baseTransparency or 0.86
+local SHADOW_ASSET = "rbxassetid://1316045217"
 
-	local layers = {
-		{grow = math.floor(spread * 0.45), y = 1, transparency = baseTransparency - 0.05},
-		{grow = math.floor(spread * 0.9),  y = 2, transparency = baseTransparency},
-		{grow = math.floor(spread * 1.35), y = 3, transparency = baseTransparency + 0.05},
-	}
+local function addPremiumShadow(parent, extraSize, yOffset, transparency)
+	local shadow = Instance.new("ImageLabel")
+	shadow.Name = "PremiumShadow"
+	shadow.AnchorPoint = Vector2.new(0.5, 0.5)
+	shadow.Position = UDim2.new(0.5, 0, 0.5, yOffset or 2)
+	shadow.Size = UDim2.new(1, extraSize or 22, 1, extraSize or 22)
+	shadow.BackgroundTransparency = 1
+	shadow.Image = SHADOW_ASSET
+	shadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
+	shadow.ImageTransparency = transparency or 0.68
+	shadow.ScaleType = Enum.ScaleType.Slice
+	shadow.SliceCenter = Rect.new(10, 10, 118, 118)
+	shadow.ZIndex = 0
+	shadow.Parent = parent
+	return shadow
+end
 
-	for _, cfg in ipairs(layers) do
-		local shadow = Instance.new("Frame")
-		shadow.Name = "BlurShadow"
-		shadow.AnchorPoint = Vector2.new(0.5, 0.5)
-		shadow.Position = UDim2.new(0.5, 0, 0.5, cfg.y)
-		shadow.Size = UDim2.new(1, cfg.grow, 1, cfg.grow)
-		shadow.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-		shadow.BackgroundTransparency = math.clamp(cfg.transparency, 0, 1)
-		shadow.BorderSizePixel = 0
-		shadow.ZIndex = 0
-		shadow.Parent = parent
-		Instance.new("UICorner", shadow).CornerRadius = UDim.new(0, cornerRadius + math.floor(cfg.grow / 3))
-	end
+local function addPremiumShadowStack(parent)
+	addPremiumShadow(parent, 10, 1, 0.82)
+	addPremiumShadow(parent, 18, 2, 0.88)
+	addPremiumShadow(parent, 28, 3, 0.93)
 end
 
 local function createModeSelector(onPick)
@@ -54,7 +54,7 @@ local function createModeSelector(onPick)
 	frame.Parent = selectorGui
 	Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 16)
 
-	addBlurShadow(frame, 16, 12, 0.86)
+	addPremiumShadowStack(frame)
 
 	local stroke = Instance.new("UIStroke")
 	stroke.Color = Color3.fromRGB(18, 18, 18)
@@ -73,9 +73,9 @@ local function createModeSelector(onPick)
 
 	local sub = Instance.new("TextLabel")
 	sub.Size = UDim2.new(1, -20, 0, 16)
-	sub.Position = UDim2.new(0, 10, 0, 38)
+	sub.Position = UDim2.new(0, 10, 0, 34)
 	sub.BackgroundTransparency = 1
-	sub.Text = "Best WH ever, netzwi panel"
+	sub.Text = "FtF Wallhop • made buy netzwi"
 	sub.TextColor3 = Color3.fromRGB(95,95,95)
 	sub.Font = Enum.Font.Gotham
 	sub.TextSize = 12
@@ -130,7 +130,7 @@ local function buildPCGui()
 	MainFrame.Parent = ScreenGui
 	Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 16)
 
-	addBlurShadow(MainFrame, 16, 12, 0.86)
+	addPremiumShadowStack(MainFrame)
 
 	local Stroke = Instance.new("UIStroke")
 	Stroke.Color = Color3.fromRGB(20, 20, 20)
@@ -241,7 +241,7 @@ local function buildPCGui()
 	MiniButton.Parent = ScreenGui
 	Instance.new("UICorner", MiniButton).CornerRadius = UDim.new(1, 0)
 
-	addBlurShadow(MiniButton, 999, 10, 0.86)
+	addPremiumShadowStack(MiniButton)
 
 	MinimizeButton.MouseButton1Click:Connect(function()
 		MainFrame.Visible = false
@@ -264,16 +264,16 @@ local function buildMobileGui()
 	ScreenGui.Parent = PlayerGui
 
 	MobileButton = Instance.new("TextButton")
-	MobileButton.Size = UDim2.new(0, 140, 0, 50)
+	MobileButton.Size = UDim2.new(0, 170, 0, 50)
 	MobileButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-	MobileButton.Text = "Wall Hop Off"
+	MobileButton.Text = "FtF Wallhop Off"
 	MobileButton.TextColor3 = Color3.fromRGB(255,255,255)
 	MobileButton.Font = Enum.Font.GothamBold
 	MobileButton.TextScaled = true
 	MobileButton.Parent = ScreenGui
 	Instance.new("UICorner", MobileButton).CornerRadius = UDim.new(0, 12)
 
-	addBlurShadow(MobileButton, 14, 10, 0.86)
+	addPremiumShadowStack(MobileButton)
 
 	MobileHideButton = Instance.new("TextButton")
 	MobileHideButton.Size = UDim2.new(0, 54, 0, 54)
@@ -286,7 +286,7 @@ local function buildMobileGui()
 	MobileHideButton.Parent = ScreenGui
 	Instance.new("UICorner", MobileHideButton).CornerRadius = UDim.new(1, 0)
 
-	addBlurShadow(MobileHideButton, 999, 10, 0.86)
+	addPremiumShadowStack(MobileHideButton)
 
 	RunService.RenderStepped:Connect(function()
 		if selectedMode ~= "Mobile" then return end
@@ -304,7 +304,6 @@ local function buildMobileGui()
 		holdReady = false,
 		holdStamp = 0,
 		moved = false,
-		clickAllowed = false,
 	}
 
 	local function resetDrag()
@@ -315,7 +314,6 @@ local function buildMobileGui()
 		drag.holdReady = false
 		drag.holdStamp = 0
 		drag.moved = false
-		drag.clickAllowed = false
 	end
 
 	local function prepareHold(target, input, needHold)
@@ -324,7 +322,6 @@ local function buildMobileGui()
 		drag.startInputPos = input.Position
 		drag.startTargetPos = target.Position
 		drag.moved = false
-		drag.clickAllowed = true
 
 		if needHold then
 			drag.holdReady = false
@@ -342,25 +339,37 @@ local function buildMobileGui()
 		end
 	end
 
-	local function beginTracking(target, needHold)
+	MobileButton.MouseButton1Click:Connect(function()
+		if drag.target == MobileButton or drag.moved then
+			return
+		end
+		local isOn = string.find(MobileButton.Text, "On") ~= nil
+		MobileButton.Text = isOn and "FtF Wallhop Off" or "FtF Wallhop On"
+	end)
+
+	local function beginTracking(target, needHold, clickAction)
 		target.InputBegan:Connect(function(input)
 			if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
 				prepareHold(target, input, needHold)
 
 				input.Changed:Connect(function()
 					if input.UserInputState == Enum.UserInputState.End then
-						if drag.target == target and not drag.moved and target == MobileHideButton then
-							MobileButton.Visible = not MobileButton.Visible
-						end
+						local shouldClick = (drag.target == target and not drag.moved)
 						resetDrag()
+						if shouldClick and clickAction then
+							clickAction()
+						end
 					end
 				end)
 			end
 		end)
 	end
 
-	beginTracking(MobileButton, true)
-	beginTracking(MobileHideButton, false)
+	beginTracking(MobileButton, true, nil)
+
+	beginTracking(MobileHideButton, false, function()
+		MobileButton.Visible = not MobileButton.Visible
+	end)
 
 	UserInputService.InputChanged:Connect(function(input)
 		if selectedMode ~= "Mobile" then return end
