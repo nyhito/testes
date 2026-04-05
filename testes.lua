@@ -13,48 +13,37 @@ local MiniButton
 local MobileButton
 local MobileHideButton
 
-local SHADOW_ASSET = "rbxassetid://1316045217"
+local function addTrueRoundedShadow(parent, cornerRadius, strength)
+	strength = strength or 1
 
-local function addRoundedPremiumShadow(parent, cornerRadius, extraSize)
-	extraSize = extraSize or 18
+	local layers = {
+		{grow = math.floor(10 * strength), transparency = 0.84, y = 1},
+		{grow = math.floor(18 * strength), transparency = 0.90, y = 2},
+		{grow = math.floor(28 * strength), transparency = 0.95, y = 3},
+	}
 
-	local shadowImage = Instance.new("ImageLabel")
-	shadowImage.Name = "PremiumShadowImage"
-	shadowImage.AnchorPoint = Vector2.new(0.5, 0.5)
-	shadowImage.Position = UDim2.new(0.5, 0, 0.5, 2)
-	shadowImage.Size = UDim2.new(1, extraSize, 1, extraSize)
-	shadowImage.BackgroundTransparency = 1
-	shadowImage.Image = SHADOW_ASSET
-	shadowImage.ImageColor3 = Color3.fromRGB(0, 0, 0)
-	shadowImage.ImageTransparency = 0.78
-	shadowImage.ScaleType = Enum.ScaleType.Slice
-	shadowImage.SliceCenter = Rect.new(10, 10, 118, 118)
-	shadowImage.ZIndex = 0
-	shadowImage.Parent = parent
+	for _, cfg in ipairs(layers) do
+		local shadow = Instance.new("Frame")
+		shadow.Name = "TrueShadow"
+		shadow.AnchorPoint = Vector2.new(0.5, 0.5)
+		shadow.Position = UDim2.new(0.5, 0, 0.5, cfg.y)
+		shadow.Size = UDim2.new(1, cfg.grow, 1, cfg.grow)
+		shadow.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+		shadow.BackgroundTransparency = cfg.transparency
+		shadow.BorderSizePixel = 0
+		shadow.ZIndex = 0
+		shadow.Parent = parent
+		Instance.new("UICorner", shadow).CornerRadius = UDim.new(0, cornerRadius + math.floor(cfg.grow / 2.5))
+	end
+end
 
-	local soft1 = Instance.new("Frame")
-	soft1.Name = "PremiumShadowSoft1"
-	soft1.AnchorPoint = Vector2.new(0.5, 0.5)
-	soft1.Position = UDim2.new(0.5, 0, 0.5, 2)
-	soft1.Size = UDim2.new(1, 8, 1, 8)
-	soft1.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-	soft1.BackgroundTransparency = 0.86
-	soft1.BorderSizePixel = 0
-	soft1.ZIndex = 0
-	soft1.Parent = parent
-	Instance.new("UICorner", soft1).CornerRadius = UDim.new(0, cornerRadius + 2)
-
-	local soft2 = Instance.new("Frame")
-	soft2.Name = "PremiumShadowSoft2"
-	soft2.AnchorPoint = Vector2.new(0.5, 0.5)
-	soft2.Position = UDim2.new(0.5, 0, 0.5, 3)
-	soft2.Size = UDim2.new(1, 14, 1, 14)
-	soft2.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-	soft2.BackgroundTransparency = 0.92
-	soft2.BorderSizePixel = 0
-	soft2.ZIndex = 0
-	soft2.Parent = parent
-	Instance.new("UICorner", soft2).CornerRadius = UDim.new(0, cornerRadius + 4)
+local function pointInside(button, point)
+	local absPos = button.AbsolutePosition
+	local absSize = button.AbsoluteSize
+	return point.X >= absPos.X
+		and point.X <= absPos.X + absSize.X
+		and point.Y >= absPos.Y
+		and point.Y <= absPos.Y + absSize.Y
 end
 
 local function createModeSelector(onPick)
@@ -72,12 +61,7 @@ local function createModeSelector(onPick)
 	frame.Parent = selectorGui
 	Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 16)
 
-	addRoundedPremiumShadow(frame, 16, 18)
-
-	local stroke = Instance.new("UIStroke")
-	stroke.Color = Color3.fromRGB(18, 18, 18)
-	stroke.Transparency = 0.18
-	stroke.Parent = frame
+	addTrueRoundedShadow(frame, 16, 1)
 
 	local title = Instance.new("TextLabel")
 	title.Size = UDim2.new(1, -20, 0, 28)
@@ -148,13 +132,7 @@ local function buildPCGui()
 	MainFrame.Parent = ScreenGui
 	Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 16)
 
-	addRoundedPremiumShadow(MainFrame, 16, 18)
-
-	local Stroke = Instance.new("UIStroke")
-	Stroke.Color = Color3.fromRGB(20, 20, 20)
-	Stroke.Thickness = 1
-	Stroke.Transparency = 0.2
-	Stroke.Parent = MainFrame
+	addTrueRoundedShadow(MainFrame, 16, 1)
 
 	local TopBar = Instance.new("Frame")
 	TopBar.Name = "TopBar"
@@ -259,7 +237,7 @@ local function buildPCGui()
 	MiniButton.Parent = ScreenGui
 	Instance.new("UICorner", MiniButton).CornerRadius = UDim.new(1, 0)
 
-	addRoundedPremiumShadow(MiniButton, 999, 18)
+	addTrueRoundedShadow(MiniButton, 999, 0.8)
 
 	MinimizeButton.MouseButton1Click:Connect(function()
 		MainFrame.Visible = false
@@ -272,16 +250,6 @@ local function buildPCGui()
 		MainFrame.Visible = true
 		MiniButton.Visible = false
 	end)
-end
-
-local function pointInsideButton(button, point)
-	local absPos = button.AbsolutePosition
-	local absSize = button.AbsoluteSize
-
-	return point.X >= absPos.X
-		and point.X <= absPos.X + absSize.X
-		and point.Y >= absPos.Y
-		and point.Y <= absPos.Y + absSize.Y
 end
 
 local function buildMobileGui()
@@ -301,7 +269,7 @@ local function buildMobileGui()
 	MobileButton.Parent = ScreenGui
 	Instance.new("UICorner", MobileButton).CornerRadius = UDim.new(0, 12)
 
-	addRoundedPremiumShadow(MobileButton, 14, 18)
+	addTrueRoundedShadow(MobileButton, 14, 1)
 
 	MobileHideButton = Instance.new("TextButton")
 	MobileHideButton.Size = UDim2.new(0, 54, 0, 54)
@@ -314,7 +282,7 @@ local function buildMobileGui()
 	MobileHideButton.Parent = ScreenGui
 	Instance.new("UICorner", MobileHideButton).CornerRadius = UDim.new(1, 0)
 
-	addRoundedPremiumShadow(MobileHideButton, 999, 18)
+	addTrueRoundedShadow(MobileHideButton, 999, 1)
 
 	RunService.RenderStepped:Connect(function()
 		if selectedMode ~= "Mobile" then return end
@@ -402,12 +370,7 @@ local function buildMobileGui()
 		if input ~= drag.input then return end
 		if not drag.holdReady then return end
 
-		if drag.target == MobileButton and not pointInsideButton(MobileButton, input.Position) then
-			resetDrag()
-			return
-		end
-
-		if drag.target == MobileHideButton and not pointInsideButton(MobileHideButton, input.Position) then
+		if not pointInside(drag.target, input.Position) then
 			resetDrag()
 			return
 		end
