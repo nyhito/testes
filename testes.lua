@@ -18,12 +18,12 @@ local NoticeStroke
 
 local function addTrueRoundedShadow(parent, cornerRadius, strength, shadowColor)
 	strength = strength or 1
-	shadowColor = shadowColor or Color3.fromRGB(255, 255, 255)
+	shadowColor = shadowColor or Color3.fromRGB(0, 0, 0)
 
 	local layers = {
-		{grow = math.floor(6 * strength),  transparency = 0.92, y = 1},
-		{grow = math.floor(12 * strength), transparency = 0.96, y = 2},
-		{grow = math.floor(18 * strength), transparency = 0.985, y = 3},
+		{grow = math.floor(6 * strength),  transparency = 0.84, y = 1},
+		{grow = math.floor(12 * strength), transparency = 0.90, y = 2},
+		{grow = math.floor(18 * strength), transparency = 0.95, y = 3},
 	}
 
 	for _, cfg in ipairs(layers) do
@@ -39,6 +39,10 @@ local function addTrueRoundedShadow(parent, cornerRadius, strength, shadowColor)
 		shadow.Parent = parent
 		Instance.new("UICorner", shadow).CornerRadius = UDim.new(0, cornerRadius + math.floor(cfg.grow / 2.2))
 	end
+end
+
+local function noTextStroke(obj)
+	obj.TextStrokeTransparency = 1
 end
 
 local function pointInside(button, point)
@@ -71,7 +75,7 @@ local function showNotice(text)
 	}):Play()
 
 	TweenService:Create(NoticeStroke, TweenInfo.new(0.14), {
-		Transparency = 0.45
+		Transparency = 0.9
 	}):Play()
 
 	task.spawn(function()
@@ -107,7 +111,7 @@ local function createModeSelector(onPick)
 	frame.Parent = selectorGui
 	Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 16)
 
-	addTrueRoundedShadow(frame, 16, 1.45, Color3.fromRGB(255, 255, 255))
+	addTrueRoundedShadow(frame, 16, 1.45, Color3.fromRGB(0, 0, 0))
 
 	local title = Instance.new("TextLabel")
 	title.Size = UDim2.new(1, -20, 0, 28)
@@ -118,6 +122,7 @@ local function createModeSelector(onPick)
 	title.Font = Enum.Font.GothamBold
 	title.TextSize = 22
 	title.Parent = frame
+	noTextStroke(title)
 
 	local sub = Instance.new("TextLabel")
 	sub.Size = UDim2.new(1, -20, 0, 16)
@@ -128,6 +133,7 @@ local function createModeSelector(onPick)
 	sub.Font = Enum.Font.Gotham
 	sub.TextSize = 12
 	sub.Parent = frame
+	noTextStroke(sub)
 
 	local pcButton = Instance.new("TextButton")
 	pcButton.Size = UDim2.new(1, -20, 0, 42)
@@ -139,6 +145,7 @@ local function createModeSelector(onPick)
 	pcButton.TextSize = 17
 	pcButton.Parent = frame
 	Instance.new("UICorner", pcButton).CornerRadius = UDim.new(0, 12)
+	noTextStroke(pcButton)
 
 	local mobileButton = Instance.new("TextButton")
 	mobileButton.Size = UDim2.new(1, -20, 0, 42)
@@ -150,6 +157,7 @@ local function createModeSelector(onPick)
 	mobileButton.TextSize = 17
 	mobileButton.Parent = frame
 	Instance.new("UICorner", mobileButton).CornerRadius = UDim.new(0, 12)
+	noTextStroke(mobileButton)
 
 	pcButton.MouseButton1Click:Connect(function()
 		selectorGui:Destroy()
@@ -179,7 +187,7 @@ local function buildPCGui()
 	MainFrame.Parent = ScreenGui
 	Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 16)
 
-	addTrueRoundedShadow(MainFrame, 16, 1, Color3.fromRGB(255, 255, 255))
+	addTrueRoundedShadow(MainFrame, 16, 1, Color3.fromRGB(0, 0, 0))
 
 	local TopBar = Instance.new("Frame")
 	TopBar.Name = "TopBar"
@@ -197,6 +205,7 @@ local function buildPCGui()
 	Title.TextSize = 19
 	Title.TextXAlignment = Enum.TextXAlignment.Left
 	Title.Parent = TopBar
+	noTextStroke(Title)
 
 	local SubTitle = Instance.new("TextLabel")
 	SubTitle.Size = UDim2.new(1, -44, 0, 12)
@@ -208,6 +217,7 @@ local function buildPCGui()
 	SubTitle.TextSize = 10
 	SubTitle.TextXAlignment = Enum.TextXAlignment.Left
 	SubTitle.Parent = TopBar
+	noTextStroke(SubTitle)
 
 	local MinimizeButton = Instance.new("TextButton")
 	MinimizeButton.Size = UDim2.new(0, 22, 0, 22)
@@ -219,6 +229,7 @@ local function buildPCGui()
 	MinimizeButton.TextSize = 14
 	MinimizeButton.Parent = TopBar
 	Instance.new("UICorner", MinimizeButton).CornerRadius = UDim.new(1, 0)
+	noTextStroke(MinimizeButton)
 
 	local ContentFrame = Instance.new("Frame")
 	ContentFrame.Name = "ContentFrame"
@@ -238,6 +249,7 @@ local function buildPCGui()
 	ToggleButton.TextXAlignment = Enum.TextXAlignment.Left
 	ToggleButton.Parent = ContentFrame
 	Instance.new("UICorner", ToggleButton).CornerRadius = UDim.new(0, 12)
+	noTextStroke(ToggleButton)
 
 	local TogglePadding = Instance.new("UIPadding")
 	TogglePadding.PaddingLeft = UDim.new(0, 14)
@@ -254,6 +266,7 @@ local function buildPCGui()
 	HideGuiBindButton.TextXAlignment = Enum.TextXAlignment.Left
 	HideGuiBindButton.Parent = ContentFrame
 	Instance.new("UICorner", HideGuiBindButton).CornerRadius = UDim.new(0, 11)
+	noTextStroke(HideGuiBindButton)
 
 	local HidePadding = Instance.new("UIPadding")
 	HidePadding.PaddingLeft = UDim.new(0, 14)
@@ -270,6 +283,7 @@ local function buildPCGui()
 	ToggleBindButton.TextXAlignment = Enum.TextXAlignment.Left
 	ToggleBindButton.Parent = ContentFrame
 	Instance.new("UICorner", ToggleBindButton).CornerRadius = UDim.new(0, 11)
+	noTextStroke(ToggleBindButton)
 
 	local ToggleBindPadding = Instance.new("UIPadding")
 	ToggleBindPadding.PaddingLeft = UDim.new(0, 14)
@@ -285,6 +299,7 @@ local function buildPCGui()
 	BottomLabel.TextSize = 8
 	BottomLabel.TextXAlignment = Enum.TextXAlignment.Left
 	BottomLabel.Parent = ContentFrame
+	noTextStroke(BottomLabel)
 
 	MiniButton = Instance.new("TextButton")
 	MiniButton.Name = "MiniButton"
@@ -298,8 +313,9 @@ local function buildPCGui()
 	MiniButton.TextSize = 14
 	MiniButton.Parent = ScreenGui
 	Instance.new("UICorner", MiniButton).CornerRadius = UDim.new(1, 0)
+	noTextStroke(MiniButton)
 
-	addTrueRoundedShadow(MiniButton, 999, 0.8, Color3.fromRGB(255, 255, 255))
+	addTrueRoundedShadow(MiniButton, 999, 0.8, Color3.fromRGB(0, 0, 0))
 
 	local NoticeHolder = Instance.new("Frame")
 	NoticeHolder.Name = "NoticeHolder"
@@ -323,9 +339,10 @@ local function buildPCGui()
 	Notice.TextXAlignment = Enum.TextXAlignment.Center
 	Notice.Parent = NoticeHolder
 	Instance.new("UICorner", Notice).CornerRadius = UDim.new(1, 0)
+	noTextStroke(Notice)
 
 	NoticeStroke = Instance.new("UIStroke")
-	NoticeStroke.Color = Color3.fromRGB(255,255,255)
+	NoticeStroke.Color = Color3.fromRGB(0,0,0)
 	NoticeStroke.Transparency = 1
 	NoticeStroke.Thickness = 1
 	NoticeStroke.Parent = Notice
@@ -363,8 +380,9 @@ local function buildMobileGui()
 	MobileButton.TextScaled = true
 	MobileButton.Parent = ScreenGui
 	Instance.new("UICorner", MobileButton).CornerRadius = UDim.new(0, 12)
+	noTextStroke(MobileButton)
 
-	addTrueRoundedShadow(MobileButton, 14, 1, Color3.fromRGB(255, 255, 255))
+	addTrueRoundedShadow(MobileButton, 14, 1, Color3.fromRGB(0, 0, 0))
 
 	MobileHideButton = Instance.new("TextButton")
 	MobileHideButton.Size = UDim2.new(0, 54, 0, 54)
@@ -376,8 +394,9 @@ local function buildMobileGui()
 	MobileHideButton.TextSize = 22
 	MobileHideButton.Parent = ScreenGui
 	Instance.new("UICorner", MobileHideButton).CornerRadius = UDim.new(1, 0)
+	noTextStroke(MobileHideButton)
 
-	addTrueRoundedShadow(MobileHideButton, 999, 1, Color3.fromRGB(255, 255, 255))
+	addTrueRoundedShadow(MobileHideButton, 999, 1, Color3.fromRGB(0, 0, 0))
 
 	RunService.RenderStepped:Connect(function()
 		if selectedMode ~= "Mobile" then return end
