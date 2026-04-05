@@ -125,8 +125,8 @@ local function buildPCGui()
 
 	MainFrame = Instance.new("Frame")
 	MainFrame.Name = "MainFrame"
-	MainFrame.Size = UDim2.new(0, 265, 0, 180)
-	MainFrame.Position = UDim2.new(0.5, -132, 0.5, -90)
+	MainFrame.Size = UDim2.new(0, 265, 0, 164)
+	MainFrame.Position = UDim2.new(0.5, -132, 0.5, -82)
 	MainFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 	MainFrame.BorderSizePixel = 0
 	MainFrame.Parent = ScreenGui
@@ -136,13 +136,13 @@ local function buildPCGui()
 
 	local TopBar = Instance.new("Frame")
 	TopBar.Name = "TopBar"
-	TopBar.Size = UDim2.new(1, 0, 0, 42)
+	TopBar.Size = UDim2.new(1, 0, 0, 40)
 	TopBar.BackgroundTransparency = 1
 	TopBar.Parent = MainFrame
 
 	local Title = Instance.new("TextLabel")
 	Title.Size = UDim2.new(1, -44, 0, 22)
-	Title.Position = UDim2.new(0, 12, 0, 8)
+	Title.Position = UDim2.new(0, 12, 0, 7)
 	Title.BackgroundTransparency = 1
 	Title.Text = "FtF Wallhop"
 	Title.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -153,7 +153,7 @@ local function buildPCGui()
 
 	local SubTitle = Instance.new("TextLabel")
 	SubTitle.Size = UDim2.new(1, -44, 0, 12)
-	SubTitle.Position = UDim2.new(0, 12, 0, 27)
+	SubTitle.Position = UDim2.new(0, 12, 0, 25)
 	SubTitle.BackgroundTransparency = 1
 	SubTitle.Text = "PC Version"
 	SubTitle.TextColor3 = Color3.fromRGB(110, 110, 110)
@@ -164,7 +164,7 @@ local function buildPCGui()
 
 	local MinimizeButton = Instance.new("TextButton")
 	MinimizeButton.Size = UDim2.new(0, 22, 0, 22)
-	MinimizeButton.Position = UDim2.new(1, -29, 0, 9)
+	MinimizeButton.Position = UDim2.new(1, -29, 0, 8)
 	MinimizeButton.BackgroundColor3 = Color3.fromRGB(8, 8, 8)
 	MinimizeButton.Text = "—"
 	MinimizeButton.TextColor3 = Color3.fromRGB(225, 225, 225)
@@ -175,19 +175,19 @@ local function buildPCGui()
 
 	local ContentFrame = Instance.new("Frame")
 	ContentFrame.Name = "ContentFrame"
-	ContentFrame.Size = UDim2.new(1, -18, 1, -50)
-	ContentFrame.Position = UDim2.new(0, 9, 0, 42)
+	ContentFrame.Size = UDim2.new(1, -18, 1, -46)
+	ContentFrame.Position = UDim2.new(0, 9, 0, 38)
 	ContentFrame.BackgroundTransparency = 1
 	ContentFrame.Parent = MainFrame
 
 	local ToggleButton = Instance.new("TextButton")
-	ToggleButton.Size = UDim2.new(1, 0, 0, 38)
+	ToggleButton.Size = UDim2.new(1, 0, 0, 34)
 	ToggleButton.Position = UDim2.new(0, 0, 0, 0)
 	ToggleButton.BackgroundColor3 = Color3.fromRGB(4, 4, 4)
 	ToggleButton.Text = "Wall Hop Off"
 	ToggleButton.TextColor3 = Color3.fromRGB(255,255,255)
 	ToggleButton.Font = Enum.Font.GothamBold
-	ToggleButton.TextSize = 18
+	ToggleButton.TextSize = 17
 	ToggleButton.TextXAlignment = Enum.TextXAlignment.Left
 	ToggleButton.Parent = ContentFrame
 	Instance.new("UICorner", ToggleButton).CornerRadius = UDim.new(0, 12)
@@ -197,13 +197,13 @@ local function buildPCGui()
 	TogglePadding.Parent = ToggleButton
 
 	local HideGuiBindButton = Instance.new("TextButton")
-	HideGuiBindButton.Size = UDim2.new(1, 0, 0, 32)
-	HideGuiBindButton.Position = UDim2.new(0, 0, 0, 48)
+	HideGuiBindButton.Size = UDim2.new(1, 0, 0, 28)
+	HideGuiBindButton.Position = UDim2.new(0, 0, 0, 40)
 	HideGuiBindButton.BackgroundColor3 = Color3.fromRGB(4, 4, 4)
 	HideGuiBindButton.Text = "Hide GUI Key: RightShift"
 	HideGuiBindButton.TextColor3 = Color3.fromRGB(225,225,225)
 	HideGuiBindButton.Font = Enum.Font.Gotham
-	HideGuiBindButton.TextSize = 13
+	HideGuiBindButton.TextSize = 12
 	HideGuiBindButton.TextXAlignment = Enum.TextXAlignment.Left
 	HideGuiBindButton.Parent = ContentFrame
 	Instance.new("UICorner", HideGuiBindButton).CornerRadius = UDim.new(0, 11)
@@ -213,13 +213,13 @@ local function buildPCGui()
 	HidePadding.Parent = HideGuiBindButton
 
 	local ToggleBindButton = Instance.new("TextButton")
-	ToggleBindButton.Size = UDim2.new(1, 0, 0, 32)
-	ToggleBindButton.Position = UDim2.new(0, 0, 0, 87)
+	ToggleBindButton.Size = UDim2.new(1, 0, 0, 28)
+	ToggleBindButton.Position = UDim2.new(0, 0, 0, 72)
 	ToggleBindButton.BackgroundColor3 = Color3.fromRGB(4, 4, 4)
 	ToggleBindButton.Text = "Toggle Script Key: Q"
 	ToggleBindButton.TextColor3 = Color3.fromRGB(225,225,225)
 	ToggleBindButton.Font = Enum.Font.Gotham
-	ToggleBindButton.TextSize = 13
+	ToggleBindButton.TextSize = 12
 	ToggleBindButton.TextXAlignment = Enum.TextXAlignment.Left
 	ToggleBindButton.Parent = ContentFrame
 	Instance.new("UICorner", ToggleBindButton).CornerRadius = UDim.new(0, 11)
@@ -229,20 +229,20 @@ local function buildPCGui()
 	ToggleBindPadding.Parent = ToggleBindButton
 
 	local BottomLabel = Instance.new("TextLabel")
-	BottomLabel.Size = UDim2.new(1, -2, 0, 14)
-	BottomLabel.Position = UDim2.new(0, 2, 1, -16)
+	BottomLabel.Size = UDim2.new(1, -2, 0, 12)
+	BottomLabel.Position = UDim2.new(0, 2, 1, -14)
 	BottomLabel.BackgroundTransparency = 1
 	BottomLabel.Text = "the best ftf wallhop ever - netzwi panel"
 	BottomLabel.TextColor3 = Color3.fromRGB(85, 85, 85)
 	BottomLabel.Font = Enum.Font.Gotham
-	BottomLabel.TextSize = 9
+	BottomLabel.TextSize = 8
 	BottomLabel.TextXAlignment = Enum.TextXAlignment.Left
 	BottomLabel.Parent = ContentFrame
 
 	MiniButton = Instance.new("TextButton")
 	MiniButton.Name = "MiniButton"
-	MiniButton.Size = UDim2.new(0, 140, 0, 38)
-	MiniButton.Position = UDim2.new(0.5, -70, 0.5, -19)
+	MiniButton.Size = UDim2.new(0, 140, 0, 36)
+	MiniButton.Position = UDim2.new(0.5, -70, 0.5, -18)
 	MiniButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 	MiniButton.Visible = false
 	MiniButton.Text = "FtF Wallhop"
