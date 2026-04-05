@@ -1,7 +1,6 @@
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local UserInputService = game:GetService("UserInputService")
-local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local GuiService = game:GetService("GuiService")
 
@@ -16,27 +15,46 @@ local MobileHideButton
 
 local SHADOW_ASSET = "rbxassetid://1316045217"
 
-local function addPremiumShadow(parent, extraSize, yOffset, transparency)
-	local shadow = Instance.new("ImageLabel")
-	shadow.Name = "PremiumShadow"
-	shadow.AnchorPoint = Vector2.new(0.5, 0.5)
-	shadow.Position = UDim2.new(0.5, 0, 0.5, yOffset or 2)
-	shadow.Size = UDim2.new(1, extraSize or 22, 1, extraSize or 22)
-	shadow.BackgroundTransparency = 1
-	shadow.Image = SHADOW_ASSET
-	shadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
-	shadow.ImageTransparency = transparency or 0.68
-	shadow.ScaleType = Enum.ScaleType.Slice
-	shadow.SliceCenter = Rect.new(10, 10, 118, 118)
-	shadow.ZIndex = 0
-	shadow.Parent = parent
-	return shadow
-end
+local function addRoundedPremiumShadow(parent, cornerRadius, extraSize)
+	extraSize = extraSize or 18
 
-local function addPremiumShadowStack(parent)
-	addPremiumShadow(parent, 10, 1, 0.82)
-	addPremiumShadow(parent, 18, 2, 0.88)
-	addPremiumShadow(parent, 28, 3, 0.93)
+	local shadowImage = Instance.new("ImageLabel")
+	shadowImage.Name = "PremiumShadowImage"
+	shadowImage.AnchorPoint = Vector2.new(0.5, 0.5)
+	shadowImage.Position = UDim2.new(0.5, 0, 0.5, 2)
+	shadowImage.Size = UDim2.new(1, extraSize, 1, extraSize)
+	shadowImage.BackgroundTransparency = 1
+	shadowImage.Image = SHADOW_ASSET
+	shadowImage.ImageColor3 = Color3.fromRGB(0, 0, 0)
+	shadowImage.ImageTransparency = 0.78
+	shadowImage.ScaleType = Enum.ScaleType.Slice
+	shadowImage.SliceCenter = Rect.new(10, 10, 118, 118)
+	shadowImage.ZIndex = 0
+	shadowImage.Parent = parent
+
+	local soft1 = Instance.new("Frame")
+	soft1.Name = "PremiumShadowSoft1"
+	soft1.AnchorPoint = Vector2.new(0.5, 0.5)
+	soft1.Position = UDim2.new(0.5, 0, 0.5, 2)
+	soft1.Size = UDim2.new(1, 8, 1, 8)
+	soft1.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+	soft1.BackgroundTransparency = 0.86
+	soft1.BorderSizePixel = 0
+	soft1.ZIndex = 0
+	soft1.Parent = parent
+	Instance.new("UICorner", soft1).CornerRadius = UDim.new(0, cornerRadius + 2)
+
+	local soft2 = Instance.new("Frame")
+	soft2.Name = "PremiumShadowSoft2"
+	soft2.AnchorPoint = Vector2.new(0.5, 0.5)
+	soft2.Position = UDim2.new(0.5, 0, 0.5, 3)
+	soft2.Size = UDim2.new(1, 14, 1, 14)
+	soft2.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+	soft2.BackgroundTransparency = 0.92
+	soft2.BorderSizePixel = 0
+	soft2.ZIndex = 0
+	soft2.Parent = parent
+	Instance.new("UICorner", soft2).CornerRadius = UDim.new(0, cornerRadius + 4)
 end
 
 local function createModeSelector(onPick)
@@ -54,7 +72,7 @@ local function createModeSelector(onPick)
 	frame.Parent = selectorGui
 	Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 16)
 
-	addPremiumShadowStack(frame)
+	addRoundedPremiumShadow(frame, 16, 18)
 
 	local stroke = Instance.new("UIStroke")
 	stroke.Color = Color3.fromRGB(18, 18, 18)
@@ -75,7 +93,7 @@ local function createModeSelector(onPick)
 	sub.Size = UDim2.new(1, -20, 0, 16)
 	sub.Position = UDim2.new(0, 10, 0, 34)
 	sub.BackgroundTransparency = 1
-	sub.Text = "FtF Wallhop • made buy netzwi"
+	sub.Text = "FtF Wallhop • made by netzwi"
 	sub.TextColor3 = Color3.fromRGB(95,95,95)
 	sub.Font = Enum.Font.Gotham
 	sub.TextSize = 12
@@ -130,7 +148,7 @@ local function buildPCGui()
 	MainFrame.Parent = ScreenGui
 	Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 16)
 
-	addPremiumShadowStack(MainFrame)
+	addRoundedPremiumShadow(MainFrame, 16, 18)
 
 	local Stroke = Instance.new("UIStroke")
 	Stroke.Color = Color3.fromRGB(20, 20, 20)
@@ -241,7 +259,7 @@ local function buildPCGui()
 	MiniButton.Parent = ScreenGui
 	Instance.new("UICorner", MiniButton).CornerRadius = UDim.new(1, 0)
 
-	addPremiumShadowStack(MiniButton)
+	addRoundedPremiumShadow(MiniButton, 999, 18)
 
 	MinimizeButton.MouseButton1Click:Connect(function()
 		MainFrame.Visible = false
@@ -256,6 +274,16 @@ local function buildPCGui()
 	end)
 end
 
+local function pointInsideButton(button, point)
+	local absPos = button.AbsolutePosition
+	local absSize = button.AbsoluteSize
+
+	return point.X >= absPos.X
+		and point.X <= absPos.X + absSize.X
+		and point.Y >= absPos.Y
+		and point.Y <= absPos.Y + absSize.Y
+end
+
 local function buildMobileGui()
 	ScreenGui = Instance.new("ScreenGui")
 	ScreenGui.Name = "AutoWallHopGuiMobile"
@@ -264,16 +292,16 @@ local function buildMobileGui()
 	ScreenGui.Parent = PlayerGui
 
 	MobileButton = Instance.new("TextButton")
-	MobileButton.Size = UDim2.new(0, 170, 0, 50)
+	MobileButton.Size = UDim2.new(0, 140, 0, 50)
 	MobileButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-	MobileButton.Text = "FtF Wallhop Off"
+	MobileButton.Text = "Wallhop Off"
 	MobileButton.TextColor3 = Color3.fromRGB(255,255,255)
 	MobileButton.Font = Enum.Font.GothamBold
 	MobileButton.TextScaled = true
 	MobileButton.Parent = ScreenGui
 	Instance.new("UICorner", MobileButton).CornerRadius = UDim.new(0, 12)
 
-	addPremiumShadowStack(MobileButton)
+	addRoundedPremiumShadow(MobileButton, 14, 18)
 
 	MobileHideButton = Instance.new("TextButton")
 	MobileHideButton.Size = UDim2.new(0, 54, 0, 54)
@@ -286,7 +314,7 @@ local function buildMobileGui()
 	MobileHideButton.Parent = ScreenGui
 	Instance.new("UICorner", MobileHideButton).CornerRadius = UDim.new(1, 0)
 
-	addPremiumShadowStack(MobileHideButton)
+	addRoundedPremiumShadow(MobileHideButton, 999, 18)
 
 	RunService.RenderStepped:Connect(function()
 		if selectedMode ~= "Mobile" then return end
@@ -339,13 +367,10 @@ local function buildMobileGui()
 		end
 	end
 
-	MobileButton.MouseButton1Click:Connect(function()
-		if drag.target == MobileButton or drag.moved then
-			return
-		end
-		local isOn = string.find(MobileButton.Text, "On") ~= nil
-		MobileButton.Text = isOn and "FtF Wallhop Off" or "FtF Wallhop On"
-	end)
+	local function toggleMobileWallhopText()
+		local isOn = MobileButton.Text == "Wallhop On"
+		MobileButton.Text = isOn and "Wallhop Off" or "Wallhop On"
+	end
 
 	local function beginTracking(target, needHold, clickAction)
 		target.InputBegan:Connect(function(input)
@@ -365,7 +390,7 @@ local function buildMobileGui()
 		end)
 	end
 
-	beginTracking(MobileButton, true, nil)
+	beginTracking(MobileButton, true, toggleMobileWallhopText)
 
 	beginTracking(MobileHideButton, false, function()
 		MobileButton.Visible = not MobileButton.Visible
@@ -376,6 +401,16 @@ local function buildMobileGui()
 		if not drag.target or not drag.input then return end
 		if input ~= drag.input then return end
 		if not drag.holdReady then return end
+
+		if drag.target == MobileButton and not pointInsideButton(MobileButton, input.Position) then
+			resetDrag()
+			return
+		end
+
+		if drag.target == MobileHideButton and not pointInsideButton(MobileHideButton, input.Position) then
+			resetDrag()
+			return
+		end
 
 		local delta = input.Position - drag.startInputPos
 
