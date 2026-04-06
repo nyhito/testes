@@ -56,8 +56,8 @@ local airborneStartY = nil
 local airborneStartTime = 0
 local jumpedRecently = false
 
-local LEDGE_BLOCK_DISTANCE = 6.0
-local LEDGE_BLOCK_TIME = 0.20
+local LEDGE_BLOCK_DISTANCE = 3.5
+local LEDGE_BLOCK_TIME = 0.10
 
 local function isCrouching(hum, hrp)
 	if not hum or not hrp then
@@ -304,45 +304,24 @@ local function hasValidHorizontalEdge(rayResult, params)
 
 	local hitPos = rayResult.Position
 	local normal = rayResult.Normal.Unit
-
-	local right = normal:Cross(Vector3.new(0, 1, 0))
-	if right.Magnitude < 0.01 then
-		return false
-	end
-	right = right.Unit
-
 	local surfaceOffset = normal * 0.08
 
-	local verticalChecks = {
-		Vector3.new(0, 0.9, 0),
-		Vector3.new(0, -0.9, 0),
-		Vector3.new(0, 1.25, 0),
-		Vector3.new(0, -1.25, 0),
-	}
+	local belowOrigin = hitPos + Vector3.new(0, -0.85, 0) + surfaceOffset
+	local belowProbe = workspace:Raycast(belowOrigin, -normal * 0.22, params)
 
-	local foundHorizontalEdge = false
-	for _, vOffset in ipairs(verticalChecks) do
-		local origin = hitPos + vOffset + surfaceOffset
-		local probe = workspace:Raycast(origin, -normal * 0.22, params)
+	local aboveOrigin = hitPos + Vector3.new(0, 0.85, 0) + surfaceOffset
+	local aboveProbe = workspace:Raycast(aboveOrigin, -normal * 0.22, params)
 
-		if not probe or not probe.Instance or probe.Instance ~= rayResult.Instance then
-			foundHorizontalEdge = true
-			break
-		end
-	end
+	local hasWallBelow = belowProbe and belowProbe.Instance == rayResult.Instance
+	local hasWallAbove = aboveProbe and aboveProbe.Instance == rayResult.Instance
 
-	if not foundHorizontalEdge then
-		return false
-	end
-
-	return true
+	return hasWallBelow and not hasWallAbove
 end
 
 local function findValidWall(hrp, params, directions)
 	local offsets = {
 		Vector3.new(0, -2.2, 0),
-		Vector3.new(0, -1.2, 0),
-		Vector3.new(0, -0.4, 0)
+		Vector3.new(0, -1.2, 0)
 	}
 
 	for _, dir in ipairs(directions) do
@@ -473,4 +452,4 @@ TextButton.MouseButton1Click:Connect(function()
 	TextButton.Text = isWallHopEnabled and "Wall Hop On" or "Wall Hop Off"
 end)
 
-print("Made by netzwii | Humanoid Wallhop - Loaded Successfully ✅")
+print("Made by netzwii | Humanoid WWWWallhop - Loaded Successfully ✅")
