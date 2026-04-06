@@ -47,7 +47,7 @@ local DOUBLE_JUMP_COOLDOWN = 3
 local blockDoubleJump = false
 
 local lastHitPosition = nil
-local MIN_HIT_DISTANCE = 0.9
+local MIN_HIT_DISTANCE = 0.2
 local lastFlickAngle = nil
 
 -- queda: distinguir pulo x queda de borda
@@ -56,8 +56,8 @@ local airborneStartY = nil
 local airborneStartTime = 0
 local jumpedRecently = false
 
-local LEDGE_BLOCK_DISTANCE = 2.2
-local LEDGE_BLOCK_TIME = 0.12
+local LEDGE_BLOCK_DISTANCE = 1.2
+local LEDGE_BLOCK_TIME = 0.06
 
 local function isCrouching(hum, hrp)
 	if not hum or not hrp then
@@ -453,7 +453,7 @@ RunService.Heartbeat:Connect(function()
 				farEnough = (result.Position - lastHitPosition).Magnitude >= MIN_HIT_DISTANCE
 			end
 
-			if hrp.Velocity.Y < -2.2 and tick() - lastFlickTime > WALLHOP_COOLDOWN and farEnough then
+			if hrp.Velocity.Y < -0.8 and tick() - lastFlickTime > WALLHOP_COOLDOWN and farEnough then
 				lastFlickTime = tick()
 				lastHitPosition = result.Position
 				performVideoFlick()
@@ -473,4 +473,4 @@ TextButton.MouseButton1Click:Connect(function()
 	TextButton.Text = isWallHopEnabled and "Wall Hop On" or "Wall Hop Off"
 end)
 
-print("Made by netzwiiiiii | Humanoid Wallhop - Loaded Successfully ✅")
+print("Made by netzwii | Humanoid Wallhop - Loaded Suuuuccessfully ✅")
