@@ -294,34 +294,70 @@ local function isWallLikeSurface(normal)
 	return math.abs(normal.Y) < 0.35
 end
 
--- NOVA REGRA:
--- só é válido se existir superfície acima E abaixo da linha.
--- pode ser parede normal ou invisível; o que não pode é ser só ar.
-local function hasValidSupportAboveAndBelow(rayResult, params)
+local function hasValidHorizontalEdge(rayResult, params)
 	if not rayResult or not rayResult.Instance then
 		return false
 	end
 
 	local hitPos = rayResult.Position
 	local normal = rayResult.Normal.Unit
-	local surfaceOffset = normal * 0.08
 
-	local function hasSurfaceAtOffsets(offsets)
-		for _, y in ipairs(offsets) do
-			local origin = hitPos + Vector3.new(0, y, 0) + surfaceOffset
-			local probe = workspace:Raycast(origin, -normal * 0.28, params)
+	-- começa um pouco na frente da parede e volta nela
+	local frontOffset = normal * 0.35
+	local castDistance = 0.8
 
-			if probe and probe.Instance and probe.Instance.CanCollide and not isPlayerCharacter(probe.Instance) then
-				return true
-			end
+	local function probeAt(yOffset)
+		local origin = hitPos + Vector3.new(0, yOffset, 0) + frontOffset
+		local probe = workspace:Raycast(origin, -normal * castDistance, params)
+
+		if not probe or not probe.Instance or not probe.Instance.CanCollide then
+			return nil
 		end
+
+		if isPlayerCharacter(probe.Instance) then
+			return nil
+		end
+
+		-- tem que continuar sendo parede, não chão/teto
+		if not isWallLikeSurface(probe.Normal) then
+			return nil
+		end
+
+		return probe
+	end
+
+	-- checagem bem perto da linha
+	local above = probeAt(0.38)
+	local below = probeAt(-0.38)
+
+	-- se tiver ar em cima ou embaixo, inválido
+	if not above or not below then
 		return false
 	end
 
-	local aboveSolid = hasSurfaceAtOffsets({0.55, 0.9, 1.25, 1.6})
-	local belowSolid = hasSurfaceAtOffsets({-0.55, -0.9, -1.25, -1.6})
+	-- se acima e abaixo estiverem praticamente no mesmo plano,
+	-- então é só parede reta comum, não uma dobra/borda
+	local depthDiff = math.abs(above.Distance - below.Distance)
+	if depthDiff < 0.08 then
+		return false
+	end
 
-	return aboveSolid and belowSolid
+	-- garante que a diferença é horizontal/estrutural mesmo
+	-- e não algo muito distante/estranho
+	local mainOrigin = hitPos + frontOffset
+	local mainProbe = workspace:Raycast(mainOrigin, -normal * castDistance, params)
+	if not mainProbe then
+		return false
+	end
+
+	local diffAboveMain = math.abs(above.Distance - mainProbe.Distance)
+	local diffBelowMain = math.abs(below.Distance - mainProbe.Distance)
+
+	if diffAboveMain < 0.04 and diffBelowMain < 0.04 then
+		return false
+	end
+
+	return true
 end
 
 local function findValidWall(hrp, params, directions)
@@ -337,7 +373,7 @@ local function findValidWall(hrp, params, directions)
 			local ray = workspace:Raycast(origin, dir, params)
 
 			if ray and ray.Instance and ray.Instance.CanCollide and not isPlayerCharacter(ray.Instance) then
-				if isWallLikeSurface(ray.Normal) and hasValidSupportAboveAndBelow(ray, params) then
+				if isWallLikeSurface(ray.Normal) and hasValidHorizontalEdge(ray, params) then
 					return ray
 				end
 			end
@@ -459,4 +495,4 @@ TextButton.MouseButton1Click:Connect(function()
 	TextButton.Text = isWallHopEnabled and "Wall Hop On" or "Wall Hop Off"
 end)
 
-print("Made by netzwii | Humanoid Wallhop - Loaded Successfully ✅")
+print("Made by netzwii | Humannnnoid Wallhop - Loaded Successfully ✅")
