@@ -56,8 +56,8 @@ local airborneStartY = nil
 local airborneStartTime = 0
 local jumpedRecently = false
 
-local LEDGE_BLOCK_DISTANCE = 4.0
-local LEDGE_BLOCK_TIME = 0.12
+local LEDGE_BLOCK_DISTANCE = 6.0
+local LEDGE_BLOCK_TIME = 0.20
 
 local function isCrouching(hum, hrp)
 	if not hum or not hrp then
@@ -473,4 +473,4 @@ TextButton.MouseButton1Click:Connect(function()
 	TextButton.Text = isWallHopEnabled and "Wall Hop On" or "Wall Hop Off"
 end)
 
-print("Made bSy netzwii | Humanoid Wallhop - Loaded Successfully ✅")
+print("Made by netzwii | Humanoid Wallhop - Loaded Successfully ✅")
