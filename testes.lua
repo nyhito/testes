@@ -209,8 +209,8 @@ local function performVideoFlick()
 		return
 	end
 
-hrp.Velocity = Vector3.new(hrp.Velocity.X, 8, hrp.Velocity.Z)
-print("wallhop fired", hrp.Velocity.Y)
+hum:ChangeState(Enum.HumanoidStateType.Jumping)
+hrp.Velocity = Vector3.new(hrp.Velocity.X, 12, hrp.Velocity.Z)
 	
 	local jumpBoost = 2.5
 	hrp.Velocity = Vector3.new(hrp.Velocity.X, hrp.Velocity.Y + jumpBoost, hrp.Velocity.Z)
@@ -473,4 +473,4 @@ TextButton.MouseButton1Click:Connect(function()
 	TextButton.Text = isWallHopEnabled and "Wall Hop On" or "Wall Hop Off"
 end)
 
-print("Made by netzwii | Humannnoid Wallhop - Loaded Successfully ✅")
+print("Made by netzwii | Humanoid Wallhop - Loaded Successfully ✅")
