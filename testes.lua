@@ -50,9 +50,6 @@ local lastHitPosition = nil
 local MIN_HIT_DISTANCE = 0.9
 local lastFlickAngle = nil
 
-local lastGroundY = nil
-local MIN_DROP_HEIGHT = 0
-
 local function isCrouching(hum, hrp)
 	if not hum or not hrp then
 		return false
@@ -64,9 +61,6 @@ end
 
 local function setupCharacter(char)
 	local hum = char:WaitForChild("Humanoid")
-	local hrp = char:WaitForChild("HumanoidRootPart")
-
-	lastGroundY = hrp.Position.Y
 
 	hum.StateChanged:Connect(function(_, new)
 		if new == Enum.HumanoidStateType.Freefall then
@@ -76,7 +70,6 @@ local function setupCharacter(char)
 		if new == Enum.HumanoidStateType.Landed then
 			canDoubleJump = false
 			lastHitPosition = nil
-			lastGroundY = hrp.Position.Y
 		end
 	end)
 end
@@ -183,6 +176,8 @@ local function performVideoFlick()
 		return
 	end
 
+	hum:ChangeState(Enum.HumanoidStateType.Jumping)
+
 	local baseYaw = hrp.Orientation.Y
 	local angle = -pickNextFlick()
 
@@ -241,6 +236,10 @@ local function performVideoFlick()
 
 	hrp.CFrame = CFrame.new(hrp.Position) * CFrame.Angles(0, math.rad(baseYaw), 0)
 
+	if hum:GetState() ~= Enum.HumanoidStateType.Freefall then
+		hum:ChangeState(Enum.HumanoidStateType.Freefall)
+	end
+
 	task.delay(0.05, function()
 		blockDoubleJump = false
 	end)
@@ -258,11 +257,11 @@ local function isPlayerCharacter(instance)
 	end
 
 	local model = instance:FindFirstAncestorOfClass("Model")
-	return model and model:FindFirstChild("Humanoid")
+	return model and model:FindFirstChildOfClass("Humanoid")
 end
 
 local function isWallLikeSurface(normal)
-	return math.abs(normal.Y) < 0.5
+	return math.abs(normal.Y) < 0.35
 end
 
 local function hasValidHorizontalEdge(rayResult, params)
@@ -309,9 +308,7 @@ end
 local function findValidWall(hrp, params, directions)
 	local offsets = {
 		Vector3.new(0, -2.2, 0),
-		Vector3.new(0, -1.6, 0),
 		Vector3.new(0, -1.2, 0),
-		Vector3.new(0, -0.8, 0),
 		Vector3.new(0, -0.4, 0)
 	}
 
@@ -376,19 +373,20 @@ RunService.Heartbeat:Connect(function()
 		return
 	end
 
-	local droppedEnough = true
-	if lastGroundY then
-		droppedEnough = (lastGroundY - hrp.Position.Y) >= MIN_DROP_HEIGHT
-	end
-
-	if not droppedEnough then
-		lastHitPosition = nil
-		return
-	end
-
 	local params = RaycastParams.new()
 	params.FilterDescendantsInstances = {char}
 	params.FilterType = Enum.RaycastFilterType.Exclude
+
+	local groundRay = workspace:Raycast(
+		hrp.Position,
+		Vector3.new(0, -3.25, 0),
+		params
+	)
+
+	if groundRay and groundRay.Instance and groundRay.Instance.CanCollide then
+		lastHitPosition = nil
+		return
+	end
 
 	local look = Camera.CFrame.LookVector
 	local horizontal = Vector3.new(look.X, 0, look.Z)
@@ -437,4 +435,4 @@ TextButton.MouseButton1Click:Connect(function()
 	TextButton.Text = isWallHopEnabled and "Wall Hop On" or "Wall Hop Off"
 end)
 
-print("Made by netzwii | Humanoid Wallhop - Loaded Successfully ✅")
+print("Made by netzwii | HHHHHumanoid Wallhop - Loaded Successfully ✅")
