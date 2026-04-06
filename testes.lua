@@ -320,7 +320,7 @@ end
 
 local function findValidWall(hrp, params, directions)
 	local offsets = {
-	Vector3.new(0, -2.8, 0),
+	Vector3.new(0, -3.0, 0),
 	Vector3.new(0, -2.2, 0),
 	Vector3.new(0, -1.2, 0)
 	}
@@ -453,4 +453,4 @@ TextButton.MouseButton1Click:Connect(function()
 	TextButton.Text = isWallHopEnabled and "Wall Hop On" or "Wall Hop Off"
 end)
 
-print("Made by netzwii | Humanoid Wallhop - Loaded Successfulllly ✅")
+print("Made by netzwii | Humanoid Wallhop - Loaded Successfully ✅")
