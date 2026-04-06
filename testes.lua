@@ -50,10 +50,8 @@ local lastHitPosition = nil
 local MIN_HIT_DISTANCE = 0.9
 local lastFlickAngle = nil
 
-local airborneStartY = nil
-local airborneStartTime = 0
-local MIN_FALL_DISTANCE = 1.8
-local MIN_AIR_TIME = 0.08
+local lastGroundY = nil
+local MIN_DROP_HEIGHT = 2.25
 
 local function isCrouching(hum, hrp)
 	if not hum or not hrp then
@@ -68,21 +66,17 @@ local function setupCharacter(char)
 	local hum = char:WaitForChild("Humanoid")
 	local hrp = char:WaitForChild("HumanoidRootPart")
 
+	lastGroundY = hrp.Position.Y
+
 	hum.StateChanged:Connect(function(_, new)
 		if new == Enum.HumanoidStateType.Freefall then
 			canDoubleJump = true
-
-			if airborneStartY == nil then
-				airborneStartY = hrp.Position.Y
-				airborneStartTime = tick()
-			end
 		end
 
 		if new == Enum.HumanoidStateType.Landed then
 			canDoubleJump = false
-			airborneStartY = nil
-			airborneStartTime = 0
 			lastHitPosition = nil
+			lastGroundY = hrp.Position.Y
 		end
 	end)
 end
@@ -383,15 +377,12 @@ RunService.Heartbeat:Connect(function()
 		return
 	end
 
-	local fallDistance = 0
-	if airborneStartY then
-		fallDistance = airborneStartY - hrp.Position.Y
+	local droppedEnough = true
+	if lastGroundY then
+		droppedEnough = (lastGroundY - hrp.Position.Y) >= MIN_DROP_HEIGHT
 	end
 
-	local airTime = tick() - airborneStartTime
-	local validFall = fallDistance >= MIN_FALL_DISTANCE or airTime >= MIN_AIR_TIME
-
-	if not validFall then
+	if not droppedEnough then
 		lastHitPosition = nil
 		return
 	end
@@ -447,4 +438,4 @@ TextButton.MouseButton1Click:Connect(function()
 	TextButton.Text = isWallHopEnabled and "Wall Hop On" or "Wall Hop Off"
 end)
 
-print("Made by netzwii | Humanoid Wallhop - Loaded Successfully ✅")
+print("Made by netzwii | HuUUUUmanoid Wallhop - Loaded Successfully ✅")
