@@ -314,7 +314,17 @@ local function hasValidHorizontalEdge(rayResult, params)
 			and probe.Instance.CanCollide
 	end
 
-	-- mantém detecção de borda, mas invalida se não houver parede acima ou abaixo
+	-- continua sendo BORDA:
+	-- no ponto central precisa haver quebra local
+	local centerOrigin = hitPos + surfaceOffset
+	local centerProbe = workspace:Raycast(centerOrigin, -normal * 0.22, params)
+	local hasCenterBreak = (not centerProbe) or (centerProbe.Instance ~= wallInstance)
+
+	if not hasCenterBreak then
+		return false
+	end
+
+	-- além disso, precisa ter parede acima e abaixo da borda
 	local hasAbove = touchesSameWall(0.9) or touchesSameWall(1.25)
 	local hasBelow = touchesSameWall(-0.9) or touchesSameWall(-1.25)
 
@@ -460,4 +470,4 @@ TextButton.MouseButton1Click:Connect(function()
 	TextButton.Text = isWallHopEnabled and "Wall Hop On" or "Wall Hop Off"
 end)
 
-print("Made by netzwiiiiii | Humanoid Wallhop - Loaded Successfully ✅")
+print("Made by netzwii | Humanoid Wallhop - Loaded Successfully ✅")
