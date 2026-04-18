@@ -1,5 +1,5 @@
--- UI VISUAL TEST ONLY - Made by nyhito / adjusted by chatscript
--- Apenas visual/interface para testes
+-- UI VISUAL TEST ONLY - PC/Mobile GUI
+-- Parte 1/3
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -45,11 +45,16 @@ local ToggleBindButton
 local BeastSlowBindButton
 local Notice
 local NoticeStroke
+local MoveGuiButton
+local ResizeGuiButton
 
 local mobileBeastSlowSwitch
 local mobileBeastSlowKnob
 local mobileHideGuiSwitch
 local mobileHideGuiKnob
+
+local dragConnections = {}
+local shadowRegistry = {}
 
 local function destroyOld()
 	for _, name in ipairs({
@@ -68,6 +73,21 @@ destroyOld()
 
 local function noTextStroke(obj)
 	obj.TextStrokeTransparency = 1
+end
+
+local function registerShadow(host, shadow)
+	shadowRegistry[host] = shadowRegistry[host] or {}
+	table.insert(shadowRegistry[host], shadow)
+end
+
+local function setHostShadowVisible(host, visible)
+	local list = shadowRegistry[host]
+	if not list then return end
+
+	for _, shadow in ipairs(list) do
+		shadow.Visible = visible
+		shadow.BackgroundTransparency = visible and shadow:GetAttribute("BaseTransparency") or 1
+	end
 end
 
 local function addTrueRoundedShadow(parent, cornerRadius, strength, shadowColor)
@@ -89,11 +109,14 @@ local function addTrueRoundedShadow(parent, cornerRadius, strength, shadowColor)
 		shadow.BackgroundColor3 = shadowColor
 		shadow.BackgroundTransparency = cfg.transparency
 		shadow.BorderSizePixel = 0
-		shadow.ZIndex = 0
+		shadow.ZIndex = math.max(parent.ZIndex - 1, 0)
 		shadow.Parent = parent
+		shadow:SetAttribute("BaseTransparency", cfg.transparency)
 
 		Instance.new("UICorner", shadow).CornerRadius =
 			UDim.new(0, cornerRadius + math.floor(cfg.grow / 2.2))
+
+		registerShadow(parent, shadow)
 	end
 end
 
@@ -123,7 +146,6 @@ local function elegantShow(root, finalSize, finalPosition, finalBgTransparency)
 	if not root then return end
 
 	root.Visible = true
-	root.AnchorPoint = Vector2.new(0.5, 0.5)
 
 	local targetSize = finalSize or root.Size
 	local targetPos = finalPosition or root.Position
@@ -139,6 +161,7 @@ local function elegantShow(root, finalSize, finalPosition, finalBgTransparency)
 	root.Position = targetPos
 	root.BackgroundTransparency = 1
 	setGroupTransparency(root, 1, 1)
+	setHostShadowVisible(root, false)
 
 	TweenService:Create(root, TweenInfo.new(0.22, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
 		Size = targetSize,
@@ -147,6 +170,8 @@ local function elegantShow(root, finalSize, finalPosition, finalBgTransparency)
 	}):Play()
 
 	task.delay(0.03, function()
+		setHostShadowVisible(root, true)
+
 		for _, obj in ipairs(root:GetDescendants()) do
 			if obj:IsA("Frame") or obj:IsA("TextButton") or obj:IsA("TextLabel") then
 				local goal = {}
@@ -195,6 +220,8 @@ local function elegantHide(root, onDone)
 		end
 	end
 
+	setHostShadowVisible(root, false)
+
 	local tween = TweenService:Create(root, TweenInfo.new(0.18, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {
 		Size = shrinkSize,
 		BackgroundTransparency = 1
@@ -218,21 +245,11 @@ local function showNotice(text)
 	Notice.Text = text
 	Notice.Visible = true
 	Notice.AnchorPoint = Vector2.new(1, 0)
-	Notice.Position = UDim2.new(1, 0, 0, 0)
-	Notice.Size = UDim2.new(0, 150, 0, 18)
-	Notice.BackgroundTransparency = 1
-	Notice.TextTransparency = 1
-	NoticeStroke.Transparency = 1
-
-	TweenService:Create(Notice, TweenInfo.new(0.22, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
-		Size = UDim2.new(0, 200, 0, 26),
-		BackgroundTransparency = 0.08,
-		TextTransparency = 0
-	}):Play()
-
-	TweenService:Create(NoticeStroke, TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-		Transparency = 0.9
-	}):Play()
+	Notice.Position = UDim2.new(1, -14, 0, 14)
+	Notice.Size = UDim2.new(0, 200, 0, 26)
+	Notice.BackgroundTransparency = 0.08
+	Notice.TextTransparency = 0
+	NoticeStroke.Transparency = 0.9
 
 	task.spawn(function()
 		task.wait(1)
@@ -240,15 +257,7 @@ local function showNotice(text)
 			return
 		end
 
-		TweenService:Create(Notice, TweenInfo.new(0.18, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {
-			Size = UDim2.new(0, 150, 0, 18),
-			BackgroundTransparency = 1,
-			TextTransparency = 1
-		}):Play()
-
-		TweenService:Create(NoticeStroke, TweenInfo.new(0.16, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-			Transparency = 1
-		}):Play()
+		Notice.Visible = false
 	end)
 end
 
@@ -324,6 +333,7 @@ local function setMobileWallhopVisualHidden(hidden)
 
 	MobileButton.BackgroundTransparency = hidden and 1 or 0
 	MobileButton.TextTransparency = hidden and 1 or 0
+	setHostShadowVisible(MobileButton, not hidden)
 end
 
 local function updateMobilePanelButtons()
@@ -359,9 +369,11 @@ local function applyVisibility()
 	if selectedMode == "PC" then
 		if MainFrame then
 			MainFrame.Visible = guiVisible and not guiMinimized
+			setHostShadowVisible(MainFrame, guiVisible and not guiMinimized)
 		end
 		if MiniButton then
 			MiniButton.Visible = guiVisible and guiMinimized
+			setHostShadowVisible(MiniButton, guiVisible and guiMinimized)
 		end
 	elseif selectedMode == "Mobile" then
 		if MobileButton then
@@ -372,6 +384,7 @@ local function applyVisibility()
 		end
 		if MobilePanel then
 			MobilePanel.Visible = mobileMenuOpen
+			setHostShadowVisible(MobilePanel, mobileMenuOpen)
 		end
 		setMobileWallhopVisualHidden(mobileWallhopGuiHidden)
 	end
@@ -382,6 +395,7 @@ local function setGuiVisible(state)
 	applyVisibility()
 	showNotice(state and "GUI shown" or "GUI hidden")
 end
+-- Parte 2/3
 
 local function createModeSelector(onPick)
 	local selectorGui = Instance.new("ScreenGui")
@@ -398,7 +412,6 @@ local function createModeSelector(onPick)
 	frame.BorderSizePixel = 0
 	frame.Parent = selectorGui
 	Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 16)
-
 	addTrueRoundedShadow(frame, 16, 1.45, Color3.fromRGB(0, 0, 0))
 
 	local title = Instance.new("TextLabel")
@@ -463,39 +476,57 @@ local function createModeSelector(onPick)
 		end)
 	end)
 end
-local function setMinimized(state)
-	if selectedMode ~= "PC" then
-		return
-	end
 
-	guiMinimized = state
-
-	if state then
-		if MainFrame and MiniButton then
-			MiniButton.Position = MainFrame.Position
-			MainFrame.Visible = false
-			MiniButton.BackgroundTransparency = 1
-			MiniButton.TextTransparency = 1
-			MiniButton.Visible = true
-
-			TweenService:Create(MiniButton, TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-				BackgroundTransparency = 0,
-				TextTransparency = 0
-			}):Play()
+local function clearOldDragConnections()
+	for _, c in ipairs(dragConnections) do
+		if c and c.Disconnect then
+			c:Disconnect()
 		end
-		showNotice("GUI minimized")
-	else
-		if MainFrame and MiniButton then
-			MainFrame.Position = MiniButton.Position
-			MiniButton.Visible = false
-			MainFrame.Visible = true
-			elegantShow(MainFrame, UDim2.new(0, 265, 0, 196), MainFrame.Position, 0)
-		end
-		showNotice("GUI restored")
 	end
+	table.clear(dragConnections)
+end
+
+local function bindFreeTouchDrag(dragObject, target, onMove)
+	local activeInput = nil
+	local dragStart = nil
+	local startPos = nil
+
+	table.insert(dragConnections, dragObject.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+			activeInput = input
+			dragStart = input.Position
+			startPos = target.Position
+		end
+	end))
+
+	table.insert(dragConnections, UserInputService.InputChanged:Connect(function(input)
+		if input == activeInput and dragStart and startPos then
+			local delta = input.Position - dragStart
+			target.Position = UDim2.new(
+				startPos.X.Scale,
+				startPos.X.Offset + delta.X,
+				startPos.Y.Scale,
+				startPos.Y.Offset + delta.Y
+			)
+
+			if onMove then
+				onMove()
+			end
+		end
+	end))
+
+	table.insert(dragConnections, UserInputService.InputEnded:Connect(function(input)
+		if input == activeInput then
+			activeInput = nil
+			dragStart = nil
+			startPos = nil
+		end
+	end))
 end
 
 local function buildMobileGui()
+	clearOldDragConnections()
+
 	ScreenGui = Instance.new("ScreenGui")
 	ScreenGui.Name = "AutoWallHopGuiMobile"
 	ScreenGui.ResetOnSpawn = false
@@ -529,8 +560,6 @@ local function buildMobileGui()
 
 	MobilePanel = Instance.new("Frame")
 	MobilePanel.Size = UDim2.new(0, 170, 0, 94)
-	MobilePanel.Position = UDim2.new(0, 20, 0, 240)
-	MobilePanel.AnchorPoint = Vector2.new(0.5, 0.5)
 	MobilePanel.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 	MobilePanel.BorderSizePixel = 0
 	MobilePanel.Visible = false
@@ -541,118 +570,41 @@ local function buildMobileGui()
 	MobileBeastSlowRow, mobileBeastSlowSwitch, mobileBeastSlowKnob = createSwitchRow(MobilePanel, 7, "Beast Slow")
 	MobileHideGuiRow, mobileHideGuiSwitch, mobileHideGuiKnob = createSwitchRow(MobilePanel, 47, "Hide GUI")
 
-	RunService.RenderStepped:Connect(function()
-		if selectedMode ~= "Mobile" then return end
+	local function placeMobileButtonDefault()
 		local inset = GuiService:GetGuiInset()
 		if not MobileButton:GetAttribute("CustomMoved") then
 			MobileButton.Position = UDim2.new(0, 150, 0, inset.Y - 58)
 		end
-	end)
+	end
 
-	local wallhopDrag = {
-		holding = false,
-		input = nil,
-		startPos = nil,
-		startInput = nil
-	}
+	local function placePanelToRightOfWallhop()
+		local xOffset = MobileButton.Position.X.Offset + MobileButton.Size.X.Offset + 26
+		local yOffset = MobileButton.Position.Y.Offset
+		MobilePanel.Position = UDim2.new(0, xOffset, 0, yOffset)
+	end
 
-	MobileButton.InputBegan:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.Touch then
-			wallhopDrag.holding = true
-			wallhopDrag.input = input
-			wallhopDrag.startPos = MobileButton.Position
-			wallhopDrag.startInput = input.Position
+	RunService.RenderStepped:Connect(function()
+		if selectedMode ~= "Mobile" then return end
+		placeMobileButtonDefault()
+
+		if mobileMenuOpen and not MobilePanel:GetAttribute("CustomMoved") then
+			placePanelToRightOfWallhop()
 		end
 	end)
 
-	MobileButton.InputChanged:Connect(function(input)
-		if wallhopDrag.holding and wallhopDrag.input == input and input.UserInputType == Enum.UserInputType.Touch then
-			local delta = input.Position - wallhopDrag.startInput
-			MobileButton.Position = UDim2.new(
-				wallhopDrag.startPos.X.Scale,
-				wallhopDrag.startPos.X.Offset + delta.X,
-				wallhopDrag.startPos.Y.Scale,
-				wallhopDrag.startPos.Y.Offset + delta.Y
-			)
-			MobileButton:SetAttribute("CustomMoved", true)
+	placeMobileButtonDefault()
+	placePanelToRightOfWallhop()
+
+	bindFreeTouchDrag(MobileButton, MobileButton, function()
+		MobileButton:SetAttribute("CustomMoved", true)
+		if not MobilePanel:GetAttribute("CustomMoved") then
+			placePanelToRightOfWallhop()
 		end
 	end)
 
-	MobileButton.InputEnded:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.Touch and wallhopDrag.input == input then
-			wallhopDrag.holding = false
-			wallhopDrag.input = nil
-		end
-	end)
-
-	local menuDrag = {
-		holding = false,
-		input = nil,
-		startPos = nil,
-		startInput = nil
-	}
-
-	MobileMenuButton.InputBegan:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.Touch then
-			menuDrag.holding = true
-			menuDrag.input = input
-			menuDrag.startPos = MobileMenuButton.Position
-			menuDrag.startInput = input.Position
-		end
-	end)
-
-	MobileMenuButton.InputChanged:Connect(function(input)
-		if menuDrag.holding and menuDrag.input == input and input.UserInputType == Enum.UserInputType.Touch then
-			local delta = input.Position - menuDrag.startInput
-			MobileMenuButton.Position = UDim2.new(
-				menuDrag.startPos.X.Scale,
-				menuDrag.startPos.X.Offset + delta.X,
-				menuDrag.startPos.Y.Scale,
-				menuDrag.startPos.Y.Offset + delta.Y
-			)
-		end
-	end)
-
-	MobileMenuButton.InputEnded:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.Touch and menuDrag.input == input then
-			menuDrag.holding = false
-			menuDrag.input = nil
-		end
-	end)
-
-	local panelDrag = {
-		holding = false,
-		input = nil,
-		startPos = nil,
-		startInput = nil
-	}
-
-	MobilePanel.InputBegan:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.Touch then
-			panelDrag.holding = true
-			panelDrag.input = input
-			panelDrag.startPos = MobilePanel.Position
-			panelDrag.startInput = input.Position
-		end
-	end)
-
-	MobilePanel.InputChanged:Connect(function(input)
-		if panelDrag.holding and panelDrag.input == input and input.UserInputType == Enum.UserInputType.Touch then
-			local delta = input.Position - panelDrag.startInput
-			MobilePanel.Position = UDim2.new(
-				panelDrag.startPos.X.Scale,
-				panelDrag.startPos.X.Offset + delta.X,
-				panelDrag.startPos.Y.Scale,
-				panelDrag.startPos.Y.Offset + delta.Y
-			)
-		end
-	end)
-
-	MobilePanel.InputEnded:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.Touch and panelDrag.input == input then
-			panelDrag.holding = false
-			panelDrag.input = nil
-		end
+	bindFreeTouchDrag(MobileMenuButton, MobileMenuButton)
+	bindFreeTouchDrag(MobilePanel, MobilePanel, function()
+		MobilePanel:SetAttribute("CustomMoved", true)
 	end)
 
 	MobileButton.MouseButton1Click:Connect(function()
@@ -662,7 +614,11 @@ local function buildMobileGui()
 
 	MobileMenuButton.MouseButton1Click:Connect(function()
 		mobileMenuOpen = not mobileMenuOpen
+
 		if mobileMenuOpen then
+			if not MobilePanel:GetAttribute("CustomMoved") then
+				placePanelToRightOfWallhop()
+			end
 			elegantShow(MobilePanel, UDim2.new(0, 170, 0, 94), MobilePanel.Position, 0)
 		else
 			elegantHide(MobilePanel)
@@ -681,8 +637,49 @@ local function buildMobileGui()
 
 	updateMobilePanelButtons()
 end
+-- Parte 3/3
+
+local function setMinimized(state)
+	if selectedMode ~= "PC" then
+		return
+	end
+
+	guiMinimized = state
+
+	if state then
+		if MainFrame and MiniButton then
+			MiniButton.Position = MainFrame.Position
+			elegantHide(MainFrame, function()
+				MainFrame.Visible = false
+				MiniButton.Visible = true
+				setHostShadowVisible(MiniButton, true)
+
+				MiniButton.BackgroundTransparency = 1
+				MiniButton.TextTransparency = 1
+
+				TweenService:Create(MiniButton, TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+					BackgroundTransparency = 0,
+					TextTransparency = 0
+				}):Play()
+			end)
+		end
+		showNotice("GUI minimized")
+	else
+		if MainFrame and MiniButton then
+			MainFrame.Position = MiniButton.Position
+			MiniButton.Visible = false
+			setHostShadowVisible(MiniButton, false)
+
+			MainFrame.Visible = true
+			elegantShow(MainFrame, MainFrame.Size, MainFrame.Position, 0)
+		end
+		showNotice("GUI restored")
+	end
+end
 
 local function buildPCGui()
+	clearOldDragConnections()
+
 	ScreenGui = Instance.new("ScreenGui")
 	ScreenGui.Name = "AutoWallHopGui"
 	ScreenGui.ResetOnSpawn = false
@@ -692,7 +689,6 @@ local function buildPCGui()
 	MainFrame = Instance.new("Frame")
 	MainFrame.Size = UDim2.new(0, 265, 0, 196)
 	MainFrame.Position = UDim2.new(0.5, -132, 0.5, -98)
-	MainFrame.AnchorPoint = Vector2.new(0, 0)
 	MainFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 	MainFrame.BorderSizePixel = 0
 	MainFrame.Parent = ScreenGui
@@ -708,7 +704,7 @@ local function buildPCGui()
 	Instance.new("UICorner", TopBar).CornerRadius = UDim.new(0, 16)
 
 	local Title = Instance.new("TextLabel")
-	Title.Size = UDim2.new(1, -45, 1, 0)
+	Title.Size = UDim2.new(1, -90, 1, 0)
 	Title.Position = UDim2.new(0, 12, 0, 0)
 	Title.BackgroundTransparency = 1
 	Title.Text = "Wallhop PC"
@@ -730,6 +726,18 @@ local function buildPCGui()
 	MinimizeButton.Parent = TopBar
 	Instance.new("UICorner", MinimizeButton).CornerRadius = UDim.new(1, 0)
 	noTextStroke(MinimizeButton)
+
+	MoveGuiButton = Instance.new("TextButton")
+	MoveGuiButton.Size = UDim2.new(0, 26, 0, 26)
+	MoveGuiButton.Position = UDim2.new(1, -60, 0.5, -13)
+	MoveGuiButton.BackgroundColor3 = Color3.fromRGB(8,8,8)
+	MoveGuiButton.Text = "✥"
+	MoveGuiButton.TextColor3 = Color3.fromRGB(180,180,180)
+	MoveGuiButton.Font = Enum.Font.GothamBold
+	MoveGuiButton.TextSize = 16
+	MoveGuiButton.Parent = TopBar
+	Instance.new("UICorner", MoveGuiButton).CornerRadius = UDim.new(0, 8)
+	noTextStroke(MoveGuiButton)
 
 	ToggleButton = Instance.new("TextButton")
 	ToggleButton.Size = UDim2.new(1, -16, 0, 40)
@@ -776,6 +784,18 @@ local function buildPCGui()
 	Instance.new("UICorner", BeastSlowBindButton).CornerRadius = UDim.new(0, 10)
 	noTextStroke(BeastSlowBindButton)
 
+	ResizeGuiButton = Instance.new("TextButton")
+	ResizeGuiButton.Size = UDim2.new(0, 24, 0, 24)
+	ResizeGuiButton.Position = UDim2.new(1, -28, 1, -28)
+	ResizeGuiButton.BackgroundColor3 = Color3.fromRGB(8,8,8)
+	ResizeGuiButton.Text = "⤡"
+	ResizeGuiButton.TextColor3 = Color3.fromRGB(180,180,180)
+	ResizeGuiButton.Font = Enum.Font.GothamBold
+	ResizeGuiButton.TextSize = 16
+	ResizeGuiButton.Parent = MainFrame
+	Instance.new("UICorner", ResizeGuiButton).CornerRadius = UDim.new(0, 8)
+	noTextStroke(ResizeGuiButton)
+
 	MiniButton = Instance.new("TextButton")
 	MiniButton.Size = UDim2.new(0, 58, 0, 34)
 	MiniButton.Position = MainFrame.Position
@@ -792,15 +812,15 @@ local function buildPCGui()
 
 	Notice = Instance.new("TextLabel")
 	Notice.Size = UDim2.new(0, 200, 0, 26)
-	Notice.Position = UDim2.new(1, 0, 0, 0)
+	Notice.Position = UDim2.new(1, -14, 0, 14)
 	Notice.AnchorPoint = Vector2.new(1, 0)
 	Notice.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-	Notice.BackgroundTransparency = 1
+	Notice.BackgroundTransparency = 0.08
 	Notice.TextColor3 = Color3.fromRGB(255,255,255)
-	Notice.TextTransparency = 1
+	Notice.TextTransparency = 0
 	Notice.Font = Enum.Font.GothamBold
 	Notice.TextSize = 13
-	Notice.Visible = true
+	Notice.Visible = false
 	Notice.Parent = ScreenGui
 	Instance.new("UICorner", Notice).CornerRadius = UDim.new(0, 10)
 	noTextStroke(Notice)
@@ -808,53 +828,65 @@ local function buildPCGui()
 	NoticeStroke = Instance.new("UIStroke")
 	NoticeStroke.Color = Color3.fromRGB(255,255,255)
 	NoticeStroke.Thickness = 1
-	NoticeStroke.Transparency = 1
+	NoticeStroke.Transparency = 0.9
 	NoticeStroke.Parent = Notice
 
-	local dragging = false
-	local dragInput
-	local dragStart
-	local startPos
+	local moveInput = nil
+	local moveStart = nil
+	local moveFrameStart = nil
 
-	local function updateDrag(input, frame)
-		local delta = input.Position - dragStart
-		frame.Position = UDim2.new(
-			startPos.X.Scale, startPos.X.Offset + delta.X,
-			startPos.Y.Scale, startPos.Y.Offset + delta.Y
-		)
-	end
+	local resizeInput = nil
+	local resizeStart = nil
+	local resizeSizeStart = nil
 
-	local function bindDrag(dragObject, frame)
-		dragObject.InputBegan:Connect(function(input)
-			if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-				dragging = true
-				dragInput = input
-				dragStart = input.Position
-				startPos = frame.Position
+	table.insert(dragConnections, MoveGuiButton.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+			moveInput = input
+			moveStart = input.Position
+			moveFrameStart = MainFrame.Position
+		end
+	end))
 
-				input.Changed:Connect(function()
-					if input.UserInputState == Enum.UserInputState.End then
-						dragging = false
-					end
-				end)
-			end
-		end)
+	table.insert(dragConnections, ResizeGuiButton.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+			resizeInput = input
+			resizeStart = input.Position
+			resizeSizeStart = MainFrame.Size
+		end
+	end))
 
-		dragObject.InputChanged:Connect(function(input)
-			if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-				dragInput = input
-			end
-		end)
+	table.insert(dragConnections, UserInputService.InputChanged:Connect(function(input)
+		if input == moveInput and moveStart and moveFrameStart then
+			local delta = input.Position - moveStart
+			MainFrame.Position = UDim2.new(
+				moveFrameStart.X.Scale,
+				moveFrameStart.X.Offset + delta.X,
+				moveFrameStart.Y.Scale,
+				moveFrameStart.Y.Offset + delta.Y
+			)
+		end
 
-		UserInputService.InputChanged:Connect(function(input)
-			if input == dragInput and dragging then
-				updateDrag(input, frame)
-			end
-		end)
-	end
+		if input == resizeInput and resizeStart and resizeSizeStart then
+			local delta = input.Position - resizeStart
+			local newW = math.max(235, resizeSizeStart.X.Offset + delta.X)
+			local newH = math.max(180, resizeSizeStart.Y.Offset + delta.Y)
+			MainFrame.Size = UDim2.new(0, newW, 0, newH)
+		end
+	end))
 
-	bindDrag(TopBar, MainFrame)
-	bindDrag(MiniButton, MiniButton)
+	table.insert(dragConnections, UserInputService.InputEnded:Connect(function(input)
+		if input == moveInput then
+			moveInput = nil
+			moveStart = nil
+			moveFrameStart = nil
+		end
+
+		if input == resizeInput then
+			resizeInput = nil
+			resizeStart = nil
+			resizeSizeStart = nil
+		end
+	end))
 
 	MinimizeButton.MouseButton1Click:Connect(function()
 		setMinimized(true)
@@ -897,15 +929,12 @@ local function buildPCGui()
 	RunService.RenderStepped:Connect(function()
 		if selectedMode ~= "PC" then return end
 		local inset = GuiService:GetGuiInset()
-		if guiVisible and not dragging then
-			if not guiMinimized and MainFrame.Position == UDim2.new(0.5, -132, 0.5, -98) then
-				MainFrame.Position = UDim2.new(0.5, -132, 0.5, -98 + inset.Y / 2)
-			end
+		if guiVisible and not guiMinimized and MainFrame.Position == UDim2.new(0.5, -132, 0.5, -98) then
+			MainFrame.Position = UDim2.new(0.5, -132, 0.5, -98 + inset.Y / 2)
 		end
 	end)
 
 	updateBindButtons()
-	MainFrame.Visible = true
 	elegantShow(MainFrame, UDim2.new(0, 265, 0, 196), MainFrame.Position, 0)
 	showNotice("PC version loaded")
 end
