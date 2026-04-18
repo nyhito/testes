@@ -293,36 +293,6 @@ local function isWallLikeSurface(normal)
 	return math.abs(normal.Y) < 0.35
 end
 
-local function isSameWall(a, b)
-	if not a or not b then
-		return false
-	end
-	if a.Instance ~= b.Instance then
-		return false
-	end
-	return a.Normal:Dot(b.Normal) >= 0.92
-end
-
-local function probeWallAt(hitPos, normal, sideOffset, yOffset, params)
-	local origin = hitPos + sideOffset + Vector3.new(0, yOffset, 0) + normal * 0.35
-	local result = workspace:Raycast(origin, -normal * 0.7, params)
-
-	if not result or not result.Instance then
-		return nil
-	end
-	if not result.Instance.CanCollide then
-		return nil
-	end
-	if isPlayerCharacter(result.Instance) then
-		return nil
-	end
-	if not isWallLikeSurface(result.Normal) then
-		return nil
-	end
-
-	return result
-end
-
 local function hasValidHorizontalEdge(rayResult, params)
 	if not rayResult or not rayResult.Instance then
 		return false
@@ -330,41 +300,64 @@ local function hasValidHorizontalEdge(rayResult, params)
 
 	local hitPos = rayResult.Position
 	local normal = rayResult.Normal.Unit
+	local hitPart = rayResult.Instance
+	local surfaceOffset = normal * 0.08
 
-	local right = normal:Cross(Vector3.new(0, 1, 0))
-	if right.Magnitude < 0.01 then
-		return false
-	end
-	right = right.Unit
-
-	local sideOffsets = {
-		Vector3.new(0, 0, 0),
-		right * 0.22,
-		-right * 0.22
+	-- obrigatoriamente precisa existir parede abaixo da linha
+	-- se houver vazio abaixo, invalida
+	local belowOffsets = {
+		-0.2,
+		-0.45,
+		-0.75,
+		-1.05
 	}
 
-	local validColumns = 0
+	local hasWallBelow = false
+	for _, y in ipairs(belowOffsets) do
+		local origin = hitPos + Vector3.new(0, y, 0) + surfaceOffset
+		local probe = workspace:Raycast(origin, -normal * 0.22, params)
 
-	for _, sideOffset in ipairs(sideOffsets) do
-		local below = probeWallAt(hitPos, normal, sideOffset, -0.55, params)
-		local above = probeWallAt(hitPos, normal, sideOffset, 0.55, params)
-
-		if below and above then
-			if isSameWall(rayResult, below) and isSameWall(rayResult, above) then
-				validColumns += 1
-			end
+		if probe and probe.Instance == hitPart then
+			hasWallBelow = true
+			break
 		end
 	end
 
-	return validColumns >= 2
+	if not hasWallBelow then
+		return false
+	end
+
+	-- mantém a ideia de detectar borda, não parede inteira
+	local verticalChecks = {
+		Vector3.new(0, 0.9, 0),
+		Vector3.new(0, -0.9, 0),
+		Vector3.new(0, 1.25, 0),
+		Vector3.new(0, -1.25, 0),
+	}
+
+	local foundHorizontalEdge = false
+	for _, vOffset in ipairs(verticalChecks) do
+		local origin = hitPos + vOffset + surfaceOffset
+		local probe = workspace:Raycast(origin, -normal * 0.22, params)
+
+		if not probe or not probe.Instance or probe.Instance ~= hitPart then
+			foundHorizontalEdge = true
+			break
+		end
+	end
+
+	if not foundHorizontalEdge then
+		return false
+	end
+
+	return true
 end
 
 local function findValidWall(hrp, params, directions)
 	local offsets = {
-		Vector3.new(0, -2.30, 0),
-		Vector3.new(0, -2.20, 0),
-		Vector3.new(0, -1.20, 0),
-		Vector3.new(0, -0.40, 0),
+		Vector3.new(0, -2.3, 0),
+		Vector3.new(0, -2.2, 0),
+		Vector3.new(0, -1.2, 0)
 	}
 
 	for _, dir in ipairs(directions) do
@@ -495,4 +488,4 @@ TextButton.MouseButton1Click:Connect(function()
 	TextButton.Text = isWallHopEnabled and "Wall Hop On" or "Wall Hop Off"
 end)
 
-print("Made by netzwiiiiii | Humanoid Wallhop - Loaded Successfully ✅")
+print("Made by netzw | Humanoid Wallhop - Loaded Successfully ✅")
