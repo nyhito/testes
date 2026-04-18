@@ -26,13 +26,26 @@ TextButton.TextScaled = true
 TextButton.Parent = ScreenGui
 Instance.new("UICorner", TextButton).CornerRadius = UDim.new(0, 12)
 
+local SlowButton = Instance.new("TextButton")
+SlowButton.Size = UDim2.new(0, 140, 0, 50)
+SlowButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+SlowButton.Text = "Slow Off"
+SlowButton.TextColor3 = Color3.fromRGB(255,255,255)
+SlowButton.Font = Enum.Font.GothamBold
+SlowButton.TextScaled = true
+SlowButton.Parent = ScreenGui
+Instance.new("UICorner", SlowButton).CornerRadius = UDim.new(0, 12)
+
 RunService.RenderStepped:Connect(function()
 	local inset = GuiService:GetGuiInset()
 	TextButton.Position = UDim2.new(0, 150, 0, inset.Y - 58)
+	SlowButton.Position = UDim2.new(0, 150, 0, inset.Y - 2)
 end)
 
 -- STATES
 local isWallHopEnabled = false
+local isSlowEnabled = false
+
 local isFlicking = false
 local lastFlickTime = 0
 
@@ -58,6 +71,12 @@ local jumpedRecently = false
 local LEDGE_BLOCK_DISTANCE = 6.0
 local LEDGE_BLOCK_TIME = 0.20
 
+-- slow manual
+local SLOW_DURATION = 0.8
+local SLOW_WALKSPEED = 9
+local slowToken = 0
+local pendingSlowOnLanding = false
+
 local function isCrouching(hum, hrp)
 	if not hum or not hrp then
 		return false
@@ -67,9 +86,42 @@ local function isCrouching(hum, hrp)
 	return hum.WalkSpeed <= 9 and horizontalSpeed < 8
 end
 
+local function queueLandingSlow()
+	if isSlowEnabled then
+		pendingSlowOnLanding = true
+	end
+end
+
+local function applyManualSlow(hum)
+	if not hum or not hum.Parent or not isSlowEnabled then
+		return
+	end
+
+	slowToken += 1
+	local myToken = slowToken
+	local oldWalkSpeed = hum.WalkSpeed
+
+	hum.WalkSpeed = SLOW_WALKSPEED
+
+	task.delay(SLOW_DURATION, function()
+		if not hum or not hum.Parent then
+			return
+		end
+
+		if myToken ~= slowToken then
+			return
+		end
+
+		hum.WalkSpeed = oldWalkSpeed
+	end)
+end
+
 local function setupCharacter(char)
 	local hum = char:WaitForChild("Humanoid")
 	local hrp = char:WaitForChild("HumanoidRootPart")
+
+	pendingSlowOnLanding = false
+	slowToken = 0
 
 	hum.StateChanged:Connect(function(_, new)
 		if new == Enum.HumanoidStateType.Jumping then
@@ -97,6 +149,14 @@ local function setupCharacter(char)
 		if new == Enum.HumanoidStateType.Landed then
 			canDoubleJump = false
 			lastHitPosition = nil
+
+			if pendingSlowOnLanding and isSlowEnabled then
+				pendingSlowOnLanding = false
+				applyManualSlow(hum)
+			else
+				pendingSlowOnLanding = false
+			end
+
 			airborneSource = nil
 			airborneStartY = nil
 			airborneStartTime = 0
@@ -133,6 +193,8 @@ UserInputService.JumpRequest:Connect(function()
 
 		hrp.Velocity = Vector3.new(hrp.Velocity.X, 30, hrp.Velocity.Z)
 		hum:ChangeState(Enum.HumanoidStateType.Jumping)
+
+		queueLandingSlow()
 
 		task.delay(0.18, function()
 			if hum then
@@ -208,6 +270,7 @@ local function performVideoFlick()
 	end
 
 	hum:ChangeState(Enum.HumanoidStateType.Jumping)
+	queueLandingSlow()
 
 	local baseYaw = hrp.Orientation.Y
 	local angle = -pickNextFlick()
@@ -529,4 +592,9 @@ TextButton.MouseButton1Click:Connect(function()
 	TextButton.Text = isWallHopEnabled and "Wall Hop On" or "Wall Hop Off"
 end)
 
-print("Made by netzwiiiwiwiw | Humanoid Wallhop - Loaded Successfully ✅")
+SlowButton.MouseButton1Click:Connect(function()
+	isSlowEnabled = not isSlowEnabled
+	SlowButton.Text = isSlowEnabled and "Slow On" or "Slow Off"
+end)
+
+print("Made by netzwii | Humanoid Wallhop - Loaded Successfully ✅")
