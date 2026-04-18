@@ -594,24 +594,33 @@ local function bindFreeDrag(handle, target, onMove)
 	local activeInput = nil
 	local dragStart = nil
 	local startPos = nil
+	local didDrag = false
 
 	table.insert(dragConnections, handle.InputBegan:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
 			activeInput = input
 			dragStart = input.Position
 			startPos = target.Position
+			didDrag = false
 		end
 	end))
 
 	table.insert(dragConnections, UserInputService.InputChanged:Connect(function(input)
 		if input == activeInput and dragStart and startPos then
 			local delta = input.Position - dragStart
+
+			if delta.Magnitude >= 6 then
+				didDrag = true
+				handle:SetAttribute("LastDragTime", tick())
+			end
+
 			target.Position = UDim2.new(
 				startPos.X.Scale,
 				startPos.X.Offset + delta.X,
 				startPos.Y.Scale,
 				startPos.Y.Offset + delta.Y
 			)
+
 			if onMove then
 				onMove(delta)
 			end
@@ -623,8 +632,17 @@ local function bindFreeDrag(handle, target, onMove)
 			activeInput = nil
 			dragStart = nil
 			startPos = nil
+			didDrag = false
 		end
 	end))
+end
+
+local function canUseMobileTap(obj)
+	local lastDragTime = obj:GetAttribute("LastDragTime")
+	if typeof(lastDragTime) == "number" then
+		return (tick() - lastDragTime) > 0.12
+	end
+	return true
 end
 
 local function buildMobileGui()
@@ -708,16 +726,16 @@ local function buildMobileGui()
 	end)
 
 	bindFreeDrag(MobileMenuButton, MobileMenuButton)
-	bindFreeDrag(MobilePanel, MobilePanel, function()
-		MobilePanel:SetAttribute("CustomMoved", true)
-	end)
 
-	MobileButton.MouseButton1Click:Connect(function()
+	MobileButton.Activated:Connect(function()
+		if not canUseMobileTap(MobileButton) then return end
 		isWallHopEnabled = not isWallHopEnabled
 		updateToggleButton()
 	end)
 
-	MobileMenuButton.MouseButton1Click:Connect(function()
+	MobileMenuButton.Activated:Connect(function()
+		if not canUseMobileTap(MobileMenuButton) then return end
+
 		mobileMenuOpen = not mobileMenuOpen
 
 		if mobileMenuOpen then
@@ -734,7 +752,7 @@ local function buildMobileGui()
 		end
 	end)
 
-	MobileBeastSlowRow.MouseButton1Click:Connect(function()
+	MobileBeastSlowRow.Activated:Connect(function()
 		isSlowEnabled = not isSlowEnabled
 		if not isSlowEnabled then
 			clearScriptSlowInstant()
@@ -742,7 +760,7 @@ local function buildMobileGui()
 		updateMobilePanelButtons()
 	end)
 
-	MobileHideGuiRow.MouseButton1Click:Connect(function()
+	MobileHideGuiRow.Activated:Connect(function()
 		mobileWallhopGuiHidden = not mobileWallhopGuiHidden
 		updateMobilePanelButtons()
 	end)
@@ -1024,8 +1042,6 @@ local function buildPCGui()
 	elegantShow(MainFrame, UDim2.new(0, 315, 0, 190), MainFrame.Position, 0)
 	showNotice("PC version loaded")
 end
--- WALLHOP / SLOW LOGIC
-
 local function clearScriptSlowInstant()
 	slowToken += 1
 	scriptSlowActive = false
