@@ -293,39 +293,37 @@ local function isWallLikeSurface(normal)
 	return math.abs(normal.Y) < 0.35
 end
 
-local function isValidProbe(result)
-	return result
-		and result.Instance
-		and result.Instance.CanCollide
-		and not isPlayerCharacter(result.Instance)
-		and isWallLikeSurface(result.Normal)
-end
-
-local function normalsAreCompatible(a, b)
+local function isSameWall(a, b)
 	if not a or not b then
 		return false
 	end
-	return a.Normal:Dot(b.Normal) >= 0.90
+	if a.Instance ~= b.Instance then
+		return false
+	end
+	return a.Normal:Dot(b.Normal) >= 0.92
 end
 
-local function castDepthProbe(baseHitPos, normal, lateralOffset, verticalOffset, params)
-	local upOffset = Vector3.new(0, verticalOffset, 0)
-	local outward = normal * 0.45
-	local origin = baseHitPos + upOffset + lateralOffset + outward
-	local result = workspace:Raycast(origin, -normal * 0.95, params)
+local function probeWallAt(hitPos, normal, sideOffset, yOffset, params)
+	local origin = hitPos + sideOffset + Vector3.new(0, yOffset, 0) + normal * 0.35
+	local result = workspace:Raycast(origin, -normal * 0.7, params)
 
-	if not isValidProbe(result) then
+	if not result or not result.Instance then
+		return nil
+	end
+	if not result.Instance.CanCollide then
+		return nil
+	end
+	if isPlayerCharacter(result.Instance) then
+		return nil
+	end
+	if not isWallLikeSurface(result.Normal) then
 		return nil
 	end
 
-	local depth = (origin - result.Position):Dot(normal)
-	return {
-		result = result,
-		depth = depth
-	}
+	return result
 end
 
-local function hasAdvancedHorizontalEdge(rayResult, params)
+local function hasValidHorizontalEdge(rayResult, params)
 	if not rayResult or not rayResult.Instance then
 		return false
 	end
@@ -339,53 +337,25 @@ local function hasAdvancedHorizontalEdge(rayResult, params)
 	end
 	right = right.Unit
 
-	local lateralColumns = {
+	local sideOffsets = {
 		Vector3.new(0, 0, 0),
-		right * 0.28,
-		-right * 0.28
-	}
-
-	local testPairs = {
-		{-0.30, 0.30},
-		{-0.55, 0.55},
-		{-0.85, 0.85}
+		right * 0.22,
+		-right * 0.22
 	}
 
 	local validColumns = 0
 
-	for _, lateral in ipairs(lateralColumns) do
-		local columnHasEdge = false
+	for _, sideOffset in ipairs(sideOffsets) do
+		local below = probeWallAt(hitPos, normal, sideOffset, -0.55, params)
+		local above = probeWallAt(hitPos, normal, sideOffset, 0.55, params)
 
-		for _, pair in ipairs(testPairs) do
-			local below = castDepthProbe(hitPos, normal, lateral, pair[1], params)
-			local above = castDepthProbe(hitPos, normal, lateral, pair[2], params)
-
-			if below and above then
-				if normalsAreCompatible(rayResult, below.result) and normalsAreCompatible(rayResult, above.result) then
-					local belowGap = math.abs(below.result.Position.Y - (hitPos.Y + pair[1]))
-					local aboveGap = math.abs(above.result.Position.Y - (hitPos.Y + pair[2]))
-
-					-- precisa existir parede abaixo e acima da linha
-					if belowGap <= 0.45 and aboveGap <= 0.45 then
-						local depthDelta = math.abs(below.depth - above.depth)
-
-						-- parede lisa reta = depthDelta muito pequeno
-						-- degrau absurdo / canto estranho = depthDelta muito alto
-						if depthDelta >= 0.035 and depthDelta <= 0.65 then
-							columnHasEdge = true
-							break
-						end
-					end
-				end
+		if below and above then
+			if isSameWall(rayResult, below) and isSameWall(rayResult, above) then
+				validColumns += 1
 			end
-		end
-
-		if columnHasEdge then
-			validColumns += 1
 		end
 	end
 
-	-- exige confirmação em pelo menos 2 colunas pra evitar falso positivo
 	return validColumns >= 2
 end
 
@@ -393,7 +363,8 @@ local function findValidWall(hrp, params, directions)
 	local offsets = {
 		Vector3.new(0, -2.30, 0),
 		Vector3.new(0, -2.20, 0),
-		Vector3.new(0, -1.20, 0)
+		Vector3.new(0, -1.20, 0),
+		Vector3.new(0, -0.40, 0),
 	}
 
 	for _, dir in ipairs(directions) do
@@ -402,7 +373,7 @@ local function findValidWall(hrp, params, directions)
 			local ray = workspace:Raycast(origin, dir, params)
 
 			if ray and ray.Instance and ray.Instance.CanCollide and not isPlayerCharacter(ray.Instance) then
-				if isWallLikeSurface(ray.Normal) and hasAdvancedHorizontalEdge(ray, params) then
+				if isWallLikeSurface(ray.Normal) and hasValidHorizontalEdge(ray, params) then
 					return ray
 				end
 			end
@@ -524,4 +495,4 @@ TextButton.MouseButton1Click:Connect(function()
 	TextButton.Text = isWallHopEnabled and "Wall Hop On" or "Wall Hop Off"
 end)
 
-print("Made by netzwii | Humanoid Wallhop - Loaded Successfully ✅")
+print("Made by netzwiiiiii | Humanoid Wallhop - Loaded Successfully ✅")
