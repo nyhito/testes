@@ -77,6 +77,47 @@ local SLOW_WALKSPEED = 9
 local slowToken = 0
 local scriptSlowActive = false
 
+-- crouch / lowered hitbox detect
+local standingHeadOffset = nil
+local standingRootHeight = nil
+local CROUCH_HEAD_DROP = 0.45
+local CROUCH_ROOT_DROP = 0.28
+
+local function refreshStandingBaseline(char, hrp)
+	if not char or not hrp then
+		return
+	end
+
+	local head = char:FindFirstChild("Head")
+	if head then
+		standingHeadOffset = head.Position.Y - hrp.Position.Y
+	end
+
+	standingRootHeight = hrp.Position.Y
+end
+
+local function isHitboxLowered(char, hrp)
+	if not char or not hrp then
+		return false
+	end
+
+	local head = char:FindFirstChild("Head")
+	if not head then
+		return false
+	end
+
+	if not standingHeadOffset or not standingRootHeight then
+		refreshStandingBaseline(char, hrp)
+		return false
+	end
+
+	local currentHeadOffset = head.Position.Y - hrp.Position.Y
+	local headDropped = currentHeadOffset < (standingHeadOffset - CROUCH_HEAD_DROP)
+	local rootDropped = hrp.Position.Y < (standingRootHeight - CROUCH_ROOT_DROP)
+
+	return headDropped or rootDropped
+end
+
 local function isCrouching(hum, hrp)
 	if not hum or not hrp then
 		return false
@@ -84,6 +125,11 @@ local function isCrouching(hum, hrp)
 
 	if scriptSlowActive then
 		return false
+	end
+
+	local char = LocalPlayer.Character
+	if isHitboxLowered(char, hrp) then
+		return true
 	end
 
 	local horizontalSpeed = Vector3.new(hrp.Velocity.X, 0, hrp.Velocity.Z).Magnitude
@@ -123,6 +169,14 @@ local function setupCharacter(char)
 
 	slowToken = 0
 	scriptSlowActive = false
+	standingHeadOffset = nil
+	standingRootHeight = nil
+
+	task.delay(0.2, function()
+		if char and char.Parent and hrp and hrp.Parent then
+			refreshStandingBaseline(char, hrp)
+		end
+	end)
 
 	hum.StateChanged:Connect(function(_, new)
 		if new == Enum.HumanoidStateType.Jumping then
@@ -151,6 +205,10 @@ local function setupCharacter(char)
 			canDoubleJump = false
 			lastHitPosition = nil
 
+			if not isHitboxLowered(char, hrp) then
+				refreshStandingBaseline(char, hrp)
+			end
+
 			airborneSource = nil
 			airborneStartY = nil
 			airborneStartTime = 0
@@ -178,6 +236,10 @@ UserInputService.JumpRequest:Connect(function()
 
 	local stillValid = isWallHopping or (tick() - lastWallHopTime <= WALLHOP_GRACE_TIME)
 	if not stillValid then
+		return
+	end
+
+	if isHitboxLowered(char, hrp) then
 		return
 	end
 
@@ -261,6 +323,13 @@ local function performVideoFlick()
 		return
 	end
 
+	if isHitboxLowered(char, hrp) then
+		isWallHopping = false
+		blockDoubleJump = false
+		isFlicking = false
+		return
+	end
+
 	hum:ChangeState(Enum.HumanoidStateType.Jumping)
 
 	local baseYaw = hrp.Orientation.Y
@@ -275,6 +344,14 @@ local function performVideoFlick()
 	local useOvershoot = math.random() < 0.9
 
 	for i = 1, steps do
+		if isHitboxLowered(char, hrp) then
+			hrp.CFrame = CFrame.new(hrp.Position) * CFrame.Angles(0, math.rad(baseYaw), 0)
+			isWallHopping = false
+			blockDoubleJump = false
+			isFlicking = false
+			return
+		end
+
 		local alpha = i / steps
 		local curve
 
@@ -297,9 +374,19 @@ local function performVideoFlick()
 				return
 			end
 
+			if not char or not char.Parent or isHitboxLowered(char, hrp) then
+				hrp.CFrame = CFrame.new(hrp.Position) * CFrame.Angles(0, math.rad(baseYaw), 0)
+				return
+			end
+
 			local smallSteps = 4
 
 			for i = 1, smallSteps do
+				if not char or not char.Parent or isHitboxLowered(char, hrp) then
+					hrp.CFrame = CFrame.new(hrp.Position) * CFrame.Angles(0, math.rad(baseYaw), 0)
+					return
+				end
+
 				local alpha = i / smallSteps
 				local offset = overshoot * alpha
 				hrp.CFrame = CFrame.new(hrp.Position) * CFrame.Angles(0, math.rad(baseYaw) + offset, 0)
@@ -308,6 +395,11 @@ local function performVideoFlick()
 			end
 
 			for i = 1, smallSteps do
+				if not char or not char.Parent or isHitboxLowered(char, hrp) then
+					hrp.CFrame = CFrame.new(hrp.Position) * CFrame.Angles(0, math.rad(baseYaw), 0)
+					return
+				end
+
 				local alpha = i / smallSteps
 				local offset = overshoot * (1 - alpha)
 				hrp.CFrame = CFrame.new(hrp.Position) * CFrame.Angles(0, math.rad(baseYaw) + offset, 0)
@@ -508,7 +600,13 @@ RunService.Heartbeat:Connect(function()
 		return
 	end
 
+	if isHitboxLowered(char, hrp) then
+		lastHitPosition = nil
+		return
+	end
+
 	if isCrouching(hum, hrp) then
+		lastHitPosition = nil
 		return
 	end
 
@@ -517,6 +615,9 @@ RunService.Heartbeat:Connect(function()
 
 	if not airborne then
 		lastHitPosition = nil
+		if not isHitboxLowered(char, hrp) then
+			refreshStandingBaseline(char, hrp)
+		end
 		return
 	end
 
@@ -568,6 +669,11 @@ RunService.Heartbeat:Connect(function()
 			end
 
 			if hrp.Velocity.Y < -0.5 and tick() - lastFlickTime > WALLHOP_COOLDOWN and farEnough then
+				if isHitboxLowered(char, hrp) then
+					lastHitPosition = nil
+					return
+				end
+
 				lastFlickTime = tick()
 				lastHitPosition = result.Position
 				performVideoFlick()
@@ -592,4 +698,4 @@ SlowButton.MouseButton1Click:Connect(function()
 	SlowButton.Text = isSlowEnabled and "Slow On" or "Slow Off"
 end)
 
-print("Made by netzwiiiiii | HHHHHumanoid Wallhop - Loaded Successfully ✅")
+print("Made by netzwii | Humanoid Wallhop - Loaded Successfully ✅")
