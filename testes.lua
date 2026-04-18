@@ -10,21 +10,6 @@ local UserInputService = game:GetService("UserInputService")
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 local Camera = workspace.CurrentCamera
 
--- kill previous gui / previous session
-local SCRIPT_VERSION = "external-slow-v3-fix-highwalls-supportfix4"
-
-_G.__NWT_WALLHOP_SESSION = (_G.__NWT_WALLHOP_SESSION or 0) + 1
-local THIS_SESSION = _G.__NWT_WALLHOP_SESSION
-
-local oldGui = PlayerGui:FindFirstChild("AutoWallHopGui")
-if oldGui then
-	oldGui:Destroy()
-end
-
-local function sessionAlive()
-	return _G.__NWT_WALLHOP_SESSION == THIS_SESSION
-end
-
 -- UI
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "AutoWallHopGui"
@@ -52,10 +37,6 @@ SlowButton.Parent = ScreenGui
 Instance.new("UICorner", SlowButton).CornerRadius = UDim.new(0, 12)
 
 RunService.RenderStepped:Connect(function()
-	if not sessionAlive() or not ScreenGui.Parent then
-		return
-	end
-
 	local inset = GuiService:GetGuiInset()
 	TextButton.Position = UDim2.new(0, 150, 0, inset.Y - 58)
 	SlowButton.Position = UDim2.new(0, 150, 0, inset.Y - 2)
@@ -64,7 +45,6 @@ end)
 -- STATES
 local isWallHopEnabled = false
 local isSlowEnabled = false
-
 local isFlicking = false
 local lastFlickTime = 0
 
@@ -79,10 +59,11 @@ local DOUBLE_JUMP_COOLDOWN = 3
 local blockDoubleJump = false
 
 local lastHitPosition = nil
-local MIN_HIT_DISTANCE = 0.08
+local MIN_HIT_DISTANCE = 0.2
 local lastFlickAngle = nil
 
-local airborneSource = nil
+-- queda: distinguir pulo x queda de borda
+local airborneSource = nil -- "jump" ou "ledge"
 local airborneStartY = nil
 local airborneStartTime = 0
 local jumpedRecently = false
@@ -96,19 +77,6 @@ local SLOW_WALKSPEED = 9
 local DEFAULT_WALKSPEED = 16
 local slowToken = 0
 local scriptSlowActive = false
-
-local function isExternalSlow(hum, hrp)
-	if not hum or not hrp then
-		return false
-	end
-
-	if scriptSlowActive then
-		return false
-	end
-
-	local horizontalSpeed = Vector3.new(hrp.Velocity.X, 0, hrp.Velocity.Z).Magnitude
-	return hum.WalkSpeed <= 9 and horizontalSpeed < 8
-end
 
 local function clearScriptSlowInstant()
 	slowToken += 1
@@ -133,10 +101,6 @@ local function applyWallhopSlow(hum)
 	hum.WalkSpeed = SLOW_WALKSPEED
 
 	task.delay(SLOW_DURATION, function()
-		if not sessionAlive() then
-			return
-		end
-
 		if not hum or not hum.Parent then
 			scriptSlowActive = false
 			return
@@ -158,11 +122,16 @@ local function applyWallhopSlow(hum)
 	end)
 end
 
-local function setupCharacter(char)
-	if not sessionAlive() then
-		return
+local function isCrouching(hum, hrp)
+	if not hum or not hrp then
+		return false
 	end
 
+	local horizontalSpeed = Vector3.new(hrp.Velocity.X, 0, hrp.Velocity.Z).Magnitude
+	return hum.WalkSpeed <= 9 and horizontalSpeed < 8
+end
+
+local function setupCharacter(char)
 	local hum = char:WaitForChild("Humanoid")
 	local hrp = char:WaitForChild("HumanoidRootPart")
 
@@ -170,10 +139,6 @@ local function setupCharacter(char)
 	scriptSlowActive = false
 
 	hum.StateChanged:Connect(function(_, new)
-		if not sessionAlive() then
-			return
-		end
-
 		if new == Enum.HumanoidStateType.Jumping then
 			jumpedRecently = true
 			airborneSource = "jump"
@@ -214,10 +179,6 @@ end
 LocalPlayer.CharacterAdded:Connect(setupCharacter)
 
 UserInputService.JumpRequest:Connect(function()
-	if not sessionAlive() then
-		return
-	end
-
 	if not isWallHopEnabled or blockDoubleJump then
 		return
 	end
@@ -234,10 +195,6 @@ UserInputService.JumpRequest:Connect(function()
 		return
 	end
 
-	if isExternalSlow(hum, hrp) then
-		return
-	end
-
 	if canDoubleJump and tick() - lastDoubleJump > DOUBLE_JUMP_COOLDOWN then
 		lastDoubleJump = tick()
 		canDoubleJump = false
@@ -246,11 +203,7 @@ UserInputService.JumpRequest:Connect(function()
 		hum:ChangeState(Enum.HumanoidStateType.Jumping)
 
 		task.delay(0.18, function()
-			if not sessionAlive() then
-				return
-			end
-
-			if hum and hum.Parent then
+			if hum then
 				hum:ChangeState(Enum.HumanoidStateType.Freefall)
 			end
 		end)
@@ -305,10 +258,6 @@ local function getFlickProfile()
 end
 
 local function performVideoFlick()
-	if not sessionAlive() then
-		return
-	end
-
 	if isFlicking then
 		return
 	end
@@ -326,13 +275,7 @@ local function performVideoFlick()
 		return
 	end
 
-	if isExternalSlow(hum, hrp) then
-		isWallHopping = false
-		blockDoubleJump = false
-		isFlicking = false
-		return
-	end
-
+	-- pulo natural / sem boost artificial
 	hum:ChangeState(Enum.HumanoidStateType.Jumping)
 
 	local baseYaw = hrp.Orientation.Y
@@ -347,18 +290,6 @@ local function performVideoFlick()
 	local useOvershoot = math.random() < 0.9
 
 	for i = 1, steps do
-		if not sessionAlive() then
-			return
-		end
-
-		if isExternalSlow(hum, hrp) then
-			hrp.CFrame = CFrame.new(hrp.Position) * CFrame.Angles(0, math.rad(baseYaw), 0)
-			isWallHopping = false
-			blockDoubleJump = false
-			isFlicking = false
-			return
-		end
-
 		local alpha = i / steps
 		local curve
 
@@ -377,31 +308,13 @@ local function performVideoFlick()
 
 	if useOvershoot then
 		task.delay(0.05, function()
-			if not sessionAlive() then
-				return
-			end
-
 			if not hrp or not hrp.Parent then
-				return
-			end
-
-			if not char or not char.Parent or isExternalSlow(hum, hrp) then
-				hrp.CFrame = CFrame.new(hrp.Position) * CFrame.Angles(0, math.rad(baseYaw), 0)
 				return
 			end
 
 			local smallSteps = 4
 
 			for i = 1, smallSteps do
-				if not sessionAlive() then
-					return
-				end
-
-				if not char or not char.Parent or isExternalSlow(hum, hrp) then
-					hrp.CFrame = CFrame.new(hrp.Position) * CFrame.Angles(0, math.rad(baseYaw), 0)
-					return
-				end
-
 				local alpha = i / smallSteps
 				local offset = overshoot * alpha
 				hrp.CFrame = CFrame.new(hrp.Position) * CFrame.Angles(0, math.rad(baseYaw) + offset, 0)
@@ -410,15 +323,6 @@ local function performVideoFlick()
 			end
 
 			for i = 1, smallSteps do
-				if not sessionAlive() then
-					return
-				end
-
-				if not char or not char.Parent or isExternalSlow(hum, hrp) then
-					hrp.CFrame = CFrame.new(hrp.Position) * CFrame.Angles(0, math.rad(baseYaw), 0)
-					return
-				end
-
 				local alpha = i / smallSteps
 				local offset = overshoot * (1 - alpha)
 				hrp.CFrame = CFrame.new(hrp.Position) * CFrame.Angles(0, math.rad(baseYaw) + offset, 0)
@@ -437,15 +341,11 @@ local function performVideoFlick()
 	end
 
 	task.delay(0.05, function()
-		if sessionAlive() then
-			blockDoubleJump = false
-		end
+		blockDoubleJump = false
 	end)
 
 	task.delay(0.15, function()
-		if sessionAlive() then
-			isWallHopping = false
-		end
+		isWallHopping = false
 	end)
 
 	isFlicking = false
@@ -464,80 +364,6 @@ local function isWallLikeSurface(normal)
 	return math.abs(normal.Y) < 0.35
 end
 
-local function hasSupportBelowEdge(rayResult, params)
-	if not rayResult or not rayResult.Instance then
-		return false
-	end
-
-	local hitPos = rayResult.Position
-	local normal = rayResult.Normal.Unit
-	local wall = rayResult.Instance
-
-	local tangent = normal:Cross(Vector3.new(0, 1, 0))
-	if tangent.Magnitude < 0.001 then
-		tangent = Vector3.new(1, 0, 0)
-	else
-		tangent = tangent.Unit
-	end
-
-	local totalHits = 0
-	local deepHits = 0
-	local centerDeepHits = 0
-
-	for _, sx in ipairs({-0.22, 0, 0.22}) do
-		for _, y in ipairs({-0.20, -0.42, -0.68, -0.94}) do
-			local origin = hitPos + tangent * sx + Vector3.new(0, y, 0) + normal * 0.38
-			local probe = workspace:Raycast(origin, -normal * 1.0, params)
-
-			if probe and probe.Instance == wall then
-				totalHits += 1
-
-				if y <= -0.42 then
-					deepHits += 1
-				end
-
-				if math.abs(sx) <= 0.05 and y <= -0.68 then
-					centerDeepHits += 1
-				end
-			end
-		end
-	end
-
-	return totalHits >= 4 and deepHits >= 2 and centerDeepHits >= 1
-end
-
-local function hasAnythingAboveEdge(rayResult, params)
-	if not rayResult or not rayResult.Instance then
-		return false
-	end
-
-	local hitPos = rayResult.Position
-	local normal = rayResult.Normal.Unit
-	local wall = rayResult.Instance
-
-	local tangent = normal:Cross(Vector3.new(0, 1, 0))
-	if tangent.Magnitude < 0.001 then
-		tangent = Vector3.new(1, 0, 0)
-	else
-		tangent = tangent.Unit
-	end
-
-	local hits = 0
-
-	for _, sx in ipairs({-0.22, 0, 0.22}) do
-		for _, y in ipairs({0.18, 0.34, 0.52}) do
-			local origin = hitPos + tangent * sx + Vector3.new(0, y, 0) + normal * 0.38
-			local probe = workspace:Raycast(origin, -normal * 1.0, params)
-
-			if probe and probe.Instance == wall then
-				hits += 1
-			end
-		end
-	end
-
-	return hits >= 1
-end
-
 local function hasValidHorizontalEdge(rayResult, params)
 	if not rayResult or not rayResult.Instance then
 		return false
@@ -545,48 +371,34 @@ local function hasValidHorizontalEdge(rayResult, params)
 
 	local hitPos = rayResult.Position
 	local normal = rayResult.Normal.Unit
-	local wall = rayResult.Instance
 
-	local tangent = normal:Cross(Vector3.new(0, 1, 0))
-	if tangent.Magnitude < 0.001 then
-		tangent = Vector3.new(1, 0, 0)
-	else
-		tangent = tangent.Unit
+	local right = normal:Cross(Vector3.new(0, 1, 0))
+	if right.Magnitude < 0.01 then
+		return false
 	end
+	right = right.Unit
 
-	local function faceExistsAt(y)
-		local hits = 0
-		for _, sx in ipairs({-0.2, 0, 0.2}) do
-			local origin = hitPos + Vector3.new(0, y, 0) + tangent * sx + normal * 0.4
-			local probe = workspace:Raycast(origin, -normal * 1.0, params)
-			if probe and probe.Instance == wall then
-				hits += 1
-			end
+	local surfaceOffset = normal * 0.08
+
+	local verticalChecks = {
+		Vector3.new(0, 0.9, 0),
+		Vector3.new(0, -0.9, 0),
+		Vector3.new(0, 1.25, 0),
+		Vector3.new(0, -1.25, 0),
+	}
+
+	local foundHorizontalEdge = false
+	for _, vOffset in ipairs(verticalChecks) do
+		local origin = hitPos + vOffset + surfaceOffset
+		local probe = workspace:Raycast(origin, -normal * 0.22, params)
+
+		if not probe or not probe.Instance or probe.Instance ~= rayResult.Instance then
+			foundHorizontalEdge = true
+			break
 		end
-		return hits
 	end
 
-	local aboveNear = faceExistsAt(0.18)
-	local aboveFar = faceExistsAt(0.34)
-	local belowNear = faceExistsAt(-0.18)
-	local belowFar = faceExistsAt(-0.42)
-
-	local hasAbove = (aboveNear + aboveFar) >= 1
-	local hasBelow = (belowNear + belowFar) >= 1
-
-	if not hasAbove or not hasBelow then
-		return false
-	end
-
-	if aboveNear == belowNear and aboveFar == belowFar then
-		return false
-	end
-
-	if not hasSupportBelowEdge(rayResult, params) then
-		return false
-	end
-
-	if not hasAnythingAboveEdge(rayResult, params) then
+	if not foundHorizontalEdge then
 		return false
 	end
 
@@ -595,14 +407,9 @@ end
 
 local function findValidWall(hrp, params, directions)
 	local offsets = {
-		Vector3.new(0, -2.45, 0),
 		Vector3.new(0, -2.3, 0),
-		Vector3.new(0, -2.15, 0),
-		Vector3.new(0, -2.0, 0),
-		Vector3.new(0, -1.8, 0),
-		Vector3.new(0, -1.55, 0),
-		Vector3.new(0, -1.3, 0),
-		Vector3.new(0, -1.05, 0)
+		Vector3.new(0, -2.2, 0),
+		Vector3.new(0, -1.2, 0)
 	}
 
 	for _, dir in ipairs(directions) do
@@ -610,14 +417,10 @@ local function findValidWall(hrp, params, directions)
 			local origin = hrp.Position + offset
 			local ray = workspace:Raycast(origin, dir, params)
 
-			if ray
-				and ray.Instance
-				and ray.Instance.CanCollide
-				and not isPlayerCharacter(ray.Instance)
-				and isWallLikeSurface(ray.Normal)
-				and hasValidHorizontalEdge(ray, params)
-			then
-				return ray
+			if ray and ray.Instance and ray.Instance.CanCollide and not isPlayerCharacter(ray.Instance) then
+				if isWallLikeSurface(ray.Normal) and hasValidHorizontalEdge(ray, params) then
+					return ray
+				end
 			end
 		end
 	end
@@ -646,10 +449,6 @@ local function isWithinWallhopAngle(cameraLook, wallNormal, maxAngleDeg)
 end
 
 RunService.Heartbeat:Connect(function()
-	if not sessionAlive() then
-		return
-	end
-
 	if not isWallHopEnabled then
 		return
 	end
@@ -662,8 +461,7 @@ RunService.Heartbeat:Connect(function()
 		return
 	end
 
-	if isExternalSlow(hum, hrp) then
-		lastHitPosition = nil
+	if isCrouching(hum, hrp) then
 		return
 	end
 
@@ -722,12 +520,7 @@ RunService.Heartbeat:Connect(function()
 				farEnough = (result.Position - lastHitPosition).Magnitude >= MIN_HIT_DISTANCE
 			end
 
-			if hrp.Velocity.Y < -0.15 and tick() - lastFlickTime > WALLHOP_COOLDOWN and farEnough then
-				if isExternalSlow(hum, hrp) then
-					lastHitPosition = nil
-					return
-				end
-
+			if hrp.Velocity.Y < -0.8 and tick() - lastFlickTime > WALLHOP_COOLDOWN and farEnough then
 				lastFlickTime = tick()
 				lastHitPosition = result.Position
 				performVideoFlick()
@@ -743,19 +536,11 @@ RunService.Heartbeat:Connect(function()
 end)
 
 TextButton.MouseButton1Click:Connect(function()
-	if not sessionAlive() then
-		return
-	end
-
 	isWallHopEnabled = not isWallHopEnabled
 	TextButton.Text = isWallHopEnabled and "Wall Hop On" or "Wall Hop Off"
 end)
 
 SlowButton.MouseButton1Click:Connect(function()
-	if not sessionAlive() then
-		return
-	end
-
 	isSlowEnabled = not isSlowEnabled
 	SlowButton.Text = isSlowEnabled and "Slow On" or "Slow Off"
 
@@ -764,4 +549,4 @@ SlowButton.MouseButton1Click:Connect(function()
 	end
 end)
 
-print("Made by netzwwwiii | Humanoid Wallhop - Loaded Successfully ✅ | "..SCRIPT_VERSION)
+print("Made by netzwii | Humanoid Wallhop - Loaded Successfully ✅")
