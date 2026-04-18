@@ -1,48 +1,27 @@
--- (Wallhop Humanoid Type - Made by NT)
--- Simple button version
+-- (Wallhop Humanoid Type - Made by nyhito)
+-- All Credits: nyhito (tester, config and uploader)
+-- The Best Wallhop Script
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
 local GuiService = game:GetService("GuiService")
 local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local HttpService = game:GetService("HttpService")
 
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 local Camera = workspace.CurrentCamera
 
--- UI
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "AutoWallHopGui"
-ScreenGui.ResetOnSpawn = false
-ScreenGui.Parent = PlayerGui
-
-local TextButton = Instance.new("TextButton")
-TextButton.Size = UDim2.new(0, 140, 0, 50)
-TextButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-TextButton.Text = "Wall Hop Off"
-TextButton.TextColor3 = Color3.fromRGB(255,255,255)
-TextButton.Font = Enum.Font.GothamBold
-TextButton.TextScaled = true
-TextButton.Parent = ScreenGui
-Instance.new("UICorner", TextButton).CornerRadius = UDim.new(0, 12)
-
-local SlowButton = Instance.new("TextButton")
-SlowButton.Size = UDim2.new(0, 140, 0, 50)
-SlowButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-SlowButton.Text = "Slow Off"
-SlowButton.TextColor3 = Color3.fromRGB(255,255,255)
-SlowButton.Font = Enum.Font.GothamBold
-SlowButton.TextScaled = true
-SlowButton.Parent = ScreenGui
-Instance.new("UICorner", SlowButton).CornerRadius = UDim.new(0, 12)
-
-RunService.RenderStepped:Connect(function()
-	local inset = GuiService:GetGuiInset()
-	TextButton.Position = UDim2.new(0, 150, 0, inset.Y - 58)
-	SlowButton.Position = UDim2.new(0, 150, 0, inset.Y - 2)
-end)
+-- CONFIG
+local DEFAULT_HIDE_GUI_KEY = Enum.KeyCode.RightShift
+local DEFAULT_TOGGLE_SCRIPT_KEY = Enum.KeyCode.Q
+local DEFAULT_TOGGLE_BEAST_SLOW_KEY = Enum.KeyCode.E
+local SETTINGS_FILE = "nyhito_wallhop_pc_settings.json"
 
 -- STATES
+local selectedMode = nil
+
 local isWallHopEnabled = false
 local isSlowEnabled = false
 local isFlicking = false
@@ -57,6 +36,19 @@ local canDoubleJump = false
 local lastDoubleJump = 0
 local DOUBLE_JUMP_COOLDOWN = 3
 local blockDoubleJump = false
+
+local hideGuiKey = DEFAULT_HIDE_GUI_KEY
+local toggleScriptKey = DEFAULT_TOGGLE_SCRIPT_KEY
+local toggleBeastSlowKey = DEFAULT_TOGGLE_BEAST_SLOW_KEY
+
+local guiVisible = true
+local guiMinimized = false
+local mobileWallhopGuiHidden = false
+local mobileMenuOpen = false
+
+local waitingForHideKey = false
+local waitingForToggleKey = false
+local waitingForBeastSlowKey = false
 
 local lastHitPosition = nil
 local MIN_HIT_DISTANCE = 0.2
@@ -77,6 +69,148 @@ local SLOW_WALKSPEED = 9
 local DEFAULT_WALKSPEED = 16
 local slowToken = 0
 local scriptSlowActive = false
+
+-- GUI REFS
+local ScreenGui
+local MainFrame
+local MiniButton
+local MobileButton
+local MobileMenuButton
+local MobilePanel
+local MobileBeastSlowButton
+local MobileHideWallhopButton
+local ToggleButton
+local HideGuiBindButton
+local ToggleBindButton
+local BeastSlowBindButton
+local Notice
+local NoticeStroke
+
+-- SETTINGS
+local function safeKeyCodeFromName(name, fallback)
+	if typeof(name) ~= "string" then
+		return fallback
+	end
+
+	local ok, result = pcall(function()
+		return Enum.KeyCode[name]
+	end)
+
+	if ok and result then
+		return result
+	end
+
+	return fallback
+end
+
+local function saveSettings()
+	if not writefile or not isfile then
+		return
+	end
+
+	local data = {
+		hideGuiKey = hideGuiKey.Name,
+		toggleScriptKey = toggleScriptKey.Name,
+		toggleBeastSlowKey = toggleBeastSlowKey.Name,
+	}
+
+	pcall(function()
+		writefile(SETTINGS_FILE, HttpService:JSONEncode(data))
+	end)
+end
+
+local function loadSettings()
+	if not readfile or not isfile then
+		return
+	end
+
+	if not isfile(SETTINGS_FILE) then
+		return
+	end
+
+	local ok, decoded = pcall(function()
+		return HttpService:JSONDecode(readfile(SETTINGS_FILE))
+	end)
+
+	if ok and decoded then
+		hideGuiKey = safeKeyCodeFromName(decoded.hideGuiKey, DEFAULT_HIDE_GUI_KEY)
+		toggleScriptKey = safeKeyCodeFromName(decoded.toggleScriptKey, DEFAULT_TOGGLE_SCRIPT_KEY)
+		toggleBeastSlowKey = safeKeyCodeFromName(decoded.toggleBeastSlowKey, DEFAULT_TOGGLE_BEAST_SLOW_KEY)
+	end
+end
+
+loadSettings()
+
+local function addTrueRoundedShadow(parent, cornerRadius, strength, shadowColor)
+	strength = strength or 1
+	shadowColor = shadowColor or Color3.fromRGB(0, 0, 0)
+
+	local layers = {
+		{grow = math.floor(6 * strength), transparency = 0.84, y = 1},
+		{grow = math.floor(12 * strength), transparency = 0.90, y = 2},
+		{grow = math.floor(18 * strength), transparency = 0.95, y = 3},
+	}
+
+	for _, cfg in ipairs(layers) do
+		local shadow = Instance.new("Frame")
+		shadow.Name = "TrueShadow"
+		shadow.AnchorPoint = Vector2.new(0.5, 0.5)
+		shadow.Position = UDim2.new(0.5, 0, 0.5, cfg.y)
+		shadow.Size = UDim2.new(1, cfg.grow, 1, cfg.grow)
+		shadow.BackgroundColor3 = shadowColor
+		shadow.BackgroundTransparency = cfg.transparency
+		shadow.BorderSizePixel = 0
+		shadow.ZIndex = 0
+		shadow.Parent = parent
+		Instance.new("UICorner", shadow).CornerRadius = UDim.new(0, cornerRadius + math.floor(cfg.grow / 2.2))
+	end
+end
+
+local function noTextStroke(obj)
+	obj.TextStrokeTransparency = 1
+end
+
+local activeNoticeId = 0
+local function showNotice(text)
+	if selectedMode ~= "PC" or not Notice or not NoticeStroke then
+		return
+	end
+
+	activeNoticeId += 1
+	local noticeId = activeNoticeId
+
+	Notice.Text = text
+	Notice.Position = UDim2.new(1, 240, 0, 0)
+	Notice.TextTransparency = 1
+	Notice.BackgroundTransparency = 0.08
+	NoticeStroke.Transparency = 1
+
+	TweenService:Create(Notice, TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+		Position = UDim2.new(1, 0, 0, 0),
+		TextTransparency = 0
+	}):Play()
+
+	TweenService:Create(NoticeStroke, TweenInfo.new(0.14), {
+		Transparency = 0.9
+	}):Play()
+
+	task.spawn(function()
+		task.wait(1)
+		if noticeId ~= activeNoticeId then
+			return
+		end
+
+		TweenService:Create(Notice, TweenInfo.new(0.24, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+			Position = UDim2.new(1, 250, 0, 0),
+			TextTransparency = 1,
+			BackgroundTransparency = 1
+		}):Play()
+
+		TweenService:Create(NoticeStroke, TweenInfo.new(0.2), {
+			Transparency = 1
+		}):Play()
+	end)
+end
 
 local function clearScriptSlowInstant()
 	slowToken += 1
@@ -120,6 +254,87 @@ local function applyWallhopSlow(hum)
 			hum.WalkSpeed = DEFAULT_WALKSPEED
 		end
 	end)
+end
+
+local function updateToggleButton()
+	if selectedMode == "PC" and ToggleButton then
+		ToggleButton.Text = isWallHopEnabled and "Wall Hop On" or "Wall Hop Off"
+	elseif selectedMode == "Mobile" and MobileButton then
+		MobileButton.Text = isWallHopEnabled and "Wallhop On" or "Wallhop Off"
+	end
+end
+
+local function updateMobilePanelButtons()
+	if MobileBeastSlowButton then
+		MobileBeastSlowButton.Text = isSlowEnabled and "Beast Slow On" or "Beast Slow Off"
+	end
+	if MobileHideWallhopButton then
+		MobileHideWallhopButton.Text = mobileWallhopGuiHidden and "Hide wallhop GUI On" or "Hide wallhop GUI Off"
+	end
+end
+
+local function updateBindButtons()
+	if selectedMode ~= "PC" then
+		return
+	end
+
+	if HideGuiBindButton then
+		HideGuiBindButton.Text = waitingForHideKey and "Press any key..." or ("Keybind Hide GUI: " .. hideGuiKey.Name)
+	end
+	if ToggleBindButton then
+		ToggleBindButton.Text = waitingForToggleKey and "Press any key..." or ("Keybind Toggle Wallhop: " .. toggleScriptKey.Name)
+	end
+	if BeastSlowBindButton then
+		BeastSlowBindButton.Text = waitingForBeastSlowKey and "Press any key..." or ("Keybind Toggle Beast Slow: " .. toggleBeastSlowKey.Name)
+	end
+end
+
+local function applyVisibility()
+	if selectedMode == "PC" then
+		if MainFrame then
+			MainFrame.Visible = guiVisible and not guiMinimized
+		end
+		if MiniButton then
+			MiniButton.Visible = guiVisible and guiMinimized
+		end
+	elseif selectedMode == "Mobile" then
+		if MobileButton then
+			MobileButton.Visible = guiVisible and not mobileWallhopGuiHidden
+		end
+		if MobileMenuButton then
+			MobileMenuButton.Visible = true
+		end
+		if MobilePanel then
+			MobilePanel.Visible = mobileMenuOpen
+		end
+	end
+end
+
+local function setGuiVisible(state)
+	guiVisible = state
+	applyVisibility()
+	showNotice(state and "GUI shown" or "GUI hidden")
+end
+
+local function setMinimized(state)
+	if selectedMode ~= "PC" then
+		return
+	end
+
+	guiMinimized = state
+	applyVisibility()
+
+	if state then
+		if MiniButton and MainFrame then
+			MiniButton.Position = MainFrame.Position
+		end
+		showNotice("GUI minimized")
+	else
+		if MainFrame and MiniButton then
+			MainFrame.Position = MiniButton.Position
+		end
+		showNotice("GUI restored")
+	end
 end
 
 local function isCrouching(hum, hrp)
@@ -172,7 +387,6 @@ local function setupCharacter(char)
 		end
 	end)
 end
-
 if LocalPlayer.Character then
 	setupCharacter(LocalPlayer.Character)
 end
@@ -275,7 +489,6 @@ local function performVideoFlick()
 		return
 	end
 
-	-- pulo natural / sem boost artificial
 	hum:ChangeState(Enum.HumanoidStateType.Jumping)
 
 	local baseYaw = hrp.Orientation.Y
@@ -433,9 +646,8 @@ local function isWithinWallhopAngle(cameraLook, wallNormal, maxAngleDeg)
 	local normal = Vector3.new(wallNormal.X, 0, wallNormal.Z)
 
 	if look.Magnitude <= 0 or normal.Magnitude <= 0 then
-		return false
+ 		return false
 	end
-
 	look = look.Unit
 	normal = normal.Unit
 
@@ -446,6 +658,471 @@ local function isWithinWallhopAngle(cameraLook, wallNormal, maxAngleDeg)
 	local backAngle = math.deg(math.acos(dotBack))
 
 	return frontAngle <= maxAngleDeg or backAngle <= maxAngleDeg
+end
+
+local function createModeSelector(onPick)
+	local selectorGui = Instance.new("ScreenGui")
+	selectorGui.Name = "WallhopModeSelector"
+	selectorGui.ResetOnSpawn = false
+	selectorGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+	selectorGui.Parent = PlayerGui
+
+	local frame = Instance.new("Frame")
+	frame.Size = UDim2.new(0, 280, 0, 170)
+	frame.Position = UDim2.new(0.5, -140, 0.5, -85)
+	frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+	frame.BorderSizePixel = 0
+	frame.Parent = selectorGui
+	Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 16)
+
+	addTrueRoundedShadow(frame, 16, 1.45, Color3.fromRGB(0, 0, 0))
+
+	local title = Instance.new("TextLabel")
+	title.Size = UDim2.new(1, -20, 0, 28)
+	title.Position = UDim2.new(0, 10, 0, 10)
+	title.BackgroundTransparency = 1
+	title.Text = "Choose Version"
+	title.TextColor3 = Color3.fromRGB(255,255,255)
+	title.Font = Enum.Font.GothamBold
+	title.TextSize = 22
+	title.Parent = frame
+	noTextStroke(title)
+
+	local sub = Instance.new("TextLabel")
+	sub.Size = UDim2.new(1, -20, 0, 16)
+	sub.Position = UDim2.new(0, 10, 0, 34)
+	sub.BackgroundTransparency = 1
+	sub.Text = "FtF Wallhop • made by nyhito"
+	sub.TextColor3 = Color3.fromRGB(95,95,95)
+	sub.Font = Enum.Font.Gotham
+	sub.TextSize = 12
+	sub.Parent = frame
+	noTextStroke(sub)
+
+	local pcButton = Instance.new("TextButton")
+	pcButton.Size = UDim2.new(1, -20, 0, 42)
+	pcButton.Position = UDim2.new(0, 10, 0, 68)
+	pcButton.BackgroundColor3 = Color3.fromRGB(3, 3, 3)
+	pcButton.Text = "PC Version"
+	pcButton.TextColor3 = Color3.fromRGB(255,255,255)
+	pcButton.Font = Enum.Font.GothamBold
+	pcButton.TextSize = 17
+	pcButton.Parent = frame
+	Instance.new("UICorner", pcButton).CornerRadius = UDim.new(0, 12)
+	noTextStroke(pcButton)
+
+	local mobileButton = Instance.new("TextButton")
+	mobileButton.Size = UDim2.new(1, -20, 0, 42)
+	mobileButton.Position = UDim2.new(0, 10, 0, 116)
+	mobileButton.BackgroundColor3 = Color3.fromRGB(3, 3, 3)
+	mobileButton.Text = "Mobile Version"
+	mobileButton.TextColor3 = Color3.fromRGB(255,255,255)
+	mobileButton.Font = Enum.Font.GothamBold
+	mobileButton.TextSize = 17
+	mobileButton.Parent = frame
+	Instance.new("UICorner", mobileButton).CornerRadius = UDim.new(0, 12)
+	noTextStroke(mobileButton)
+
+	pcButton.MouseButton1Click:Connect(function()
+		selectorGui:Destroy()
+		onPick("PC")
+	end)
+
+	mobileButton.MouseButton1Click:Connect(function()
+		selectorGui:Destroy()
+		onPick("Mobile")
+	end)
+end
+
+local function buildPCGui()
+	ScreenGui = Instance.new("ScreenGui")
+	ScreenGui.Name = "FtFWallhopGuiPC"
+	ScreenGui.ResetOnSpawn = false
+	ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+	ScreenGui.Parent = PlayerGui
+
+	MainFrame = Instance.new("Frame")
+	MainFrame.Name = "MainFrame"
+	MainFrame.Size = UDim2.new(0, 265, 0, 196)
+	MainFrame.Position = UDim2.new(0.5, -132, 0.5, -98)
+	MainFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+	MainFrame.BorderSizePixel = 0
+	MainFrame.Parent = ScreenGui
+	Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 16)
+
+	addTrueRoundedShadow(MainFrame, 16, 1, Color3.fromRGB(0, 0, 0))
+
+	local TopBar = Instance.new("Frame")
+	TopBar.Name = "TopBar"
+	TopBar.Size = UDim2.new(1, 0, 0, 40)
+	TopBar.BackgroundTransparency = 1
+	TopBar.Parent = MainFrame
+
+	local Title = Instance.new("TextLabel")
+	Title.Size = UDim2.new(1, -44, 0, 22)
+	Title.Position = UDim2.new(0, 12, 0, 7)
+	Title.BackgroundTransparency = 1
+	Title.Text = "FtF Wallhop"
+	Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+	Title.Font = Enum.Font.GothamBold
+	Title.TextSize = 19
+	Title.TextXAlignment = Enum.TextXAlignment.Left
+	Title.Parent = TopBar
+	noTextStroke(Title)
+
+	local SubTitle = Instance.new("TextLabel")
+	SubTitle.Size = UDim2.new(1, -44, 0, 12)
+	SubTitle.Position = UDim2.new(0, 12, 0, 25)
+	SubTitle.BackgroundTransparency = 1
+	SubTitle.Text = "PC Version"
+	SubTitle.TextColor3 = Color3.fromRGB(110, 110, 110)
+	SubTitle.Font = Enum.Font.Gotham
+	SubTitle.TextSize = 10
+	SubTitle.TextXAlignment = Enum.TextXAlignment.Left
+	SubTitle.Parent = TopBar
+	noTextStroke(SubTitle)
+
+	local MinimizeButton = Instance.new("TextButton")
+	MinimizeButton.Size = UDim2.new(0, 22, 0, 22)
+	MinimizeButton.Position = UDim2.new(1, -29, 0, 8)
+	MinimizeButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+	MinimizeButton.Text = "—"
+	MinimizeButton.TextColor3 = Color3.fromRGB(225, 225, 225)
+	MinimizeButton.Font = Enum.Font.GothamBold
+	MinimizeButton.TextSize = 14
+	MinimizeButton.Parent = TopBar
+	Instance.new("UICorner", MinimizeButton).CornerRadius = UDim.new(1, 0)
+	noTextStroke(MinimizeButton)
+
+	local ContentFrame = Instance.new("Frame")
+	ContentFrame.Name = "ContentFrame"
+	ContentFrame.Size = UDim2.new(1, -18, 1, -46)
+	ContentFrame.Position = UDim2.new(0, 9, 0, 38)
+	ContentFrame.BackgroundTransparency = 1
+	ContentFrame.Parent = MainFrame
+
+	ToggleButton = Instance.new("TextButton")
+	ToggleButton.Size = UDim2.new(1, 0, 0, 34)
+	ToggleButton.Position = UDim2.new(0, 0, 0, 0)
+	ToggleButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+	ToggleButton.Text = "Wall Hop Off"
+	ToggleButton.TextColor3 = Color3.fromRGB(255,255,255)
+	ToggleButton.Font = Enum.Font.GothamBold
+	ToggleButton.TextSize = 17
+	ToggleButton.TextXAlignment = Enum.TextXAlignment.Left
+	ToggleButton.Parent = ContentFrame
+	Instance.new("UICorner", ToggleButton).CornerRadius = UDim.new(0, 12)
+	noTextStroke(ToggleButton)
+
+	local TogglePadding = Instance.new("UIPadding")
+	TogglePadding.PaddingLeft = UDim.new(0, 14)
+	TogglePadding.Parent = ToggleButton
+
+	HideGuiBindButton = Instance.new("TextButton")
+	HideGuiBindButton.Size = UDim2.new(1, 0, 0, 28)
+	HideGuiBindButton.Position = UDim2.new(0, 0, 0, 40)
+	HideGuiBindButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+	HideGuiBindButton.Text = "Keybind Hide GUI: RightShift"
+	HideGuiBindButton.TextColor3 = Color3.fromRGB(225,225,225)
+	HideGuiBindButton.Font = Enum.Font.Gotham
+	HideGuiBindButton.TextSize = 12
+	HideGuiBindButton.TextXAlignment = Enum.TextXAlignment.Left
+	HideGuiBindButton.Parent = ContentFrame
+	Instance.new("UICorner", HideGuiBindButton).CornerRadius = UDim.new(0, 11)
+	noTextStroke(HideGuiBindButton)
+
+	local HidePadding = Instance.new("UIPadding")
+	HidePadding.PaddingLeft = UDim.new(0, 14)
+	HidePadding.Parent = HideGuiBindButton
+
+	ToggleBindButton = Instance.new("TextButton")
+	ToggleBindButton.Size = UDim2.new(1, 0, 0, 28)
+	ToggleBindButton.Position = UDim2.new(0, 0, 0, 72)
+	ToggleBindButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+	ToggleBindButton.Text = "Keybind Toggle Wallhop: Q"
+	ToggleBindButton.TextColor3 = Color3.fromRGB(225,225,225)
+	ToggleBindButton.Font = Enum.Font.Gotham
+	ToggleBindButton.TextSize = 12
+	ToggleBindButton.TextXAlignment = Enum.TextXAlignment.Left
+	ToggleBindButton.Parent = ContentFrame
+	Instance.new("UICorner", ToggleBindButton).CornerRadius = UDim.new(0, 11)
+	noTextStroke(ToggleBindButton)
+
+	local ToggleBindPadding = Instance.new("UIPadding")
+	ToggleBindPadding.PaddingLeft = UDim.new(0, 14)
+	ToggleBindPadding.Parent = ToggleBindButton
+
+	BeastSlowBindButton = Instance.new("TextButton")
+	BeastSlowBindButton.Size = UDim2.new(1, 0, 0, 28)
+	BeastSlowBindButton.Position = UDim2.new(0, 0, 0, 104)
+	BeastSlowBindButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+	BeastSlowBindButton.Text = "Keybind Toggle Beast Slow: E"
+	BeastSlowBindButton.TextColor3 = Color3.fromRGB(225,225,225)
+	BeastSlowBindButton.Font = Enum.Font.Gotham
+	BeastSlowBindButton.TextSize = 12
+	BeastSlowBindButton.TextXAlignment = Enum.TextXAlignment.Left
+	BeastSlowBindButton.Parent = ContentFrame
+	Instance.new("UICorner", BeastSlowBindButton).CornerRadius = UDim.new(0, 11)
+	noTextStroke(BeastSlowBindButton)
+
+	local BeastSlowBindPadding = Instance.new("UIPadding")
+	BeastSlowBindPadding.PaddingLeft = UDim.new(0, 14)
+	BeastSlowBindPadding.Parent = BeastSlowBindButton
+
+	local BottomLabel = Instance.new("TextLabel")
+	BottomLabel.Size = UDim2.new(1, -2, 0, 12)
+	BottomLabel.Position = UDim2.new(0, 2, 1, -14)
+	BottomLabel.BackgroundTransparency = 1
+	BottomLabel.Text = "the best ftf wallhop ever - nyhito panel"
+	BottomLabel.TextColor3 = Color3.fromRGB(85, 85, 85)
+	BottomLabel.Font = Enum.Font.Gotham
+	BottomLabel.TextSize = 8
+	BottomLabel.TextXAlignment = Enum.TextXAlignment.Left
+	BottomLabel.Parent = ContentFrame
+	noTextStroke(BottomLabel)
+
+	MiniButton = Instance.new("TextButton")
+	MiniButton.Name = "MiniButton"
+	MiniButton.Size = UDim2.new(0, 140, 0, 36)
+	MiniButton.Position = UDim2.new(0.5, -70, 0.5, -18)
+	MiniButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+	MiniButton.Visible = false
+	MiniButton.Text = "FtF Wallhop"
+	MiniButton.TextColor3 = Color3.fromRGB(255,255,255)
+	MiniButton.Font = Enum.Font.GothamBold
+	MiniButton.TextSize = 14
+	MiniButton.Parent = ScreenGui
+	Instance.new("UICorner", MiniButton).CornerRadius = UDim.new(1, 0)
+	noTextStroke(MiniButton)
+
+	addTrueRoundedShadow(MiniButton, 999, 0.8, Color3.fromRGB(0, 0, 0))
+
+	local NoticeHolder = Instance.new("Frame")
+	NoticeHolder.Name = "NoticeHolder"
+	NoticeHolder.AnchorPoint = Vector2.new(1, 0)
+	NoticeHolder.Position = UDim2.new(1, -10, 0, 8)
+	NoticeHolder.Size = UDim2.new(0, 210, 0, 28)
+	NoticeHolder.BackgroundTransparency = 1
+	NoticeHolder.Parent = ScreenGui
+
+	Notice = Instance.new("TextLabel")
+	Notice.AnchorPoint = Vector2.new(1, 0)
+	Notice.Position = UDim2.new(1, 240, 0, 0)
+	Notice.Size = UDim2.new(0, 200, 0, 26)
+	Notice.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+	Notice.BackgroundTransparency = 0.08
+	Notice.TextTransparency = 1
+	Notice.Text = ""
+	Notice.TextColor3 = Color3.fromRGB(255,255,255)
+	Notice.Font = Enum.Font.GothamBold
+	Notice.TextSize = 11
+	Notice.TextXAlignment = Enum.TextXAlignment.Center
+	Notice.Parent = NoticeHolder
+	Instance.new("UICorner", Notice).CornerRadius = UDim.new(1, 0)
+	noTextStroke(Notice)
+	NoticeStroke = Instance.new("UIStroke")
+	NoticeStroke.Color = Color3.fromRGB(0,0,0)
+	NoticeStroke.Transparency = 1
+	NoticeStroke.Thickness = 1
+	NoticeStroke.Parent = Notice
+
+	local dragging = false
+	local dragStart
+	local startPos
+	local dragTarget = MainFrame
+
+	local function beginDrag(input, target)
+		dragging = true
+		dragTarget = target
+		dragStart = input.Position
+		startPos = target.Position
+	end
+
+	local function updateDrag(input)
+		if not dragging or not dragTarget then
+			return
+		end
+
+		local delta = input.Position - dragStart
+		dragTarget.Position = UDim2.new(
+			startPos.X.Scale,
+			startPos.X.Offset + delta.X,
+			startPos.Y.Scale,
+			startPos.Y.Offset + delta.Y
+		)
+	end
+
+	local function bindDrag(handle, target)
+		handle.InputBegan:Connect(function(input)
+			if input.UserInputType == Enum.UserInputType.MouseButton1 then
+				beginDrag(input, target)
+				input.Changed:Connect(function()
+					if input.UserInputState == Enum.UserInputState.End then
+						dragging = false
+					end
+				end)
+			end
+		end)
+	end
+
+	bindDrag(TopBar, MainFrame)
+	bindDrag(MiniButton, MiniButton)
+
+	UserInputService.InputChanged:Connect(function(input)
+		if selectedMode == "PC" and input.UserInputType == Enum.UserInputType.MouseMovement then
+			updateDrag(input)
+		end
+	end)
+
+	MinimizeButton.MouseButton1Click:Connect(function()
+		setMinimized(true)
+	end)
+
+	MiniButton.MouseButton1Click:Connect(function()
+		setMinimized(false)
+	end)
+
+	HideGuiBindButton.MouseButton1Click:Connect(function()
+		waitingForHideKey = true
+		waitingForToggleKey = false
+		waitingForBeastSlowKey = false
+		updateBindButtons()
+		showNotice("Press a key...")
+	end)
+
+	ToggleBindButton.MouseButton1Click:Connect(function()
+		waitingForToggleKey = true
+		waitingForHideKey = false
+		waitingForBeastSlowKey = false
+		updateBindButtons()
+		showNotice("Press a key...")
+	end)
+
+	BeastSlowBindButton.MouseButton1Click:Connect(function()
+		waitingForBeastSlowKey = true
+		waitingForHideKey = false
+		waitingForToggleKey = false
+		updateBindButtons()
+		showNotice("Press a key...")
+	end)
+
+	ToggleButton.MouseButton1Click:Connect(function()
+		isWallHopEnabled = not isWallHopEnabled
+		updateToggleButton()
+		showNotice(isWallHopEnabled and "Wallhop enabled" or "Wallhop disabled")
+	end)
+
+	RunService.RenderStepped:Connect(function()
+		if selectedMode ~= "PC" then return end
+		local inset = GuiService:GetGuiInset()
+		if guiVisible and not dragging then
+			if not guiMinimized and MainFrame.Position == UDim2.new(0.5, -132, 0.5, -98) then
+				MainFrame.Position = UDim2.new(0.5, -132, 0.5, -98 + inset.Y / 2)
+			end
+		end
+	end)
+
+	showNotice("PC version loaded")
+end
+
+local function buildMobileGui()
+	ScreenGui = Instance.new("ScreenGui")
+	ScreenGui.Name = "AutoWallHopGuiMobile"
+	ScreenGui.ResetOnSpawn = false
+	ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+	ScreenGui.Parent = PlayerGui
+
+	MobileButton = Instance.new("TextButton")
+	MobileButton.Size = UDim2.new(0, 140, 0, 50)
+	MobileButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+	MobileButton.Text = "Wallhop Off"
+	MobileButton.TextColor3 = Color3.fromRGB(255,255,255)
+	MobileButton.Font = Enum.Font.GothamBold
+	MobileButton.TextScaled = true
+	MobileButton.Parent = ScreenGui
+	Instance.new("UICorner", MobileButton).CornerRadius = UDim.new(0, 12)
+	noTextStroke(MobileButton)
+
+	addTrueRoundedShadow(MobileButton, 14, 1, Color3.fromRGB(0, 0, 0))
+
+	MobileMenuButton = Instance.new("TextButton")
+	MobileMenuButton.Size = UDim2.new(0, 54, 0, 54)
+	MobileMenuButton.Position = UDim2.new(0, 20, 0, 180)
+	MobileMenuButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+	MobileMenuButton.Text = "≡"
+	MobileMenuButton.TextColor3 = Color3.fromRGB(255,255,255)
+	MobileMenuButton.Font = Enum.Font.GothamBold
+	MobileMenuButton.TextSize = 22
+	MobileMenuButton.Parent = ScreenGui
+	Instance.new("UICorner", MobileMenuButton).CornerRadius = UDim.new(1, 0)
+	noTextStroke(MobileMenuButton)
+
+	addTrueRoundedShadow(MobileMenuButton, 999, 1, Color3.fromRGB(0, 0, 0))
+
+	MobilePanel = Instance.new("Frame")
+	MobilePanel.Size = UDim2.new(0, 180, 0, 118)
+	MobilePanel.Position = UDim2.new(0, 20, 0, 240)
+	MobilePanel.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+	MobilePanel.BorderSizePixel = 0
+	MobilePanel.Visible = false
+	MobilePanel.Parent = ScreenGui
+	Instance.new("UICorner", MobilePanel).CornerRadius = UDim.new(0, 14)
+
+	addTrueRoundedShadow(MobilePanel, 14, 1, Color3.fromRGB(0, 0, 0))
+
+	MobileBeastSlowButton = Instance.new("TextButton")
+	MobileBeastSlowButton.Size = UDim2.new(1, -16, 0, 44)
+	MobileBeastSlowButton.Position = UDim2.new(0, 8, 0, 8)
+	MobileBeastSlowButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+	MobileBeastSlowButton.TextColor3 = Color3.fromRGB(255,255,255)
+	MobileBeastSlowButton.Font = Enum.Font.GothamBold
+	MobileBeastSlowButton.TextScaled = true
+	MobileBeastSlowButton.Parent = MobilePanel
+	Instance.new("UICorner", MobileBeastSlowButton).CornerRadius = UDim.new(0, 12)
+	noTextStroke(MobileBeastSlowButton)
+
+	MobileHideWallhopButton = Instance.new("TextButton")
+	MobileHideWallhopButton.Size = UDim2.new(1, -16, 0, 44)
+	MobileHideWallhopButton.Position = UDim2.new(0, 8, 0, 60)
+	MobileHideWallhopButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+	MobileHideWallhopButton.TextColor3 = Color3.fromRGB(255,255,255)
+	MobileHideWallhopButton.Font = Enum.Font.GothamBold
+	MobileHideWallhopButton.TextScaled = true
+	MobileHideWallhopButton.Parent = MobilePanel
+	Instance.new("UICorner", MobileHideWallhopButton).CornerRadius = UDim.new(0, 12)
+	noTextStroke(MobileHideWallhopButton)
+
+	RunService.RenderStepped:Connect(function()
+		if selectedMode ~= "Mobile" then return end
+		local inset = GuiService:GetGuiInset()
+		MobileButton.Position = UDim2.new(0, 150, 0, inset.Y - 58)
+	end)
+
+	MobileButton.MouseButton1Click:Connect(function()
+		isWallHopEnabled = not isWallHopEnabled
+		updateToggleButton()
+	end)
+
+	MobileMenuButton.MouseButton1Click:Connect(function()
+		mobileMenuOpen = not mobileMenuOpen
+		applyVisibility()
+	end)
+
+	MobileBeastSlowButton.MouseButton1Click:Connect(function()
+		isSlowEnabled = not isSlowEnabled
+		if not isSlowEnabled then
+			clearScriptSlowInstant()
+		end
+		updateMobilePanelButtons()
+	end)
+
+	MobileHideWallhopButton.MouseButton1Click:Connect(function()
+		mobileWallhopGuiHidden = not mobileWallhopGuiHidden
+		updateMobilePanelButtons()
+		applyVisibility()
+	end)
+
+	updateMobilePanelButtons()
 end
 
 RunService.Heartbeat:Connect(function()
@@ -535,18 +1212,88 @@ RunService.Heartbeat:Connect(function()
 	end
 end)
 
-TextButton.MouseButton1Click:Connect(function()
-	isWallHopEnabled = not isWallHopEnabled
-	TextButton.Text = isWallHopEnabled and "Wall Hop On" or "Wall Hop Off"
-end)
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if selectedMode ~= "PC" then return end
+	if gameProcessed then return end
+	if input.UserInputType ~= Enum.UserInputType.Keyboard then return end
 
-SlowButton.MouseButton1Click:Connect(function()
-	isSlowEnabled = not isSlowEnabled
-	SlowButton.Text = isSlowEnabled and "Slow On" or "Slow Off"
+	local key = input.KeyCode
+	if key == Enum.KeyCode.Unknown then return end
 
-	if not isSlowEnabled then
-		clearScriptSlowInstant()
+	if waitingForHideKey then
+		if key ~= toggleScriptKey and key ~= toggleBeastSlowKey then
+			hideGuiKey = key
+			waitingForHideKey = false
+			updateBindButtons()
+			saveSettings()
+			showNotice("Hide GUI updated")
+		else
+			showNotice("Key already in use")
+		end
+		return
+	end
+
+	if waitingForToggleKey then
+		if key ~= hideGuiKey and key ~= toggleBeastSlowKey then
+			toggleScriptKey = key
+			waitingForToggleKey = false
+			updateBindButtons()
+			saveSettings()
+			showNotice("Wallhop key updated")
+		else
+			showNotice("Key already in use")
+		end
+		return
+	end
+
+	if waitingForBeastSlowKey then
+		if key ~= hideGuiKey and key ~= toggleScriptKey then
+			toggleBeastSlowKey = key
+			waitingForBeastSlowKey = false
+			updateBindButtons()
+			saveSettings()
+			showNotice("Beast Slow key updated")
+		else
+			showNotice("Key already in use")
+		end
+		return
+	end
+
+	if key == hideGuiKey then
+		setGuiVisible(not guiVisible)
+		return
+	end
+
+	if key == toggleScriptKey then
+		isWallHopEnabled = not isWallHopEnabled
+		updateToggleButton()
+		showNotice(isWallHopEnabled and "Wallhop enabled" or "Wallhop disabled")
+		return
+	end
+
+	if key == toggleBeastSlowKey then
+		isSlowEnabled = not isSlowEnabled
+		if not isSlowEnabled then
+			clearScriptSlowInstant()
+		end
+		showNotice(isSlowEnabled and "Beast Slow enabled" or "Beast Slow disabled")
+		return
 	end
 end)
 
-print("Made by netzwii | Humanoid Wallhop - Loaded Successfully ✅")
+createModeSelector(function(mode)
+	selectedMode = mode
+
+	if mode == "PC" then
+		buildPCGui()
+		updateBindButtons()
+	else
+		buildMobileGui()
+	end
+
+	updateToggleButton()
+	updateMobilePanelButtons()
+	applyVisibility()
+end)
+
+print("Made by nyhito | Best Flee The Facility Wallhop Script - Loaded Successfully ✅")
