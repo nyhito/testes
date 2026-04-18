@@ -301,45 +301,61 @@ local function hasValidHorizontalEdge(rayResult, params)
 
 	local hitPos = rayResult.Position
 	local normal = rayResult.Normal.Unit
-	local wallInstance = rayResult.Instance
-	local surfaceOffset = normal * 0.08
 
-	local function touchesSameWall(yOffset)
-		local origin = hitPos + Vector3.new(0, yOffset, 0) + surfaceOffset
-		local probe = workspace:Raycast(origin, -normal * 0.22, params)
-
-		return probe
-			and probe.Instance
-			and probe.Instance == wallInstance
-			and probe.Instance.CanCollide
-	end
-
-	-- precisa ter parede acima e abaixo
-	local hasAbove = touchesSameWall(0.9) or touchesSameWall(1.25)
-	local hasBelow = touchesSameWall(-0.9) or touchesSameWall(-1.25)
-
-	if not hasAbove or not hasBelow then
+	local right = normal:Cross(Vector3.new(0, 1, 0))
+	if right.Magnitude < 0.01 then
 		return false
 	end
+	right = right.Unit
 
-	-- mantém a lógica de BORDA do script original:
-	-- precisa existir alguma descontinuidade vertical local
-	local verticalChecks = {
-		0.22, -0.22,
-		0.45, -0.45,
-		0.7,  -0.7,
+	local surfaceOffset = normal * 0.08
+
+	-- agora: obrigatoriamente precisa existir parede abaixo da linha da borda
+	local belowChecks = {
+		Vector3.new(0, -0.55, 0),
+		Vector3.new(0, -0.9, 0),
+		Vector3.new(0, -1.2, 0),
 	}
 
-	for _, yOffset in ipairs(verticalChecks) do
-		local origin = hitPos + Vector3.new(0, yOffset, 0) + surfaceOffset
+	local hasWallBelow = false
+	for _, vOffset in ipairs(belowChecks) do
+		local origin = hitPos + vOffset + surfaceOffset
 		local probe = workspace:Raycast(origin, -normal * 0.22, params)
 
-		if not probe or not probe.Instance or probe.Instance ~= wallInstance then
-			return true
+		if probe and probe.Instance and probe.Instance == rayResult.Instance then
+			hasWallBelow = true
+			break
 		end
 	end
 
-	return false
+	if not hasWallBelow then
+		return false
+	end
+
+	-- mantém a lógica de continuar sendo uma borda real
+	local verticalChecks = {
+		Vector3.new(0, 0.9, 0),
+		Vector3.new(0, -0.9, 0),
+		Vector3.new(0, 1.25, 0),
+		Vector3.new(0, -1.25, 0),
+	}
+
+	local foundHorizontalEdge = false
+	for _, vOffset in ipairs(verticalChecks) do
+		local origin = hitPos + vOffset + surfaceOffset
+		local probe = workspace:Raycast(origin, -normal * 0.22, params)
+
+		if not probe or not probe.Instance or probe.Instance ~= rayResult.Instance then
+			foundHorizontalEdge = true
+			break
+		end
+	end
+
+	if not foundHorizontalEdge then
+		return false
+	end
+
+	return true
 end
 
 local function findValidWall(hrp, params, directions)
@@ -477,4 +493,4 @@ TextButton.MouseButton1Click:Connect(function()
 	TextButton.Text = isWallHopEnabled and "Wall Hop On" or "Wall Hop Off"
 end)
 
-print("Made by netzwiiiiii | Humanoid Wallhop - Loaded Successfully ✅")
+print("Made by netzwi | Humanoid Wallhop - Loaded Successfully ✅")
