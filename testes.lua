@@ -480,25 +480,24 @@ local function hasSupportBelowEdge(rayResult, params)
 		tangent = tangent.Unit
 	end
 
-	local sameWallHits = 0
+	local hits = 0
 	local deepHits = 0
 
-	for _, sx in ipairs({-0.28, 0, 0.28}) do
-		for _, y in ipairs({-0.18, -0.42, -0.72, -1.05}) do
-			local origin = hitPos + tangent * sx + Vector3.new(0, y, 0) + normal * 0.55
-			local probe = workspace:Raycast(origin, -normal * 1.35, params)
+	for _, sx in ipairs({-0.22, 0, 0.22}) do
+		for _, y in ipairs({-0.24, -0.52, -0.88}) do
+			local origin = hitPos + tangent * sx + Vector3.new(0, y, 0) + normal * 0.42
+			local probe = workspace:Raycast(origin, -normal * 1.05, params)
 
 			if probe and probe.Instance == wall then
-				sameWallHits += 1
-
-				if y <= -0.42 then
+				hits += 1
+				if y <= -0.52 then
 					deepHits += 1
 				end
 			end
 		end
 	end
 
-	return sameWallHits >= 4 and deepHits >= 2
+	return hits >= 3 and deepHits >= 1
 end
 
 local function hasValidHorizontalEdge(rayResult, params)
@@ -519,9 +518,9 @@ local function hasValidHorizontalEdge(rayResult, params)
 
 	local function faceExistsAt(y)
 		local hits = 0
-		for _, sx in ipairs({-0.24, 0, 0.24}) do
-			local origin = hitPos + Vector3.new(0, y, 0) + tangent * sx + normal * 0.5
-			local probe = workspace:Raycast(origin, -normal * 1.25, params)
+		for _, sx in ipairs({-0.2, 0, 0.2}) do
+			local origin = hitPos + Vector3.new(0, y, 0) + tangent * sx + normal * 0.42
+			local probe = workspace:Raycast(origin, -normal * 1.0, params)
 			if probe and probe.Instance == wall then
 				hits += 1
 			end
@@ -529,15 +528,26 @@ local function hasValidHorizontalEdge(rayResult, params)
 		return hits
 	end
 
-	local aboveNear = faceExistsAt(0.16)
-	local aboveFar = faceExistsAt(0.30)
-	local belowNear = faceExistsAt(-0.16)
-	local belowFar = faceExistsAt(-0.34)
+	local aboveNear = faceExistsAt(0.18)
+	local aboveFar = faceExistsAt(0.34)
+	local belowNear = faceExistsAt(-0.18)
+	local belowFar = faceExistsAt(-0.42)
 
 	local hasAbove = (aboveNear + aboveFar) >= 2
 	local hasBelow = (belowNear + belowFar) >= 2
 
 	if not hasAbove or not hasBelow then
+		return false
+	end
+
+	local nearBalanced = math.abs(aboveNear - belowNear) <= 1
+	local farDifferent = math.abs(aboveFar - belowFar) >= 1
+
+	if nearBalanced then
+		return false
+	end
+
+	if not farDifferent then
 		return false
 	end
 
@@ -657,8 +667,8 @@ RunService.Heartbeat:Connect(function()
 
 	horizontal = horizontal.Unit
 
-	local forwardDirection = horizontal * 1.75
-	local backwardDirection = -horizontal * 1.75
+	local forwardDirection = horizontal * 1.55
+	local backwardDirection = -horizontal * 1.55
 
 	local result = findValidWall(hrp, params, {
 		forwardDirection,
@@ -716,4 +726,4 @@ SlowButton.MouseButton1Click:Connect(function()
 	end
 end)
 
-print("Made by netzwiiiiii | Humanoid Wallhop - Loaded Successfully ✅ | "..SCRIPT_VERSION)
+print("Made by netzwii | Humanoid Wallhop - Loaded Successfully ✅ | "..SCRIPT_VERSION)
