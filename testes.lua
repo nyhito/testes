@@ -47,10 +47,11 @@ local DOUBLE_JUMP_COOLDOWN = 3
 local blockDoubleJump = false
 
 local lastHitPosition = nil
-local MIN_HIT_DISTANCE = 0.2
+local MIN_HIT_DISTANCE = 0.08
 local lastFlickAngle = nil
 
-local airborneSource = nil
+-- queda: distinguir pulo x queda de borda
+local airborneSource = nil -- "jump" ou "ledge"
 local airborneStartY = nil
 local airborneStartTime = 0
 local jumpedRecently = false
@@ -97,6 +98,7 @@ local function setupCharacter(char)
 		if new == Enum.HumanoidStateType.Landed then
 			canDoubleJump = false
 			lastHitPosition = nil
+
 			airborneSource = nil
 			airborneStartY = nil
 			airborneStartTime = 0
@@ -291,10 +293,17 @@ local function isWallLikeSurface(normal)
 	return math.abs(normal.Y) < 0.35
 end
 
-local function hitsSameWallFace(hitPos, normal, yOffset, params, targetPart)
-	local outward = normal * 0.38
-	local origin = hitPos + Vector3.new(0, yOffset, 0) + outward
-	local probe = workspace:Raycast(origin, -normal * 0.9, params)
+local function hitsSameWallFace(hitPos, normal, yOffset, sideOffset, params, targetPart)
+	local outward = normal * 0.42
+	local tangent = normal:Cross(Vector3.new(0, 1, 0))
+	if tangent.Magnitude < 0.001 then
+		tangent = Vector3.new(1, 0, 0)
+	else
+		tangent = tangent.Unit
+	end
+
+	local origin = hitPos + Vector3.new(0, yOffset, 0) + tangent * sideOffset + outward
+	local probe = workspace:Raycast(origin, -normal * 1.05, params)
 
 	return probe and probe.Instance == targetPart
 end
@@ -308,53 +317,55 @@ local function hasValidHorizontalEdge(rayResult, params)
 	local normal = rayResult.Normal.Unit
 	local hitPart = rayResult.Instance
 
-	local belowSamples = {
-		-0.20,
-		-0.45,
-		-0.75,
-		-1.05,
-		-1.35
-	}
+	local sideSamples = {-0.18, 0, 0.18}
 
-	local hasWallBelow = false
-	for _, y in ipairs(belowSamples) do
-		if hitsSameWallFace(hitPos, normal, y, params, hitPart) then
-			hasWallBelow = true
-			break
+	-- precisa existir parede abaixo da linha
+	local belowHeights = {-0.18, -0.38, -0.62, -0.9, -1.2}
+	local belowHits = 0
+
+	for _, y in ipairs(belowHeights) do
+		for _, sx in ipairs(sideSamples) do
+			if hitsSameWallFace(hitPos, normal, y, sx, params, hitPart) then
+				belowHits += 1
+			end
 		end
 	end
 
-	if not hasWallBelow then
+	if belowHits < 3 then
 		return false
 	end
 
-	local aboveSamples = {0.22, 0.48, 0.75, 1.05}
-	local belowEdgeSamples = {-0.22, -0.48, -0.75, -1.05}
+	-- checa região acima
+	local aboveHeights = {0.18, 0.38, 0.62, 0.9}
+	local aboveHits = 0
 
-	local hasWallAbove = false
-	for _, y in ipairs(aboveSamples) do
-		if hitsSameWallFace(hitPos, normal, y, params, hitPart) then
-			hasWallAbove = true
-			break
+	for _, y in ipairs(aboveHeights) do
+		for _, sx in ipairs(sideSamples) do
+			if hitsSameWallFace(hitPos, normal, y, sx, params, hitPart) then
+				aboveHits += 1
+			end
 		end
 	end
 
-	local hasWallDirectlyBelow = false
-	for _, y in ipairs(belowEdgeSamples) do
-		if hitsSameWallFace(hitPos, normal, y, params, hitPart) then
-			hasWallDirectlyBelow = true
-			break
+	-- transição real perto da linha
+	local nearAbove = 0
+	local nearBelow = 0
+
+	for _, sx in ipairs(sideSamples) do
+		if hitsSameWallFace(hitPos, normal, 0.14, sx, params, hitPart) then
+			nearAbove += 1
+		end
+		if hitsSameWallFace(hitPos, normal, -0.14, sx, params, hitPart) then
+			nearBelow += 1
 		end
 	end
-
-	if hasWallAbove == hasWallDirectlyBelow then
-		return false
-	end
-
-	local nearAbove = hitsSameWallFace(hitPos, normal, 0.18, params, hitPart)
-	local nearBelow = hitsSameWallFace(hitPos, normal, -0.18, params, hitPart)
 
 	if nearAbove == nearBelow then
+		return false
+	end
+
+	-- evita detectar parede inteira
+	if aboveHits >= 6 and belowHits >= 6 then
 		return false
 	end
 
@@ -363,10 +374,15 @@ end
 
 local function findValidWall(hrp, params, directions)
 	local offsets = {
-		Vector3.new(0, -2.3, 0),
+		Vector3.new(0, -2.35, 0),
 		Vector3.new(0, -2.2, 0),
-		Vector3.new(0, -1.2, 0)
+		Vector3.new(0, -2.0, 0),
+		Vector3.new(0, -1.7, 0),
+		Vector3.new(0, -1.35, 0)
 	}
+
+	local bestRay = nil
+	local bestScore = -1
 
 	for _, dir in ipairs(directions) do
 		for _, offset in ipairs(offsets) do
@@ -374,14 +390,21 @@ local function findValidWall(hrp, params, directions)
 			local ray = workspace:Raycast(origin, dir, params)
 
 			if ray and ray.Instance and ray.Instance.CanCollide and not isPlayerCharacter(ray.Instance) then
-				if isWallLikeSurface(ray.Normal) and hasValidHorizontalEdge(ray, params) then
-					return ray
+				if isWallLikeSurface(ray.Normal) then
+					if hasValidHorizontalEdge(ray, params) then
+						local score = math.abs(offset.Y)
+
+						if score > bestScore then
+							bestScore = score
+							bestRay = ray
+						end
+					end
 				end
 			end
 		end
 	end
 
-	return nil
+	return bestRay
 end
 
 local function isWithinWallhopAngle(cameraLook, wallNormal, maxAngleDeg)
@@ -476,7 +499,7 @@ RunService.Heartbeat:Connect(function()
 				farEnough = (result.Position - lastHitPosition).Magnitude >= MIN_HIT_DISTANCE
 			end
 
-			if hrp.Velocity.Y < -0.8 and tick() - lastFlickTime > WALLHOP_COOLDOWN and farEnough then
+			if hrp.Velocity.Y < -0.5 and tick() - lastFlickTime > WALLHOP_COOLDOWN and farEnough then
 				lastFlickTime = tick()
 				lastHitPosition = result.Position
 				performVideoFlick()
@@ -496,4 +519,4 @@ TextButton.MouseButton1Click:Connect(function()
 	TextButton.Text = isWallHopEnabled and "Wall Hop On" or "Wall Hop Off"
 end)
 
-print("Made by netzwiiiiii | Humanoid Wallhop - Loaded Successfully ✅")
+print("Made by netzwi | Humanoid Wallhop - Loaded Successfully ✅")
