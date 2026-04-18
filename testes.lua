@@ -75,10 +75,14 @@ local LEDGE_BLOCK_TIME = 0.20
 local SLOW_DURATION = 0.8
 local SLOW_WALKSPEED = 9
 local slowToken = 0
-local pendingSlowOnLanding = false
+local scriptSlowActive = false
 
 local function isCrouching(hum, hrp)
 	if not hum or not hrp then
+		return false
+	end
+
+	if scriptSlowActive then
 		return false
 	end
 
@@ -86,7 +90,7 @@ local function isCrouching(hum, hrp)
 	return hum.WalkSpeed <= 9 and horizontalSpeed < 8
 end
 
-local function applyManualSlow(hum)
+local function applyWallhopSlow(hum)
 	if not hum or not hum.Parent or not isSlowEnabled then
 		return
 	end
@@ -95,10 +99,12 @@ local function applyManualSlow(hum)
 	local myToken = slowToken
 	local oldWalkSpeed = hum.WalkSpeed
 
+	scriptSlowActive = true
 	hum.WalkSpeed = SLOW_WALKSPEED
 
 	task.delay(SLOW_DURATION, function()
 		if not hum or not hum.Parent then
+			scriptSlowActive = false
 			return
 		end
 
@@ -107,21 +113,16 @@ local function applyManualSlow(hum)
 		end
 
 		hum.WalkSpeed = oldWalkSpeed
+		scriptSlowActive = false
 	end)
-end
-
-local function queueLandingSlow()
-	if isSlowEnabled then
-		pendingSlowOnLanding = true
-	end
 end
 
 local function setupCharacter(char)
 	local hum = char:WaitForChild("Humanoid")
 	local hrp = char:WaitForChild("HumanoidRootPart")
 
-	pendingSlowOnLanding = false
 	slowToken = 0
+	scriptSlowActive = false
 
 	hum.StateChanged:Connect(function(_, new)
 		if new == Enum.HumanoidStateType.Jumping then
@@ -149,13 +150,6 @@ local function setupCharacter(char)
 		if new == Enum.HumanoidStateType.Landed then
 			canDoubleJump = false
 			lastHitPosition = nil
-
-			if pendingSlowOnLanding and isSlowEnabled then
-				pendingSlowOnLanding = false
-				applyManualSlow(hum)
-			else
-				pendingSlowOnLanding = false
-			end
 
 			airborneSource = nil
 			airborneStartY = nil
@@ -193,8 +187,6 @@ UserInputService.JumpRequest:Connect(function()
 
 		hrp.Velocity = Vector3.new(hrp.Velocity.X, 30, hrp.Velocity.Z)
 		hum:ChangeState(Enum.HumanoidStateType.Jumping)
-
-		queueLandingSlow()
 
 		task.delay(0.18, function()
 			if hum then
@@ -329,6 +321,10 @@ local function performVideoFlick()
 
 	hrp.CFrame = CFrame.new(hrp.Position) * CFrame.Angles(0, math.rad(baseYaw), 0)
 
+	if isSlowEnabled then
+		applyWallhopSlow(hum)
+	end
+
 	task.delay(0.05, function()
 		blockDoubleJump = false
 	end)
@@ -336,15 +332,6 @@ local function performVideoFlick()
 	task.delay(0.15, function()
 		isWallHopping = false
 	end)
-
-	-- wallhop conta como landed pro slow
-	if isSlowEnabled then
-		task.delay(0.02, function()
-			if hum and hum.Parent then
-				applyManualSlow(hum)
-			end
-		end)
-	end
 
 	isFlicking = false
 end
@@ -605,4 +592,4 @@ SlowButton.MouseButton1Click:Connect(function()
 	SlowButton.Text = isSlowEnabled and "Slow On" or "Slow Off"
 end)
 
-print("Made by nettttzwiiiiii | Humanoid Wallhop - Loaded Successfully ✅")
+print("Made by netzwiiiiii | HHHHHumanoid Wallhop - Loaded Successfully ✅")
