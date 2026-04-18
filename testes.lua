@@ -10,6 +10,21 @@ local UserInputService = game:GetService("UserInputService")
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 local Camera = workspace.CurrentCamera
 
+-- kill previous gui / previous session
+local SCRIPT_VERSION = "external-slow-v3"
+
+_G.__NWT_WALLHOP_SESSION = (_G.__NWT_WALLHOP_SESSION or 0) + 1
+local THIS_SESSION = _G.__NWT_WALLHOP_SESSION
+
+local oldGui = PlayerGui:FindFirstChild("AutoWallHopGui")
+if oldGui then
+	oldGui:Destroy()
+end
+
+local function sessionAlive()
+	return _G.__NWT_WALLHOP_SESSION == THIS_SESSION
+end
+
 -- UI
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "AutoWallHopGui"
@@ -37,6 +52,10 @@ SlowButton.Parent = ScreenGui
 Instance.new("UICorner", SlowButton).CornerRadius = UDim.new(0, 12)
 
 RunService.RenderStepped:Connect(function()
+	if not sessionAlive() or not ScreenGui.Parent then
+		return
+	end
+
 	local inset = GuiService:GetGuiInset()
 	TextButton.Position = UDim2.new(0, 150, 0, inset.Y - 58)
 	SlowButton.Position = UDim2.new(0, 150, 0, inset.Y - 2)
@@ -74,6 +93,7 @@ local LEDGE_BLOCK_TIME = 0.20
 -- slow manual
 local SLOW_DURATION = 0.8
 local SLOW_WALKSPEED = 9
+local DEFAULT_WALKSPEED = 16
 local slowToken = 0
 local scriptSlowActive = false
 
@@ -90,8 +110,15 @@ local function isExternalSlow(hum, hrp)
 	return hum.WalkSpeed <= 9 and horizontalSpeed < 8
 end
 
-local function isCrouching(hum, hrp)
-	return isExternalSlow(hum, hrp)
+local function clearScriptSlowInstant()
+	slowToken += 1
+	scriptSlowActive = false
+
+	local char = LocalPlayer.Character
+	local hum = char and char:FindFirstChild("Humanoid")
+	if hum and hum.Parent and hum.WalkSpeed == SLOW_WALKSPEED then
+		hum.WalkSpeed = DEFAULT_WALKSPEED
+	end
 end
 
 local function applyWallhopSlow(hum)
@@ -101,12 +128,15 @@ local function applyWallhopSlow(hum)
 
 	slowToken += 1
 	local myToken = slowToken
-	local oldWalkSpeed = hum.WalkSpeed
 
 	scriptSlowActive = true
 	hum.WalkSpeed = SLOW_WALKSPEED
 
 	task.delay(SLOW_DURATION, function()
+		if not sessionAlive() then
+			return
+		end
+
 		if not hum or not hum.Parent then
 			scriptSlowActive = false
 			return
@@ -116,12 +146,23 @@ local function applyWallhopSlow(hum)
 			return
 		end
 
-		hum.WalkSpeed = oldWalkSpeed
 		scriptSlowActive = false
+
+		if not isSlowEnabled then
+			return
+		end
+
+		if hum.WalkSpeed == SLOW_WALKSPEED then
+			hum.WalkSpeed = DEFAULT_WALKSPEED
+		end
 	end)
 end
 
 local function setupCharacter(char)
+	if not sessionAlive() then
+		return
+	end
+
 	local hum = char:WaitForChild("Humanoid")
 	local hrp = char:WaitForChild("HumanoidRootPart")
 
@@ -129,6 +170,10 @@ local function setupCharacter(char)
 	scriptSlowActive = false
 
 	hum.StateChanged:Connect(function(_, new)
+		if not sessionAlive() then
+			return
+		end
+
 		if new == Enum.HumanoidStateType.Jumping then
 			jumpedRecently = true
 			airborneSource = "jump"
@@ -169,6 +214,10 @@ end
 LocalPlayer.CharacterAdded:Connect(setupCharacter)
 
 UserInputService.JumpRequest:Connect(function()
+	if not sessionAlive() then
+		return
+	end
+
 	if not isWallHopEnabled or blockDoubleJump then
 		return
 	end
@@ -197,7 +246,11 @@ UserInputService.JumpRequest:Connect(function()
 		hum:ChangeState(Enum.HumanoidStateType.Jumping)
 
 		task.delay(0.18, function()
-			if hum then
+			if not sessionAlive() then
+				return
+			end
+
+			if hum and hum.Parent then
 				hum:ChangeState(Enum.HumanoidStateType.Freefall)
 			end
 		end)
@@ -252,6 +305,10 @@ local function getFlickProfile()
 end
 
 local function performVideoFlick()
+	if not sessionAlive() then
+		return
+	end
+
 	if isFlicking then
 		return
 	end
@@ -290,6 +347,10 @@ local function performVideoFlick()
 	local useOvershoot = math.random() < 0.9
 
 	for i = 1, steps do
+		if not sessionAlive() then
+			return
+		end
+
 		if isExternalSlow(hum, hrp) then
 			hrp.CFrame = CFrame.new(hrp.Position) * CFrame.Angles(0, math.rad(baseYaw), 0)
 			isWallHopping = false
@@ -316,6 +377,10 @@ local function performVideoFlick()
 
 	if useOvershoot then
 		task.delay(0.05, function()
+			if not sessionAlive() then
+				return
+			end
+
 			if not hrp or not hrp.Parent then
 				return
 			end
@@ -328,6 +393,10 @@ local function performVideoFlick()
 			local smallSteps = 4
 
 			for i = 1, smallSteps do
+				if not sessionAlive() then
+					return
+				end
+
 				if not char or not char.Parent or isExternalSlow(hum, hrp) then
 					hrp.CFrame = CFrame.new(hrp.Position) * CFrame.Angles(0, math.rad(baseYaw), 0)
 					return
@@ -341,6 +410,10 @@ local function performVideoFlick()
 			end
 
 			for i = 1, smallSteps do
+				if not sessionAlive() then
+					return
+				end
+
 				if not char or not char.Parent or isExternalSlow(hum, hrp) then
 					hrp.CFrame = CFrame.new(hrp.Position) * CFrame.Angles(0, math.rad(baseYaw), 0)
 					return
@@ -364,11 +437,15 @@ local function performVideoFlick()
 	end
 
 	task.delay(0.05, function()
-		blockDoubleJump = false
+		if sessionAlive() then
+			blockDoubleJump = false
+		end
 	end)
 
 	task.delay(0.15, function()
-		isWallHopping = false
+		if sessionAlive() then
+			isWallHopping = false
+		end
 	end)
 
 	isFlicking = false
@@ -403,30 +480,17 @@ local function hasSupportBelowEdge(rayResult, params)
 		tangent = tangent.Unit
 	end
 
-	local checkCenter =
-		hitPos
-		- Vector3.new(0, 0.65, 0)
-		- normal * 0.18
-
+	local checkCenter = hitPos - Vector3.new(0, 0.65, 0) - normal * 0.18
 	local checkSize = Vector3.new(0.8, 0.9, 0.7)
 
 	local overlapParams = OverlapParams.new()
 	overlapParams.FilterType = Enum.RaycastFilterType.Exclude
 	overlapParams.FilterDescendantsInstances = {LocalPlayer.Character}
 
-	local parts = workspace:GetPartBoundsInBox(
-		CFrame.new(checkCenter),
-		checkSize,
-		overlapParams
-	)
+	local parts = workspace:GetPartBoundsInBox(CFrame.new(checkCenter), checkSize, overlapParams)
 
 	for _, part in ipairs(parts) do
-		if part
-			and part.CanCollide
-			and part ~= wall
-			and not isPlayerCharacter(part)
-			and part.Transparency < 1
-		then
+		if part and part.CanCollide and part ~= wall and not isPlayerCharacter(part) and part.Transparency < 1 then
 			return true
 		end
 	end
@@ -534,6 +598,10 @@ local function isWithinWallhopAngle(cameraLook, wallNormal, maxAngleDeg)
 end
 
 RunService.Heartbeat:Connect(function()
+	if not sessionAlive() then
+		return
+	end
+
 	if not isWallHopEnabled then
 		return
 	end
@@ -627,13 +695,25 @@ RunService.Heartbeat:Connect(function()
 end)
 
 TextButton.MouseButton1Click:Connect(function()
+	if not sessionAlive() then
+		return
+	end
+
 	isWallHopEnabled = not isWallHopEnabled
 	TextButton.Text = isWallHopEnabled and "Wall Hop On" or "Wall Hop Off"
 end)
 
 SlowButton.MouseButton1Click:Connect(function()
+	if not sessionAlive() then
+		return
+	end
+
 	isSlowEnabled = not isSlowEnabled
 	SlowButton.Text = isSlowEnabled and "Slow On" or "Slow Off"
+
+	if not isSlowEnabled then
+		clearScriptSlowInstant()
+	end
 end)
 
-print("Made by netzwiiiiii | HHHHumanoid Wallhop - Loaded SSuccessfully ✅")
+print("Made by netzwwii | Humanoid Wallhop - Loaded Successfully ✅)
