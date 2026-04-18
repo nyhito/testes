@@ -50,8 +50,7 @@ local lastHitPosition = nil
 local MIN_HIT_DISTANCE = 0.2
 local lastFlickAngle = nil
 
--- queda: distinguir pulo x queda de borda
-local airborneSource = nil -- "jump" ou "ledge"
+local airborneSource = nil
 local airborneStartY = nil
 local airborneStartTime = 0
 local jumpedRecently = false
@@ -98,7 +97,6 @@ local function setupCharacter(char)
 		if new == Enum.HumanoidStateType.Landed then
 			canDoubleJump = false
 			lastHitPosition = nil
-
 			airborneSource = nil
 			airborneStartY = nil
 			airborneStartTime = 0
@@ -293,6 +291,14 @@ local function isWallLikeSurface(normal)
 	return math.abs(normal.Y) < 0.35
 end
 
+local function hitsSameWallFace(hitPos, normal, yOffset, params, targetPart)
+	local outward = normal * 0.38
+	local origin = hitPos + Vector3.new(0, yOffset, 0) + outward
+	local probe = workspace:Raycast(origin, -normal * 0.9, params)
+
+	return probe and probe.Instance == targetPart
+end
+
 local function hasValidHorizontalEdge(rayResult, params)
 	if not rayResult or not rayResult.Instance then
 		return false
@@ -301,23 +307,18 @@ local function hasValidHorizontalEdge(rayResult, params)
 	local hitPos = rayResult.Position
 	local normal = rayResult.Normal.Unit
 	local hitPart = rayResult.Instance
-	local surfaceOffset = normal * 0.08
 
-	-- obrigatoriamente precisa existir parede abaixo da linha
-	-- se houver vazio abaixo, invalida
-	local belowOffsets = {
-		-0.2,
+	local belowSamples = {
+		-0.20,
 		-0.45,
 		-0.75,
-		-1.05
+		-1.05,
+		-1.35
 	}
 
 	local hasWallBelow = false
-	for _, y in ipairs(belowOffsets) do
-		local origin = hitPos + Vector3.new(0, y, 0) + surfaceOffset
-		local probe = workspace:Raycast(origin, -normal * 0.22, params)
-
-		if probe and probe.Instance == hitPart then
+	for _, y in ipairs(belowSamples) do
+		if hitsSameWallFace(hitPos, normal, y, params, hitPart) then
 			hasWallBelow = true
 			break
 		end
@@ -327,26 +328,33 @@ local function hasValidHorizontalEdge(rayResult, params)
 		return false
 	end
 
-	-- mantém a ideia de detectar borda, não parede inteira
-	local verticalChecks = {
-		Vector3.new(0, 0.9, 0),
-		Vector3.new(0, -0.9, 0),
-		Vector3.new(0, 1.25, 0),
-		Vector3.new(0, -1.25, 0),
-	}
+	local aboveSamples = {0.22, 0.48, 0.75, 1.05}
+	local belowEdgeSamples = {-0.22, -0.48, -0.75, -1.05}
 
-	local foundHorizontalEdge = false
-	for _, vOffset in ipairs(verticalChecks) do
-		local origin = hitPos + vOffset + surfaceOffset
-		local probe = workspace:Raycast(origin, -normal * 0.22, params)
-
-		if not probe or not probe.Instance or probe.Instance ~= hitPart then
-			foundHorizontalEdge = true
+	local hasWallAbove = false
+	for _, y in ipairs(aboveSamples) do
+		if hitsSameWallFace(hitPos, normal, y, params, hitPart) then
+			hasWallAbove = true
 			break
 		end
 	end
 
-	if not foundHorizontalEdge then
+	local hasWallDirectlyBelow = false
+	for _, y in ipairs(belowEdgeSamples) do
+		if hitsSameWallFace(hitPos, normal, y, params, hitPart) then
+			hasWallDirectlyBelow = true
+			break
+		end
+	end
+
+	if hasWallAbove == hasWallDirectlyBelow then
+		return false
+	end
+
+	local nearAbove = hitsSameWallFace(hitPos, normal, 0.18, params, hitPart)
+	local nearBelow = hitsSameWallFace(hitPos, normal, -0.18, params, hitPart)
+
+	if nearAbove == nearBelow then
 		return false
 	end
 
@@ -488,4 +496,4 @@ TextButton.MouseButton1Click:Connect(function()
 	TextButton.Text = isWallHopEnabled and "Wall Hop On" or "Wall Hop Off"
 end)
 
-print("Made by netzw | Humanoid Wallhop - Loaded Successfully ✅")
+print("Made by netzwiiiiii | Humanoid Wallhop - Loaded Successfully ✅")
