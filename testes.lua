@@ -55,6 +55,12 @@ local mobileDragHandle
 local dragConnections = {}
 local shadowRegistry = {}
 
+-- forward declarations importantes
+local clearScriptSlowInstant
+local updateMobilePanelButtons
+local setMobileWallhopVisualHidden
+local applyVisibility
+
 -- WALLHOP / SLOW STATES
 local isWallHopEnabled = false
 local isSlowEnabled = false
@@ -367,59 +373,69 @@ local function showNotice(text)
 		end)
 	end)
 end
+
+local function canUseMobileTap(obj)
+	local lastDragTime = obj:GetAttribute("LastDragTime")
+	if typeof(lastDragTime) == "number" then
+		return (tick() - lastDragTime) > 0.12
+	end
+	return true
+end
+
 local function bindRowPress(button, callback)
 	local activeInput = nil
-	local pressBegan = false
+	local startPos = nil
+	local moved = false
 	local lastTap = 0
 
 	button.Active = true
 	button.Selectable = false
+	button.AutoButtonColor = false
 
-	button.InputBegan:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
-			activeInput = input
-			pressBegan = true
-		end
-	end)
-
-	button.InputEnded:Connect(function(input)
-		if input == activeInput and pressBegan then
-			activeInput = nil
-			pressBegan = false
-
-			local now = tick()
-			if now - lastTap < 0.08 then
-				return
-			end
-			lastTap = now
-
-			callback()
-		end
-	end)
-
-	button.MouseButton1Click:Connect(function()
+	local function fire()
 		local now = tick()
 		if now - lastTap < 0.08 then
 			return
 		end
 		lastTap = now
 		callback()
-	end)
-end
-
-local function setSlowEnabled(state)
-	isSlowEnabled = state and true or false
-
-	if not isSlowEnabled then
-		clearScriptSlowInstant()
 	end
 
-	updateMobilePanelButtons()
-end
+	button.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+			activeInput = input
+			startPos = input.Position
+			moved = false
+		end
+	end)
 
-local function setMobileGuiHidden(state)
-	mobileWallhopGuiHidden = state and true or false
-	updateMobilePanelButtons()
+	button.InputChanged:Connect(function(input)
+		if input == activeInput and startPos then
+			local delta = input.Position - startPos
+			if delta.Magnitude > 8 then
+				moved = true
+			end
+		end
+	end)
+
+	button.InputEnded:Connect(function(input)
+		if input == activeInput then
+			local wasMoved = moved
+			activeInput = nil
+			startPos = nil
+			moved = false
+
+			if not wasMoved and canUseMobileTap(button) then
+				fire()
+			end
+		end
+	end)
+
+	button.Activated:Connect(function()
+		if canUseMobileTap(button) then
+			fire()
+		end
+	end)
 end
 
 local function updateSwitchVisual(switchFrame, knob, enabled)
@@ -504,7 +520,7 @@ local function updateToggleButton()
 	end
 end
 
-local function setMobileWallhopVisualHidden(hidden)
+setMobileWallhopVisualHidden = function(hidden)
 	if not MobileButton then
 		return
 	end
@@ -513,7 +529,7 @@ local function setMobileWallhopVisualHidden(hidden)
 	setHostShadowVisible(MobileButton, not hidden)
 end
 
-local function updateMobilePanelButtons()
+updateMobilePanelButtons = function()
 	if MobileBeastSlowRow and MobileBeastSlowRow:FindFirstChild("Label") then
 		MobileBeastSlowRow.Label.Text = "Beast Slow"
 	end
@@ -542,7 +558,7 @@ local function updateBindButtons()
 	end
 end
 
-local function applyVisibility()
+applyVisibility = function()
 	if selectedMode == "PC" then
 		if MainFrame then
 			MainFrame.Visible = guiVisible and not guiMinimized
@@ -572,6 +588,10 @@ local function setGuiVisible(state)
 	applyVisibility()
 	showNotice(state and "GUI shown" or "GUI hidden")
 end
+-- FtF Wallhop UI + Logic
+-- Made by nyhito
+-- Parte 2/4
+
 local function createModeSelector(onPick)
 	local selectorGui = Instance.new("ScreenGui")
 	selectorGui.Name = "WallhopModeSelector"
@@ -709,12 +729,19 @@ local function bindFreeDrag(handle, target, onMove)
 	end))
 end
 
-local function canUseMobileTap(obj)
-	local lastDragTime = obj:GetAttribute("LastDragTime")
-	if typeof(lastDragTime) == "number" then
-		return (tick() - lastDragTime) > 0.12
+local function setSlowEnabled(state)
+	isSlowEnabled = state and true or false
+
+	if not isSlowEnabled then
+		clearScriptSlowInstant()
 	end
-	return true
+
+	updateMobilePanelButtons()
+end
+
+local function setMobileGuiHidden(state)
+	mobileWallhopGuiHidden = state and true or false
+	updateMobilePanelButtons()
 end
 
 local function buildMobileGui()
@@ -923,6 +950,10 @@ local function setMinimized(state)
 		showNotice("GUI restored")
 	end
 end
+-- FtF Wallhop UI + Logic
+-- Made by nyhito
+-- Parte 3/4
+
 local function buildPCGui()
 	clearOldDragConnections()
 
@@ -1129,7 +1160,7 @@ local function buildPCGui()
 	showNotice("PC version loaded")
 end
 
-local function clearScriptSlowInstant()
+clearScriptSlowInstant = function()
 	slowToken += 1
 	scriptSlowActive = false
 
@@ -1358,6 +1389,9 @@ local function performVideoFlick()
 		RunService.RenderStepped:Wait()
 		task.wait(delayMin + math.random() * (delayMax - delayMin))
 	end
+	-- FtF Wallhop UI + Logic
+-- Made by nyhito
+-- Parte 4/4
 
 	if useOvershoot then
 		task.delay(0.05, function()
@@ -1665,4 +1699,4 @@ createModeSelector(function(mode)
 	applyVisibility()
 end)
 
-print("Made bbbby nyhito | Humanoid Wallhop - Loaded Successfully ✅")
+print("Made by nyyyhito | Humanoid Wallhop - Loaded Successfully ✅")
