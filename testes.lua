@@ -359,6 +359,21 @@ local function showNotice(text)
 		end)
 	end)
 end
+local function setSlowEnabled(state)
+	isSlowEnabled = state and true or false
+
+	if not isSlowEnabled then
+		clearScriptSlowInstant()
+	end
+
+	updateMobilePanelButtons()
+end
+
+local function setMobileGuiHidden(state)
+	mobileWallhopGuiHidden = state and true or false
+	updateMobilePanelButtons()
+end
+
 local function updateSwitchVisual(switchFrame, knob, enabled)
 	if not switchFrame or not knob then return end
 
@@ -376,16 +391,15 @@ local function updateSwitchVisual(switchFrame, knob, enabled)
 end
 
 local function createSwitchRow(parent, yOffset, labelText)
-	local row = Instance.new("TextButton")
-	row.Size = UDim2.new(1, -14, 0, 40)
-	row.Position = UDim2.new(0, 7, 0, yOffset)
-	row.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-	row.AutoButtonColor = false
-	row.Text = ""
-	row.BorderSizePixel = 0
-	row.Parent = parent
-	Instance.new("UICorner", row).CornerRadius = UDim.new(0, 12)
-	setTargetTransparency(row, 0, 1)
+	local rowFrame = Instance.new("Frame")
+	rowFrame.Size = UDim2.new(1, -14, 0, 40)
+	rowFrame.Position = UDim2.new(0, 7, 0, yOffset)
+	rowFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+	rowFrame.BorderSizePixel = 0
+	rowFrame.Parent = parent
+	rowFrame.ZIndex = 2
+	Instance.new("UICorner", rowFrame).CornerRadius = UDim.new(0, 12)
+	setTargetTransparency(rowFrame, 0, nil)
 
 	local label = Instance.new("TextLabel")
 	label.Name = "Label"
@@ -397,7 +411,8 @@ local function createSwitchRow(parent, yOffset, labelText)
 	label.Font = Enum.Font.GothamBold
 	label.TextSize = 13
 	label.TextXAlignment = Enum.TextXAlignment.Left
-	label.Parent = row
+	label.Parent = rowFrame
+	label.ZIndex = 3
 	label.Active = false
 	noTextStroke(label)
 	setTargetTransparency(label, 1, 0)
@@ -407,7 +422,8 @@ local function createSwitchRow(parent, yOffset, labelText)
 	switch.Position = UDim2.new(1, -66, 0.5, -14)
 	switch.BackgroundColor3 = Color3.fromRGB(20,20,24)
 	switch.BorderSizePixel = 0
-	switch.Parent = row
+	switch.Parent = rowFrame
+	switch.ZIndex = 3
 	switch.Active = false
 	Instance.new("UICorner", switch).CornerRadius = UDim.new(1, 0)
 	setTargetTransparency(switch, 0, nil)
@@ -418,11 +434,24 @@ local function createSwitchRow(parent, yOffset, labelText)
 	knob.BackgroundColor3 = Color3.fromRGB(0,0,0)
 	knob.BorderSizePixel = 0
 	knob.Parent = switch
+	knob.ZIndex = 4
 	knob.Active = false
 	Instance.new("UICorner", knob).CornerRadius = UDim.new(1, 0)
 	setTargetTransparency(knob, 0, nil)
 
-	return row, switch, knob
+	local hitbox = Instance.new("TextButton")
+	hitbox.Name = "Hitbox"
+	hitbox.Size = rowFrame.Size
+	hitbox.Position = rowFrame.Position
+	hitbox.BackgroundTransparency = 1
+	hitbox.Text = ""
+	hitbox.AutoButtonColor = false
+	hitbox.BorderSizePixel = 0
+	hitbox.Parent = parent
+	hitbox.ZIndex = 10
+	setTargetTransparency(hitbox, 1, 1)
+
+	return rowFrame, hitbox, switch, knob
 end
 
 local function updateToggleButton()
@@ -584,7 +613,6 @@ local function createModeSelector(onPick)
 		end)
 	end)
 end
-
 local function clearOldDragConnections()
 	for _, c in ipairs(dragConnections) do
 		if c and c.Disconnect then
@@ -644,6 +672,7 @@ local function canUseMobileTap(obj)
 	end
 	return true
 end
+
 local function buildMobileGui()
 	clearOldDragConnections()
 
@@ -700,8 +729,16 @@ local function buildMobileGui()
 	Instance.new("UICorner", mobileDragHandle).CornerRadius = UDim.new(1, 0)
 	setTargetTransparency(mobileDragHandle, 0, nil)
 
-	MobileBeastSlowRow, mobileBeastSlowSwitch, mobileBeastSlowKnob = createSwitchRow(MobilePanel, 22, "Beast Slow")
-	MobileHideGuiRow, mobileHideGuiSwitch, mobileHideGuiKnob = createSwitchRow(MobilePanel, 62, "Hide GUI")
+	local MobileBeastSlowVisual
+	local MobileHideGuiVisual
+	local MobileBeastSlowHitbox
+	local MobileHideGuiHitbox
+
+	MobileBeastSlowVisual, MobileBeastSlowHitbox, mobileBeastSlowSwitch, mobileBeastSlowKnob = createSwitchRow(MobilePanel, 22, "Beast Slow")
+	MobileHideGuiVisual, MobileHideGuiHitbox, mobileHideGuiSwitch, mobileHideGuiKnob = createSwitchRow(MobilePanel, 62, "Hide GUI")
+
+	MobileBeastSlowRow = MobileBeastSlowVisual
+	MobileHideGuiRow = MobileHideGuiVisual
 
 	local function placeMobileButtonDefault()
 		local inset = GuiService:GetGuiInset()
@@ -765,17 +802,12 @@ local function buildMobileGui()
 		end
 	end)
 
-	MobileBeastSlowRow.Activated:Connect(function()
-		isSlowEnabled = not isSlowEnabled
-		if not isSlowEnabled then
-			clearScriptSlowInstant()
-		end
-		updateMobilePanelButtons()
+	MobileBeastSlowHitbox.Activated:Connect(function()
+		setSlowEnabled(not isSlowEnabled)
 	end)
 
-	MobileHideGuiRow.Activated:Connect(function()
-		mobileWallhopGuiHidden = not mobileWallhopGuiHidden
-		updateMobilePanelButtons()
+	MobileHideGuiHitbox.Activated:Connect(function()
+		setMobileGuiHidden(not mobileWallhopGuiHidden)
 	end)
 
 	updateMobilePanelButtons()
@@ -1566,11 +1598,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 		end
 
 		if key == toggleBeastSlowKey then
-			isSlowEnabled = not isSlowEnabled
-			if not isSlowEnabled then
-				clearScriptSlowInstant()
-			end
-			updateMobilePanelButtons()
+			setSlowEnabled(not isSlowEnabled)
 			showNotice(isSlowEnabled and "Beast Slow enabled" or "Beast Slow disabled")
 			return
 		end
@@ -1591,4 +1619,4 @@ createModeSelector(function(mode)
 	applyVisibility()
 end)
 
-print("Made by nyhito | Humanoid Wallhop - Loaded Successfully ✅")
+print("Made bbby nyhito | Humanoid Wallhop - Loaded Successfully ✅")
