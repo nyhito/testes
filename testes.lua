@@ -115,7 +115,9 @@ end
 
 local function setHostShadowVisible(host, visible)
 	local list = shadowRegistry[host]
-	if not list then return end
+	if not list then
+		return
+	end
 
 	for _, shadow in ipairs(list) do
 		shadow.Visible = visible
@@ -179,7 +181,9 @@ local function addTrueRoundedShadow(parent, cornerRadius, strength, shadowColor)
 end
 
 local function elegantShow(root, finalSize, finalPosition, finalBgTransparency)
-	if not root then return end
+	if not root then
+		return
+	end
 
 	root.Visible = true
 
@@ -246,7 +250,9 @@ end
 
 local function elegantHide(root, onDone)
 	if not root then
-		if onDone then onDone() end
+		if onDone then
+			onDone()
+		end
 		return
 	end
 
@@ -284,7 +290,7 @@ local function elegantHide(root, onDone)
 			TweenService:Create(
 				obj,
 				TweenInfo.new(0.18, Enum.EasingStyle.Quart, Enum.EasingDirection.In),
-				{ Transparency = 1 }
+				{Transparency = 1}
 			):Play()
 		end
 	end
@@ -307,7 +313,9 @@ local function elegantHide(root, onDone)
 		root.Size = currentSize
 		root.Position = currentPos
 
-		if onDone then onDone() end
+		if onDone then
+			onDone()
+		end
 	end)
 end
 
@@ -359,6 +367,29 @@ local function showNotice(text)
 		end)
 	end)
 end
+local function bindSimpleTap(button, callback)
+	local activeInput = nil
+	local beganInside = false
+
+	button.Active = true
+	button.Selectable = false
+
+	button.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+			activeInput = input
+			beganInside = true
+		end
+	end)
+
+	button.InputEnded:Connect(function(input)
+		if input == activeInput and beganInside then
+			activeInput = nil
+			beganInside = false
+			callback()
+		end
+	end)
+end
+
 local function setSlowEnabled(state)
 	isSlowEnabled = state and true or false
 
@@ -375,7 +406,9 @@ local function setMobileGuiHidden(state)
 end
 
 local function updateSwitchVisual(switchFrame, knob, enabled)
-	if not switchFrame or not knob then return end
+	if not switchFrame or not knob then
+		return
+	end
 
 	local offPos = UDim2.new(0, 3, 0.5, -13)
 	local onPos = UDim2.new(1, -29, 0.5, -13)
@@ -448,7 +481,9 @@ local function createSwitchRow(parent, yOffset, labelText)
 	hitbox.AutoButtonColor = false
 	hitbox.BorderSizePixel = 0
 	hitbox.Parent = parent
-	hitbox.ZIndex = 10
+	hitbox.ZIndex = 20
+	hitbox.Active = true
+	hitbox.Selectable = false
 	setTargetTransparency(hitbox, 1, 1)
 
 	return rowFrame, hitbox, switch, knob
@@ -463,7 +498,9 @@ local function updateToggleButton()
 end
 
 local function setMobileWallhopVisualHidden(hidden)
-	if not MobileButton then return end
+	if not MobileButton then
+		return
+	end
 	MobileButton.BackgroundTransparency = hidden and 1 or 0
 	MobileButton.TextTransparency = hidden and 1 or 0
 	setHostShadowVisible(MobileButton, not hidden)
@@ -754,7 +791,9 @@ local function buildMobileGui()
 	end
 
 	RunService.RenderStepped:Connect(function()
-		if selectedMode ~= "Mobile" then return end
+		if selectedMode ~= "Mobile" then
+			return
+		end
 		placeMobileButtonDefault()
 
 		if mobileMenuOpen and not MobilePanel:GetAttribute("CustomMoved") then
@@ -778,13 +817,17 @@ local function buildMobileGui()
 	end)
 
 	MobileButton.Activated:Connect(function()
-		if not canUseMobileTap(MobileButton) then return end
+		if not canUseMobileTap(MobileButton) then
+			return
+		end
 		isWallHopEnabled = not isWallHopEnabled
 		updateToggleButton()
 	end)
 
 	MobileMenuButton.Activated:Connect(function()
-		if not canUseMobileTap(MobileMenuButton) then return end
+		if not canUseMobileTap(MobileMenuButton) then
+			return
+		end
 
 		mobileMenuOpen = not mobileMenuOpen
 
@@ -802,11 +845,11 @@ local function buildMobileGui()
 		end
 	end)
 
-	MobileBeastSlowHitbox.Activated:Connect(function()
+	bindSimpleTap(MobileBeastSlowHitbox, function()
 		setSlowEnabled(not isSlowEnabled)
 	end)
 
-	MobileHideGuiHitbox.Activated:Connect(function()
+	bindSimpleTap(MobileHideGuiHitbox, function()
 		setMobileGuiHidden(not mobileWallhopGuiHidden)
 	end)
 
@@ -1543,8 +1586,12 @@ RunService.Heartbeat:Connect(function()
 end)
 
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
-	if gameProcessed then return end
-	if input.UserInputType ~= Enum.UserInputType.Keyboard then return end
+	if gameProcessed then
+		return
+	end
+	if input.UserInputType ~= Enum.UserInputType.Keyboard then
+		return
+	end
 
 	local key = input.KeyCode
 
@@ -1619,4 +1666,4 @@ createModeSelector(function(mode)
 	applyVisibility()
 end)
 
-print("Made bbby nyhito | Humanoid Wallhop - Loaded Successfully ✅")
+print("Made by nyhito | Humanoid Wallhop - Loaded Successfully ✅")
