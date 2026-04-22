@@ -1,6 +1,6 @@
--- FtF Wallhop UI + Logic
--- Made by nyhito
--- Parte 1/4
+-- (Auto Wallhop - Made by nyhito)
+-- All Credits: nyhito (tester, config and uploader)
+-- The Best Wallhop Script
 
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
@@ -55,13 +55,11 @@ local mobileDragHandle
 local dragConnections = {}
 local shadowRegistry = {}
 
--- forward declarations importantes
 local clearScriptSlowInstant
 local updateMobilePanelButtons
 local setMobileWallhopVisualHidden
 local applyVisibility
 
--- WALLHOP / SLOW STATES
 local isWallHopEnabled = false
 local isSlowEnabled = false
 local isFlicking = false
@@ -541,7 +539,6 @@ updateMobilePanelButtons = function()
 	updateSwitchVisual(mobileHideGuiSwitch, mobileHideGuiKnob, mobileWallhopGuiHidden)
 	setMobileWallhopVisualHidden(mobileWallhopGuiHidden)
 end
-
 local function updateBindButtons()
 	if selectedMode ~= "PC" then
 		return
@@ -588,9 +585,6 @@ local function setGuiVisible(state)
 	applyVisibility()
 	showNotice(state and "GUI shown" or "GUI hidden")
 end
--- FtF Wallhop UI + Logic
--- Made by nyhito
--- Parte 2/4
 
 local function createModeSelector(onPick)
 	local selectorGui = Instance.new("ScreenGui")
@@ -686,22 +680,50 @@ local function clearOldDragConnections()
 	table.clear(dragConnections)
 end
 
-local function bindFreeDrag(handle, target, onMove)
+local function bindFreeDrag(handle, target, onMove, holdTime)
 	local activeInput = nil
 	local dragStart = nil
 	local startPos = nil
+	local holdSatisfied = false
+	local holdCanceled = false
+	local holdId = 0
+
+	holdTime = holdTime or 0
 
 	table.insert(dragConnections, handle.InputBegan:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
 			activeInput = input
 			dragStart = input.Position
 			startPos = target.Position
+			holdSatisfied = false
+			holdCanceled = false
+			holdId += 1
+
+			local myHoldId = holdId
+
+			if holdTime <= 0 then
+				holdSatisfied = true
+			else
+				task.delay(holdTime, function()
+					if activeInput == input and not holdCanceled and holdId == myHoldId then
+						holdSatisfied = true
+						handle:SetAttribute("LastDragTime", tick())
+					end
+				end)
+			end
 		end
 	end))
 
 	table.insert(dragConnections, UserInputService.InputChanged:Connect(function(input)
 		if input == activeInput and dragStart and startPos then
 			local delta = input.Position - dragStart
+
+			if not holdSatisfied then
+				if delta.Magnitude >= 8 then
+					holdCanceled = true
+				end
+				return
+			end
 
 			if delta.Magnitude >= 6 then
 				handle:SetAttribute("LastDragTime", tick())
@@ -725,6 +747,9 @@ local function bindFreeDrag(handle, target, onMove)
 			activeInput = nil
 			dragStart = nil
 			startPos = nil
+			holdSatisfied = false
+			holdCanceled = false
+			holdId += 1
 		end
 	end))
 end
@@ -761,6 +786,8 @@ local function buildMobileGui()
 	MobileButton.Font = Enum.Font.GothamBold
 	MobileButton.TextScaled = true
 	MobileButton.Parent = ScreenGui
+	MobileButton:SetAttribute("LastDragTime", 0)
+	MobileButton:SetAttribute("CustomMoved", false)
 	Instance.new("UICorner", MobileButton).CornerRadius = UDim.new(0, 12)
 	noTextStroke(MobileButton)
 	addTrueRoundedShadow(MobileButton, 14, 1.15, Color3.fromRGB(0, 0, 0))
@@ -835,7 +862,7 @@ local function buildMobileGui()
 		if not MobilePanel:GetAttribute("CustomMoved") then
 			placePanelToRightOfWallhop()
 		end
-	end)
+	end, 0.5)
 
 	bindFreeDrag(MobileMenuButton, MobileMenuButton)
 	bindFreeDrag(mobileDragHandle, MobilePanel, function()
@@ -881,7 +908,6 @@ local function buildMobileGui()
 
 	updateMobilePanelButtons()
 end
-
 local function setMinimized(state)
 	if selectedMode ~= "PC" then
 		return
@@ -950,9 +976,6 @@ local function setMinimized(state)
 		showNotice("GUI restored")
 	end
 end
--- FtF Wallhop UI + Logic
--- Made by nyhito
--- Parte 3/4
 
 local function buildPCGui()
 	clearOldDragConnections()
@@ -1296,7 +1319,7 @@ UserInputService.JumpRequest:Connect(function()
 end)
 
 local function pickNextFlick()
-	local minAngle, maxAngle = 50, 80
+	local minAngle, maxAngle = 35, 50
 	local attempt = 0
 	local angle
 
@@ -1314,34 +1337,33 @@ local function getFlickProfile()
 
 	if flickRoll < 0.10 then
 		return {
-			steps = math.random(4, 5),
+			steps = math.random(3, 5),
 			delayMin = 0.0048,
 			delayMax = 0.0062,
-			overshootMin = 18,
-			overshootMax = 24,
-			baseDelay = 0.0105
+			overshootMin = 12,
+			overshootMax = 18,
+			baseDelay = 0.0068
 		}
 	elseif flickRoll < 0.40 then
 		return {
-			steps = math.random(5, 6),
-			delayMin = 0.0055,
-			delayMax = 0.0078,
-			overshootMin = 18,
-			overshootMax = 27,
-			baseDelay = 0.0105
+			steps = math.random(6, 7),
+			delayMin = 0.0050,
+			delayMax = 0.0068,
+			overshootMin = 14,
+			overshootMax = 20,
+			baseDelay = 0.0075
 		}
 	else
 		return {
-			steps = math.random(7, 10),
-			delayMin = 0.008,
-			delayMax = 0.0125,
-			overshootMin = 20,
-			overshootMax = 32,
-			baseDelay = 0.01
+			steps = math.random(7, 8),
+			delayMin = 0.0055,
+			delayMax = 0.0089,
+			overshootMin = 16,
+			overshootMax = 22,
+			baseDelay = 0.0085
 		}
 	end
 end
-
 local function performVideoFlick()
 	if isFlicking then
 		return
@@ -1371,7 +1393,7 @@ local function performVideoFlick()
 	local delayMax = profile.delayMax
 	local baseDelay = profile.baseDelay
 	local overshoot = math.rad(math.random(profile.overshootMin, profile.overshootMax))
-	local useOvershoot = math.random() < 0.9
+	local useOvershoot = math.random() < 0.10
 
 	for i = 1, steps do
 		local alpha = i / steps
@@ -1389,24 +1411,22 @@ local function performVideoFlick()
 		RunService.RenderStepped:Wait()
 		task.wait(delayMin + math.random() * (delayMax - delayMin))
 	end
-	-- FtF Wallhop UI + Logic
--- Made by nyhito
--- Parte 4/4
 
 	if useOvershoot then
-		task.delay(0.05, function()
+		task.delay(0.025, function()
 			if not hrp or not hrp.Parent then
 				return
 			end
 
-			local smallSteps = 4
+			local smallSteps = math.random(2, 3)
+			local localDelay = baseDelay * (math.random(82, 95) / 100)
 
 			for i = 1, smallSteps do
 				local alpha = i / smallSteps
 				local offset = overshoot * alpha
 				hrp.CFrame = CFrame.new(hrp.Position) * CFrame.Angles(0, math.rad(baseYaw) + offset, 0)
 				RunService.RenderStepped:Wait()
-				task.wait(baseDelay)
+				task.wait(localDelay)
 			end
 
 			for i = 1, smallSteps do
@@ -1414,7 +1434,7 @@ local function performVideoFlick()
 				local offset = overshoot * (1 - alpha)
 				hrp.CFrame = CFrame.new(hrp.Position) * CFrame.Angles(0, math.rad(baseYaw) + offset, 0)
 				RunService.RenderStepped:Wait()
-				task.wait(baseDelay)
+				task.wait(localDelay)
 			end
 
 			hrp.CFrame = CFrame.new(hrp.Position) * CFrame.Angles(0, math.rad(baseYaw), 0)
@@ -1699,4 +1719,4 @@ createModeSelector(function(mode)
 	applyVisibility()
 end)
 
-print("Made by nyyyhito | Humanoid Wallhop - Loaded Successfully ✅")
+print("Best Flee The Facility Wallhop Script | Made by Nyhito - Loaded Successfully ✅")
