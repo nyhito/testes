@@ -1848,4 +1848,4 @@ createModeSelector(function(mode)
 	applyVisibility()
 end)
 
-print("Besttt Flee The Facility | Made by Nyhito - Loaded Successfully ✅")
+print("Best Flee The Facility | Made by Nyhito - Loaded Successfully ✅")
