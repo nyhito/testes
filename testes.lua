@@ -1319,7 +1319,7 @@ UserInputService.JumpRequest:Connect(function()
 end)
 
 local function pickNextFlick()
-	local minAngle, maxAngle = 35, 50
+	local minAngle, maxAngle = 55, 80
 	local attempt = 0
 	local angle
 
@@ -1337,45 +1337,45 @@ local function getFlickProfile()
 
 	if flickRoll < 0.10 then
 		return {
-			goSteps = math.random(3, 5),
-			goDelayMin = 0.0048,
-			goDelayMax = 0.0062,
+			goSteps = math.random(2, 3),
+			goDelayMin = 0.0070,
+			goDelayMax = 0.0083,
 			holdMin = 0.008,
 			holdMax = 0.012,
 			returnSteps = math.random(4, 5),
-			returnDelayMin = 0.0048,
-			returnDelayMax = 0.0060,
-			overshootMin = 10,
-			overshootMax = 15,
-			overshootBaseDelay = 0.0055
+			returnDelayMin = 0.0070,
+			returnDelayMax = 0.0083,
+			overshootMin = 12,
+			overshootMax = 18,
+			overshootBaseDelay = 0.0068
 		}
 	elseif flickRoll < 0.40 then
 		return {
-			goSteps = math.random(6, 7),
-			goDelayMin = 0.0050,
-			goDelayMax = 0.0068,
+			goSteps = math.random(3, 5),
+			goDelayMin = 0.0085,
+			goDelayMax = 0.0092,
 			holdMin = 0.009,
 			holdMax = 0.014,
-			returnSteps = math.random(5, 6),
-			returnDelayMin = 0.0054,
-			returnDelayMax = 0.0070,
-			overshootMin = 12,
-			overshootMax = 18,
-			overshootBaseDelay = 0.0062
+			returnSteps = math.random(4, 5),
+			returnDelayMin = 0.0085,
+			returnDelayMax = 0.0092,
+			overshootMin = 14,
+			overshootMax = 20,
+			overshootBaseDelay = 0.0075
 		}
 	else
 		return {
-			goSteps = math.random(7, 8),
-			goDelayMin = 0.0055,
-			goDelayMax = 0.0089,
+			goSteps = math.random(3, 5),
+			goDelayMin = 0.0087,
+			goDelayMax = 0.0098,
 			holdMin = 0.010,
 			holdMax = 0.016,
-			returnSteps = math.random(6, 7),
-			returnDelayMin = 0.0062,
-			returnDelayMax = 0.0086,
-			overshootMin = 14,
-			overshootMax = 20,
-			overshootBaseDelay = 0.0070
+			returnSteps = math.random(4, 5),
+			returnDelayMin = 0.0087,
+			returnDelayMax = 0.0098,
+			overshootMin = 16,
+			overshootMax = 22,
+			overshootBaseDelay = 0.0085
 		}
 	end
 end
@@ -1415,7 +1415,7 @@ local function performVideoFlick()
 
 	local overshoot = math.rad(math.random(profile.overshootMin, profile.overshootMax))
 	local overshootBaseDelay = profile.overshootBaseDelay
-	local useOvershoot = math.random() < 0.10
+	local useOvershoot = math.random() < 0.30
 
 	-- IDA
 	for i = 1, goSteps do
@@ -1747,4 +1747,4 @@ createModeSelector(function(mode)
 	applyVisibility()
 end)
 
-print("Best Flee The Facility Wallhop Script | Made by Nyhito - Loaded Successfully ✅")
+print("Besttt Flee The Facility Wallhop Script | Made by Nyhito - Loaded Successfully ✅")
