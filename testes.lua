@@ -1385,9 +1385,9 @@ local function pickNextFlick(useSpecialFirst)
 	local minAngle, maxAngle
 
 	if useSpecialFirst then
-		minAngle, maxAngle = 70, 80
+		minAngle, maxAngle = 70, 90
 	else
-		minAngle, maxAngle = 65, 80
+		minAngle, maxAngle = 70, 85
 	end
 
 	local attempt = 0
@@ -1406,7 +1406,7 @@ local function getFlickProfile(useSpecialFirst)
 	if useSpecialFirst then
 		return {
 			goSteps = math.random(2, 3),
-			goDelayMin = 0.0095,
+			goDelayMin = 0.0100,
 			goDelayMax = 0.0120,
 			holdTime = 0.01,
 			returnSteps = math.random(2, 3),
@@ -1423,38 +1423,38 @@ local function getFlickProfile(useSpecialFirst)
 	if flickRoll < 0.10 then
 		return {
 			goSteps = math.random(2, 3),
-			goDelayMin = 0.0080,
-			goDelayMax = 0.0103,
-			holdTime = 0.01,
+			goDelayMin = 0.0095,
+			goDelayMax = 0.0120,
+			holdTime = 0.02,
 			returnSteps = math.random(2, 3),
-			returnDelayMin = 0.0080,
-			returnDelayMax = 0.0103,
-			overshootMin = 12,
-			overshootMax = 18,
+			returnDelayMin = 0.0095,
+			returnDelayMax = 0.0120,
+			overshootMin = 16,
+			overshootMax = 20,
 			overshootBaseDelay = 0.0068
 		}
 	elseif flickRoll < 0.40 then
 		return {
 			goSteps = math.random(3, 4),
-			goDelayMin = 0.0085,
-			goDelayMax = 0.0110,
-			holdTime = 0.01,
+			goDelayMin = 0.0120,
+			goDelayMax = 0.0140,
+			holdTime = 0.02,
 			returnSteps = math.random(3, 4),
-			returnDelayMin = 0.0085,
-			returnDelayMax = 0.0110,
+			returnDelayMin = 0.0120,
+			returnDelayMax = 0.0140,
 			overshootMin = 14,
 			overshootMax = 20,
 			overshootBaseDelay = 0.0075
 		}
 	else
 		return {
-			goSteps = math.random(2, 3),
-			goDelayMin = 0.0090,
-			goDelayMax = 0.0119,
+			goSteps = math.random(4, 5),
+			goDelayMin = 0.0140,
+			goDelayMax = 0.0160,
 			holdTime = 0.01,
-			returnSteps = math.random(2, 3),
-			returnDelayMin = 0.0090,
-			returnDelayMax = 0.0119,
+			returnSteps = math.random(2, 4),
+			returnDelayMin = 0.0140,
+			returnDelayMax = 0.0160,
 			overshootMin = 16,
 			overshootMax = 22,
 			overshootBaseDelay = 0.0085
