@@ -93,6 +93,11 @@ local DEFAULT_WALKSPEED = 16
 local slowToken = 0
 local scriptSlowActive = false
 
+local FIRST_FLICK_RESET_GROUND_TIME = 3
+local lastLandedTime = 0
+local hasWallhoppedSinceLanding = false
+local specialFirstFlickArmed = false
+
 local function destroyOld()
 	for _, name in ipairs({
 		"AutoWallHopGui",
@@ -908,6 +913,7 @@ local function buildMobileGui()
 
 	updateMobilePanelButtons()
 end
+
 local function setMinimized(state)
 	if selectedMode ~= "PC" then
 		return
@@ -976,7 +982,6 @@ local function setMinimized(state)
 		showNotice("GUI restored")
 	end
 end
-
 local function buildPCGui()
 	clearOldDragConnections()
 
@@ -1277,6 +1282,10 @@ local function setupCharacter(char)
 			airborneStartY = nil
 			airborneStartTime = 0
 			jumpedRecently = false
+
+			lastLandedTime = tick()
+			hasWallhoppedSinceLanding = false
+			specialFirstFlickArmed = false
 		end
 	end)
 end
@@ -1318,8 +1327,15 @@ UserInputService.JumpRequest:Connect(function()
 	end
 end)
 
-local function pickNextFlick()
-	local minAngle, maxAngle = 55, 80
+local function pickNextFlick(useSpecialFirst)
+	local minAngle, maxAngle
+
+	if useSpecialFirst then
+		minAngle, maxAngle = 70, 80
+	else
+		minAngle, maxAngle = 55, 80
+	end
+
 	local attempt = 0
 	local angle
 
@@ -1332,38 +1348,66 @@ local function pickNextFlick()
 	return math.rad(angle)
 end
 
-local function getFlickProfile()
+local function getFlickProfile(useSpecialFirst)
+	if useSpecialFirst then
+		return {
+			goSteps = math.random(2, 3),
+			goDelayMin = 0.0095,
+			goDelayMax = 0.0120,
+			holdTime = 0.01,
+			returnSteps = math.random(2, 3),
+			returnDelayMin = 0.0095,
+			returnDelayMax = 0.0120,
+			overshootMin = 22,
+			overshootMax = 25,
+			overshootBaseDelay = 0.0085
+		}
+	end
+
 	local flickRoll = math.random()
 
 	if flickRoll < 0.10 then
 		return {
-			steps = math.random(2, 3),
-			delayMin = 0.0080,
-			delayMax = 0.0103,
+			goSteps = math.random(2, 3),
+			goDelayMin = 0.0080,
+			goDelayMax = 0.0103,
+			holdTime = 0.01,
+			returnSteps = math.random(2, 3),
+			returnDelayMin = 0.0080,
+			returnDelayMax = 0.0103,
 			overshootMin = 12,
 			overshootMax = 18,
-			baseDelay = 0.0068
+			overshootBaseDelay = 0.0068
 		}
 	elseif flickRoll < 0.40 then
 		return {
-			steps = math.random(3, 4),
-			delayMin = 0.0085,
-			delayMax = 0.0110,
+			goSteps = math.random(3, 4),
+			goDelayMin = 0.0085,
+			goDelayMax = 0.0110,
+			holdTime = 0.01,
+			returnSteps = math.random(3, 4),
+			returnDelayMin = 0.0085,
+			returnDelayMax = 0.0110,
 			overshootMin = 14,
 			overshootMax = 20,
-			baseDelay = 0.0075
+			overshootBaseDelay = 0.0075
 		}
 	else
 		return {
-			steps = math.random(2, 3),
-			delayMin = 0.0090,
-			delayMax = 0.0119,
+			goSteps = math.random(2, 3),
+			goDelayMin = 0.0090,
+			goDelayMax = 0.0119,
+			holdTime = 0.01,
+			returnSteps = math.random(2, 3),
+			returnDelayMin = 0.0090,
+			returnDelayMax = 0.0119,
 			overshootMin = 16,
 			overshootMax = 22,
-			baseDelay = 0.0085
+			overshootBaseDelay = 0.0085
 		}
 	end
 end
+
 local function performVideoFlick()
 	if isFlicking then
 		return
@@ -1382,47 +1426,52 @@ local function performVideoFlick()
 		return
 	end
 
+	local useSpecialFirst = specialFirstFlickArmed and not hasWallhoppedSinceLanding
+	if useSpecialFirst then
+		specialFirstFlickArmed = false
+	end
+	hasWallhoppedSinceLanding = true
+
 	hum:ChangeState(Enum.HumanoidStateType.Jumping)
 
 	local baseYaw = hrp.Orientation.Y
-	local angle = -pickNextFlick()
-	local profile = getFlickProfile()
+	local angle = -pickNextFlick(useSpecialFirst)
+	local profile = getFlickProfile(useSpecialFirst)
 
 	local goSteps = profile.goSteps
 	local goDelayMin = profile.goDelayMin
 	local goDelayMax = profile.goDelayMax
-
-	local holdTime = profile.holdMin + math.random() * (profile.holdMax - profile.holdMin)
-
+	local holdTime = profile.holdTime
 	local returnSteps = profile.returnSteps
 	local returnDelayMin = profile.returnDelayMin
 	local returnDelayMax = profile.returnDelayMax
 
 	local overshoot = math.rad(math.random(profile.overshootMin, profile.overshootMax))
 	local overshootBaseDelay = profile.overshootBaseDelay
-	local useOvershoot = math.random() < 0.50
+	local useOvershoot = math.random() < 0.40
 
-	-- IDA
 	for i = 1, goSteps do
 		local alpha = i / goSteps
 		local offset = angle * alpha
 		hrp.CFrame = CFrame.new(hrp.Position) * CFrame.Angles(0, math.rad(baseYaw) + offset, 0)
 
-		RunService.RenderStepped:Wait()
-		task.wait(goDelayMin + math.random() * (goDelayMax - goDelayMin))
+		if i < goSteps then
+			RunService.RenderStepped:Wait()
+			task.wait(goDelayMin + math.random() * (goDelayMax - goDelayMin))
+		end
 	end
 
-	-- SEGURA NO ÂNGULO
 	task.wait(holdTime)
 
-	-- VOLTA
 	for i = 1, returnSteps do
 		local alpha = i / returnSteps
 		local offset = angle * (1 - alpha)
 		hrp.CFrame = CFrame.new(hrp.Position) * CFrame.Angles(0, math.rad(baseYaw) + offset, 0)
 
-		RunService.RenderStepped:Wait()
-		task.wait(returnDelayMin + math.random() * (returnDelayMax - returnDelayMin))
+		if i < returnSteps then
+			RunService.RenderStepped:Wait()
+			task.wait(returnDelayMin + math.random() * (returnDelayMax - returnDelayMin))
+		end
 	end
 
 	if useOvershoot then
@@ -1432,22 +1481,25 @@ local function performVideoFlick()
 			end
 
 			local smallSteps = math.random(2, 3)
-			local localDelay = overshootBaseDelay * (math.random(80, 92) / 100)
-
+			local localDelay = overshootBaseDelay * (math.random(88, 102) / 100)
 			for i = 1, smallSteps do
 				local alpha = i / smallSteps
 				local offset = overshoot * alpha
 				hrp.CFrame = CFrame.new(hrp.Position) * CFrame.Angles(0, math.rad(baseYaw) + offset, 0)
-				RunService.RenderStepped:Wait()
-				task.wait(localDelay)
+				if i < smallSteps then
+					RunService.RenderStepped:Wait()
+					task.wait(localDelay)
+				end
 			end
 
 			for i = 1, smallSteps do
 				local alpha = i / smallSteps
 				local offset = overshoot * (1 - alpha)
 				hrp.CFrame = CFrame.new(hrp.Position) * CFrame.Angles(0, math.rad(baseYaw) + offset, 0)
-				RunService.RenderStepped:Wait()
-				task.wait(localDelay)
+				if i < smallSteps then
+					RunService.RenderStepped:Wait()
+					task.wait(localDelay)
+				end
 			end
 
 			hrp.CFrame = CFrame.new(hrp.Position) * CFrame.Angles(0, math.rad(baseYaw), 0)
@@ -1583,6 +1635,12 @@ RunService.Heartbeat:Connect(function()
 
 	local state = hum:GetState()
 	local airborne = state == Enum.HumanoidStateType.Freefall or state == Enum.HumanoidStateType.Jumping
+
+	if state == Enum.HumanoidStateType.Landed then
+		if not hasWallhoppedSinceLanding and lastLandedTime > 0 and tick() - lastLandedTime >= FIRST_FLICK_RESET_GROUND_TIME then
+			specialFirstFlickArmed = true
+		end
+	end
 
 	if not airborne then
 		lastHitPosition = nil
@@ -1732,4 +1790,4 @@ createModeSelector(function(mode)
 	applyVisibility()
 end)
 
-print("Best Flee The Facility Wallhop Script | Made by Nyhito - Loaded Successfully ✅")
+print("Best Flee HHThe Facility Wallhop Script | Made by Nyhito - Loaded Successfully ✅")	
