@@ -1502,7 +1502,7 @@ local function performVideoFlick()
 
 	local overshoot = math.rad(math.random(profile.overshootMin, profile.overshootMax) + 5)
 	local overshootBaseDelay = profile.overshootBaseDelay
-	local useOvershoot = math.random() < 0.40
+	local useOvershoot = math.random() < 0.50
 
 	for i = 1, goSteps do
 		local alpha = i / goSteps
