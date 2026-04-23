@@ -1319,7 +1319,7 @@ UserInputService.JumpRequest:Connect(function()
 end)
 
 local function pickNextFlick()
-	local minAngle, maxAngle = 45, 70
+	local minAngle, maxAngle = 35, 50
 	local attempt = 0
 	local angle
 
@@ -1337,30 +1337,45 @@ local function getFlickProfile()
 
 	if flickRoll < 0.10 then
 		return {
-			steps = math.random(3, 5),
-			delayMin = 0.0048,
-			delayMax = 0.0062,
-			overshootMin = 12,
-			overshootMax = 18,
-			baseDelay = 0.0068
+			goSteps = math.random(3, 5),
+			goDelayMin = 0.0048,
+			goDelayMax = 0.0062,
+			holdMin = 0.008,
+			holdMax = 0.012,
+			returnSteps = math.random(4, 5),
+			returnDelayMin = 0.0048,
+			returnDelayMax = 0.0060,
+			overshootMin = 10,
+			overshootMax = 15,
+			overshootBaseDelay = 0.0055
 		}
 	elseif flickRoll < 0.40 then
 		return {
-			steps = math.random(6, 7),
-			delayMin = 0.0050,
-			delayMax = 0.0068,
-			overshootMin = 14,
-			overshootMax = 20,
-			baseDelay = 0.0075
+			goSteps = math.random(6, 7),
+			goDelayMin = 0.0050,
+			goDelayMax = 0.0068,
+			holdMin = 0.009,
+			holdMax = 0.014,
+			returnSteps = math.random(5, 6),
+			returnDelayMin = 0.0054,
+			returnDelayMax = 0.0070,
+			overshootMin = 12,
+			overshootMax = 18,
+			overshootBaseDelay = 0.0062
 		}
 	else
 		return {
-			steps = math.random(7, 8),
-			delayMin = 0.0055,
-			delayMax = 0.0089,
-			overshootMin = 16,
-			overshootMax = 22,
-			baseDelay = 0.0085
+			goSteps = math.random(7, 8),
+			goDelayMin = 0.0055,
+			goDelayMax = 0.0089,
+			holdMin = 0.010,
+			holdMax = 0.016,
+			returnSteps = math.random(6, 7),
+			returnDelayMin = 0.0062,
+			returnDelayMax = 0.0086,
+			overshootMin = 14,
+			overshootMax = 20,
+			overshootBaseDelay = 0.0070
 		}
 	end
 end
@@ -1386,40 +1401,53 @@ local function performVideoFlick()
 
 	local baseYaw = hrp.Orientation.Y
 	local angle = -pickNextFlick()
-
 	local profile = getFlickProfile()
-	local steps = profile.steps
-	local delayMin = profile.delayMin
-	local delayMax = profile.delayMax
-	local baseDelay = profile.baseDelay
+
+	local goSteps = profile.goSteps
+	local goDelayMin = profile.goDelayMin
+	local goDelayMax = profile.goDelayMax
+
+	local holdTime = profile.holdMin + math.random() * (profile.holdMax - profile.holdMin)
+
+	local returnSteps = profile.returnSteps
+	local returnDelayMin = profile.returnDelayMin
+	local returnDelayMax = profile.returnDelayMax
+
 	local overshoot = math.rad(math.random(profile.overshootMin, profile.overshootMax))
+	local overshootBaseDelay = profile.overshootBaseDelay
 	local useOvershoot = math.random() < 0.10
 
-	for i = 1, steps do
-		local alpha = i / steps
-		local curve
-
-		if alpha <= 0.6 then
-			curve = math.sin((alpha / 0.6) * (math.pi / 2))
-		else
-			curve = math.sin(((1 - alpha) / 0.4) * (math.pi / 2))
-		end
-
-		local offset = angle * curve
+	-- IDA
+	for i = 1, goSteps do
+		local alpha = i / goSteps
+		local offset = angle * alpha
 		hrp.CFrame = CFrame.new(hrp.Position) * CFrame.Angles(0, math.rad(baseYaw) + offset, 0)
 
 		RunService.RenderStepped:Wait()
-		task.wait(delayMin + math.random() * (delayMax - delayMin))
+		task.wait(goDelayMin + math.random() * (goDelayMax - goDelayMin))
+	end
+
+	-- SEGURA NO ÂNGULO
+	task.wait(holdTime)
+
+	-- VOLTA
+	for i = 1, returnSteps do
+		local alpha = i / returnSteps
+		local offset = angle * (1 - alpha)
+		hrp.CFrame = CFrame.new(hrp.Position) * CFrame.Angles(0, math.rad(baseYaw) + offset, 0)
+
+		RunService.RenderStepped:Wait()
+		task.wait(returnDelayMin + math.random() * (returnDelayMax - returnDelayMin))
 	end
 
 	if useOvershoot then
-		task.delay(0.025, function()
+		task.delay(0.018, function()
 			if not hrp or not hrp.Parent then
 				return
 			end
 
 			local smallSteps = math.random(2, 3)
-			local localDelay = baseDelay * (math.random(82, 95) / 100)
+			local localDelay = overshootBaseDelay * (math.random(80, 92) / 100)
 
 			for i = 1, smallSteps do
 				local alpha = i / smallSteps
