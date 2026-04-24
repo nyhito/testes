@@ -40,14 +40,30 @@ local MiniButton
 local MobileButton
 local MobileMenuButton
 local MobilePanel
-local MobileBeastSlowRow
-local MobileHideGuiRow
 local ToggleButton
 local HideGuiBindButton
 local ToggleBindButton
 local BeastSlowBindButton
 local Notice
 local NoticeStroke
+
+local PcTabFunctions
+local PcTabFlicks
+local PcFunctionsPage
+local PcFlicksPage
+local PcCurrentUsingLabel
+local PcNormalWallhopButton
+local PcConsoleWallhopButton
+
+local MobileTabFunctions
+local MobileTabFlicks
+local MobileFunctionsPage
+local MobileFlicksPage
+local MobileCurrentUsingLabel
+local MobileNormalWallhopRow
+local MobileConsoleWallhopRow
+local MobileBeastSlowRow
+local MobileHideGuiRow
 
 local mobileBeastSlowSwitch
 local mobileBeastSlowKnob
@@ -62,6 +78,9 @@ local clearScriptSlowInstant
 local updateMobilePanelButtons
 local setMobileWallhopVisualHidden
 local applyVisibility
+local updateFlickButtons
+local switchPcTab
+local switchMobileTab
 
 local isWallHopEnabled = false
 local isSlowEnabled = false
@@ -100,6 +119,8 @@ local FIRST_FLICK_RESET_GROUND_TIME = 3
 local lastLandedTime = 0
 local hasWallhoppedSinceLanding = false
 local specialFirstFlickArmed = false
+
+local currentFlickMode = "Normal Wallhop"
 
 local function destroyOld()
 	for _, name in ipairs({
@@ -357,6 +378,7 @@ local function elegantHide(root, onDone)
 			):Play()
 		end
 	end
+
 	setHostShadowVisible(root, false)
 
 	local tween = TweenService:Create(
@@ -396,7 +418,6 @@ local function showNotice(text)
 	Notice.BackgroundTransparency = 1
 	Notice.TextTransparency = 1
 	NoticeStroke.Transparency = 1
-
 	TweenService:Create(Notice, TweenInfo.new(0.2, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
 		BackgroundTransparency = 0.08,
 		TextTransparency = 0,
@@ -568,6 +589,40 @@ local function createSwitchRow(parent, yOffset, labelText)
 	return row, switch, knob
 end
 
+local function createSimpleRow(parent, yOffset, labelText)
+	local row = Instance.new("TextButton")
+	row.Size = UDim2.new(1, -14, 0, 40)
+	row.Position = UDim2.new(0, 7, 0, yOffset)
+	row.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+	row.AutoButtonColor = false
+	row.Text = ""
+	row.BorderSizePixel = 0
+	row.Parent = parent
+	row.ZIndex = 5
+	row.Active = true
+	row.Selectable = false
+	Instance.new("UICorner", row).CornerRadius = UDim.new(0, 12)
+	setTargetTransparency(row, 0, 1)
+
+	local label = Instance.new("TextLabel")
+	label.Name = "Label"
+	label.Size = UDim2.new(1, -24, 1, 0)
+	label.Position = UDim2.new(0, 12, 0, 0)
+	label.BackgroundTransparency = 1
+	label.Text = labelText
+	label.TextColor3 = Color3.fromRGB(255,255,255)
+	label.Font = Enum.Font.GothamBold
+	label.TextSize = 13
+	label.TextXAlignment = Enum.TextXAlignment.Left
+	label.Parent = row
+	label.ZIndex = 6
+	label.Active = false
+	noTextStroke(label)
+	setTargetTransparency(label, 1, 0)
+
+	return row
+end
+
 local function updateToggleButton()
 	if selectedMode == "PC" and ToggleButton then
 		ToggleButton.Text = isWallHopEnabled and "Wall Hop On" or "Wall Hop Off"
@@ -585,6 +640,36 @@ setMobileWallhopVisualHidden = function(hidden)
 	setHostShadowVisible(MobileButton, not hidden)
 end
 
+updateFlickButtons = function()
+	if PcCurrentUsingLabel then
+		PcCurrentUsingLabel.Text = "Currently using: " .. currentFlickMode
+	end
+
+	if MobileCurrentUsingLabel then
+		MobileCurrentUsingLabel.Text = "Currently using: " .. currentFlickMode
+	end
+
+	if PcNormalWallhopButton then
+		PcNormalWallhopButton.BackgroundColor3 =
+			currentFlickMode == "Normal Wallhop" and Color3.fromRGB(20,20,20) or Color3.fromRGB(6,6,6)
+	end
+
+	if PcConsoleWallhopButton then
+		PcConsoleWallhopButton.BackgroundColor3 =
+			currentFlickMode == "Console Wallhop" and Color3.fromRGB(20,20,20) or Color3.fromRGB(6,6,6)
+	end
+
+	if MobileNormalWallhopRow then
+		MobileNormalWallhopRow.BackgroundColor3 =
+			currentFlickMode == "Normal Wallhop" and Color3.fromRGB(20,20,20) or Color3.fromRGB(0,0,0)
+	end
+
+	if MobileConsoleWallhopRow then
+		MobileConsoleWallhopRow.BackgroundColor3 =
+			currentFlickMode == "Console Wallhop" and Color3.fromRGB(20,20,20) or Color3.fromRGB(0,0,0)
+	end
+end
+
 updateMobilePanelButtons = function()
 	if MobileBeastSlowRow and MobileBeastSlowRow:FindFirstChild("Label") then
 		MobileBeastSlowRow.Label.Text = "Beast Slow"
@@ -592,10 +677,17 @@ updateMobilePanelButtons = function()
 	if MobileHideGuiRow and MobileHideGuiRow:FindFirstChild("Label") then
 		MobileHideGuiRow.Label.Text = "Hide GUI"
 	end
+	if MobileNormalWallhopRow and MobileNormalWallhopRow:FindFirstChild("Label") then
+		MobileNormalWallhopRow.Label.Text = "Normal Wallhop"
+	end
+	if MobileConsoleWallhopRow and MobileConsoleWallhopRow:FindFirstChild("Label") then
+		MobileConsoleWallhopRow.Label.Text = "Console Wallhop"
+	end
 
 	updateSwitchVisual(mobileBeastSlowSwitch, mobileBeastSlowKnob, isSlowEnabled)
 	updateSwitchVisual(mobileHideGuiSwitch, mobileHideGuiKnob, mobileWallhopGuiHidden)
 	setMobileWallhopVisualHidden(mobileWallhopGuiHidden)
+	updateFlickButtons()
 end
 
 local function updateBindButtons()
@@ -638,11 +730,18 @@ applyVisibility = function()
 		setMobileWallhopVisualHidden(mobileWallhopGuiHidden)
 	end
 end
-
 local function setGuiVisible(state)
 	guiVisible = state
 	applyVisibility()
 	showNotice(state and "GUI shown" or "GUI hidden")
+end
+
+local function setFlickMode(name)
+	currentFlickMode = name
+	updateFlickButtons()
+	if selectedMode == "PC" then
+		showNotice("Using " .. name)
+	end
 end
 
 local function createModeSelector(onPick)
@@ -674,6 +773,7 @@ local function createModeSelector(onPick)
 	title.Parent = frame
 	noTextStroke(title)
 	setTargetTransparency(title, 1, 0)
+
 	local sub = Instance.new("TextLabel")
 	sub.Size = UDim2.new(1, -20, 0, 16)
 	sub.Position = UDim2.new(0, 10, 0, 34)
@@ -812,6 +912,34 @@ local function bindFreeDrag(handle, target, onMove, holdTime)
 	end))
 end
 
+switchPcTab = function(name)
+	if not PcFunctionsPage or not PcFlicksPage or not PcTabFunctions or not PcTabFlicks then
+		return
+	end
+
+	local isFunctions = name == "Functions"
+
+	PcFunctionsPage.Visible = isFunctions
+	PcFlicksPage.Visible = not isFunctions
+
+	PcTabFunctions.BackgroundColor3 = isFunctions and Color3.fromRGB(20,20,20) or Color3.fromRGB(8,8,8)
+	PcTabFlicks.BackgroundColor3 = isFunctions and Color3.fromRGB(8,8,8) or Color3.fromRGB(20,20,20)
+end
+
+switchMobileTab = function(name)
+	if not MobileFunctionsPage or not MobileFlicksPage or not MobileTabFunctions or not MobileTabFlicks then
+		return
+	end
+
+	local isFunctions = name == "Functions"
+
+	MobileFunctionsPage.Visible = isFunctions
+	MobileFlicksPage.Visible = not isFunctions
+
+	MobileTabFunctions.BackgroundColor3 = isFunctions and Color3.fromRGB(20,20,20) or Color3.fromRGB(8,8,8)
+	MobileTabFlicks.BackgroundColor3 = not isFunctions and Color3.fromRGB(20,20,20) or Color3.fromRGB(8,8,8)
+end
+
 local function setSlowEnabled(state)
 	isSlowEnabled = state and true or false
 
@@ -866,7 +994,7 @@ local function buildMobileGui()
 	setTargetTransparency(MobileMenuButton, 0, 0)
 
 	MobilePanel = Instance.new("Frame")
-	MobilePanel.Size = UDim2.new(0, 170, 0, 108)
+	MobilePanel.Size = UDim2.new(0, 190, 0, 196)
 	MobilePanel.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 	MobilePanel.BorderSizePixel = 0
 	MobilePanel.Visible = false
@@ -884,9 +1012,66 @@ local function buildMobileGui()
 	mobileDragHandle.Active = true
 	Instance.new("UICorner", mobileDragHandle).CornerRadius = UDim.new(1, 0)
 	setTargetTransparency(mobileDragHandle, 0, nil)
+	MobileTabFunctions = Instance.new("TextButton")
+	MobileTabFunctions.Size = UDim2.new(0, 82, 0, 26)
+	MobileTabFunctions.Position = UDim2.new(0, 7, 0, 24)
+	MobileTabFunctions.BackgroundColor3 = Color3.fromRGB(20,20,20)
+	MobileTabFunctions.Text = "Functions"
+	MobileTabFunctions.TextColor3 = Color3.fromRGB(255,255,255)
+	MobileTabFunctions.Font = Enum.Font.GothamBold
+	MobileTabFunctions.TextSize = 12
+	MobileTabFunctions.Parent = MobilePanel
+	MobileTabFunctions.AutoButtonColor = false
+	Instance.new("UICorner", MobileTabFunctions).CornerRadius = UDim.new(0, 10)
+	setTargetTransparency(MobileTabFunctions, 0, 0)
+	noTextStroke(MobileTabFunctions)
 
-	MobileBeastSlowRow, mobileBeastSlowSwitch, mobileBeastSlowKnob = createSwitchRow(MobilePanel, 22, "Beast Slow")
-	MobileHideGuiRow, mobileHideGuiSwitch, mobileHideGuiKnob = createSwitchRow(MobilePanel, 62, "Hide GUI")
+	MobileTabFlicks = Instance.new("TextButton")
+	MobileTabFlicks.Size = UDim2.new(0, 82, 0, 26)
+	MobileTabFlicks.Position = UDim2.new(0, 95, 0, 24)
+	MobileTabFlicks.BackgroundColor3 = Color3.fromRGB(8,8,8)
+	MobileTabFlicks.Text = "Flicks"
+	MobileTabFlicks.TextColor3 = Color3.fromRGB(255,255,255)
+	MobileTabFlicks.Font = Enum.Font.GothamBold
+	MobileTabFlicks.TextSize = 12
+	MobileTabFlicks.Parent = MobilePanel
+	MobileTabFlicks.AutoButtonColor = false
+	Instance.new("UICorner", MobileTabFlicks).CornerRadius = UDim.new(0, 10)
+	setTargetTransparency(MobileTabFlicks, 0, 0)
+	noTextStroke(MobileTabFlicks)
+
+	MobileFunctionsPage = Instance.new("Frame")
+	MobileFunctionsPage.Size = UDim2.new(1, 0, 1, -58)
+	MobileFunctionsPage.Position = UDim2.new(0, 0, 0, 58)
+	MobileFunctionsPage.BackgroundTransparency = 1
+	MobileFunctionsPage.Parent = MobilePanel
+
+	MobileFlicksPage = Instance.new("Frame")
+	MobileFlicksPage.Size = UDim2.new(1, 0, 1, -58)
+	MobileFlicksPage.Position = UDim2.new(0, 0, 0, 58)
+	MobileFlicksPage.BackgroundTransparency = 1
+	MobileFlicksPage.Parent = MobilePanel
+	MobileFlicksPage.Visible = false
+
+	MobileBeastSlowRow, mobileBeastSlowSwitch, mobileBeastSlowKnob = createSwitchRow(MobileFunctionsPage, 4, "Beast Slow")
+	MobileHideGuiRow, mobileHideGuiSwitch, mobileHideGuiKnob = createSwitchRow(MobileFunctionsPage, 46, "Hide GUI")
+
+	MobileNormalWallhopRow = createSimpleRow(MobileFlicksPage, 4, "Normal Wallhop")
+	MobileConsoleWallhopRow = createSimpleRow(MobileFlicksPage, 46, "Console Wallhop")
+
+	MobileCurrentUsingLabel = Instance.new("TextLabel")
+	MobileCurrentUsingLabel.Size = UDim2.new(1, -14, 0, 34)
+	MobileCurrentUsingLabel.Position = UDim2.new(0, 7, 0, 92)
+	MobileCurrentUsingLabel.BackgroundTransparency = 1
+	MobileCurrentUsingLabel.TextColor3 = Color3.fromRGB(200,200,200)
+	MobileCurrentUsingLabel.Font = Enum.Font.Gotham
+	MobileCurrentUsingLabel.TextSize = 12
+	MobileCurrentUsingLabel.TextWrapped = true
+	MobileCurrentUsingLabel.TextXAlignment = Enum.TextXAlignment.Left
+	MobileCurrentUsingLabel.TextYAlignment = Enum.TextYAlignment.Top
+	MobileCurrentUsingLabel.Parent = MobileFlicksPage
+	noTextStroke(MobileCurrentUsingLabel)
+	setTargetTransparency(MobileCurrentUsingLabel, 1, 0)
 
 	local function placeMobileButtonDefault()
 		local inset = GuiService:GetGuiInset()
@@ -948,12 +1133,20 @@ local function buildMobileGui()
 			end
 
 			MobilePanel.BackgroundTransparency = 1
-			MobilePanel.Size = UDim2.new(0, 164, 0, 102)
+			MobilePanel.Size = UDim2.new(0, 184, 0, 188)
 
-			elegantShow(MobilePanel, UDim2.new(0, 170, 0, 108), MobilePanel.Position, 0)
+			elegantShow(MobilePanel, UDim2.new(0, 190, 0, 196), MobilePanel.Position, 0)
 		else
 			elegantHide(MobilePanel)
 		end
+	end)
+
+	MobileTabFunctions.Activated:Connect(function()
+		switchMobileTab("Functions")
+	end)
+
+	MobileTabFlicks.Activated:Connect(function()
+		switchMobileTab("Flicks")
 	end)
 
 	bindRowPress(MobileBeastSlowRow, function()
@@ -964,6 +1157,15 @@ local function buildMobileGui()
 		setMobileGuiHidden(not mobileWallhopGuiHidden)
 	end)
 
+	bindRowPress(MobileNormalWallhopRow, function()
+		setFlickMode("Normal Wallhop")
+	end)
+
+	bindRowPress(MobileConsoleWallhopRow, function()
+		setFlickMode("Console Wallhop")
+	end)
+
+	switchMobileTab("Functions")
 	updateMobilePanelButtons()
 end
 
@@ -988,7 +1190,8 @@ local function setMinimized(state)
 				MiniButton.BackgroundTransparency = 1
 				MiniButton.TextTransparency = 1
 				MiniButton.Size = UDim2.new(0, 138, 0, 38)
-					local finalMiniSize = UDim2.new(0, 150, 0, 42)
+
+				local finalMiniSize = UDim2.new(0, 150, 0, 42)
 				local finalMiniPos = savedPos
 
 				TweenService:Create(
@@ -1025,14 +1228,48 @@ local function setMinimized(state)
 				setHostShadowVisible(MiniButton, false)
 
 				MainFrame.Position = restorePos
-				MainFrame.Size = UDim2.new(0, 315, 0, 190)
+				MainFrame.Size = UDim2.new(0, 335, 0, 270)
 
-				elegantShow(MainFrame, UDim2.new(0, 315, 0, 190), restorePos, 0)
+				elegantShow(MainFrame, UDim2.new(0, 335, 0, 270), restorePos, 0)
 			end)
 		end
 
 		showNotice("GUI restored")
 	end
+end
+
+local function createPcTabButton(parent, x, text)
+	local button = Instance.new("TextButton")
+	button.Size = UDim2.new(0, 96, 0, 28)
+	button.Position = UDim2.new(0, x, 0, 54)
+	button.BackgroundColor3 = Color3.fromRGB(8,8,8)
+	button.Text = text
+	button.TextColor3 = Color3.fromRGB(255,255,255)
+	button.Font = Enum.Font.GothamBold
+	button.TextSize = 13
+	button.AutoButtonColor = false
+	button.Parent = parent
+	Instance.new("UICorner", button).CornerRadius = UDim.new(0, 10)
+	noTextStroke(button)
+	setTargetTransparency(button, 0, 0)
+	return button
+end
+
+local function createPcActionButton(parent, y, text)
+	local button = Instance.new("TextButton")
+	button.Size = UDim2.new(1, -36, 0, 30)
+	button.Position = UDim2.new(0, 18, 0, y)
+	button.BackgroundColor3 = Color3.fromRGB(6,6,6)
+	button.Text = text
+	button.TextColor3 = Color3.fromRGB(255,255,255)
+	button.Font = Enum.Font.GothamBold
+	button.TextSize = 14
+	button.AutoButtonColor = false
+	button.Parent = parent
+	Instance.new("UICorner", button).CornerRadius = UDim.new(0, 10)
+	noTextStroke(button)
+	setTargetTransparency(button, 0, 0)
+	return button
 end
 
 local function buildPCGui()
@@ -1046,8 +1283,8 @@ local function buildPCGui()
 	ScreenGui.Parent = PlayerGui
 
 	MainFrame = Instance.new("Frame")
-	MainFrame.Size = UDim2.new(0, 315, 0, 190)
-	MainFrame.Position = UDim2.new(0.5, -157, 0.5, -95)
+	MainFrame.Size = UDim2.new(0, 335, 0, 270)
+	MainFrame.Position = UDim2.new(0.5, -167, 0.5, -135)
 	MainFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 	MainFrame.BorderSizePixel = 0
 	MainFrame.Parent = ScreenGui
@@ -1097,7 +1334,7 @@ local function buildPCGui()
 
 	ToggleButton = Instance.new("TextButton")
 	ToggleButton.Size = UDim2.new(1, -36, 0, 28)
-	ToggleButton.Position = UDim2.new(0, 18, 0, 58)
+	ToggleButton.Position = UDim2.new(0, 18, 0, 88)
 	ToggleButton.BackgroundTransparency = 1
 	ToggleButton.Text = "Wall Hop Off"
 	ToggleButton.TextColor3 = Color3.fromRGB(255,255,255)
@@ -1109,45 +1346,77 @@ local function buildPCGui()
 	noTextStroke(ToggleButton)
 	setTargetTransparency(ToggleButton, 1, 0)
 
+	PcTabFunctions = createPcTabButton(MainFrame, 18, "Functions")
+	PcTabFlicks = createPcTabButton(MainFrame, 120, "Flicks")
+
+	PcFunctionsPage = Instance.new("Frame")
+	PcFunctionsPage.Size = UDim2.new(1, 0, 1, -118)
+	PcFunctionsPage.Position = UDim2.new(0, 0, 0, 114)
+	PcFunctionsPage.BackgroundTransparency = 1
+	PcFunctionsPage.Parent = MainFrame
+
+	PcFlicksPage = Instance.new("Frame")
+	PcFlicksPage.Size = UDim2.new(1, 0, 1, -118)
+	PcFlicksPage.Position = UDim2.new(0, 0, 0, 114)
+	PcFlicksPage.BackgroundTransparency = 1
+	PcFlicksPage.Visible = false
+	PcFlicksPage.Parent = MainFrame
+
 	HideGuiBindButton = Instance.new("TextButton")
 	HideGuiBindButton.Size = UDim2.new(1, -36, 0, 18)
-	HideGuiBindButton.Position = UDim2.new(0, 18, 0, 98)
+	HideGuiBindButton.Position = UDim2.new(0, 18, 0, 8)
 	HideGuiBindButton.BackgroundTransparency = 1
 	HideGuiBindButton.TextColor3 = Color3.fromRGB(255,255,255)
 	HideGuiBindButton.Font = Enum.Font.Gotham
 	HideGuiBindButton.TextSize = 13
 	HideGuiBindButton.TextXAlignment = Enum.TextXAlignment.Left
 	HideGuiBindButton.AutoButtonColor = false
-	HideGuiBindButton.Parent = MainFrame
+	HideGuiBindButton.Parent = PcFunctionsPage
 	noTextStroke(HideGuiBindButton)
 	setTargetTransparency(HideGuiBindButton, 1, 0)
 
 	ToggleBindButton = Instance.new("TextButton")
 	ToggleBindButton.Size = UDim2.new(1, -36, 0, 18)
-	ToggleBindButton.Position = UDim2.new(0, 18, 0, 120)
+	ToggleBindButton.Position = UDim2.new(0, 18, 0, 30)
 	ToggleBindButton.BackgroundTransparency = 1
 	ToggleBindButton.TextColor3 = Color3.fromRGB(255,255,255)
 	ToggleBindButton.Font = Enum.Font.Gotham
 	ToggleBindButton.TextSize = 13
 	ToggleBindButton.TextXAlignment = Enum.TextXAlignment.Left
 	ToggleBindButton.AutoButtonColor = false
-	ToggleBindButton.Parent = MainFrame
+	ToggleBindButton.Parent = PcFunctionsPage
 	noTextStroke(ToggleBindButton)
 	setTargetTransparency(ToggleBindButton, 1, 0)
 
 	BeastSlowBindButton = Instance.new("TextButton")
 	BeastSlowBindButton.Size = UDim2.new(1, -36, 0, 18)
-	BeastSlowBindButton.Position = UDim2.new(0, 18, 0, 142)
+	BeastSlowBindButton.Position = UDim2.new(0, 18, 0, 52)
 	BeastSlowBindButton.BackgroundTransparency = 1
 	BeastSlowBindButton.TextColor3 = Color3.fromRGB(255,255,255)
 	BeastSlowBindButton.Font = Enum.Font.Gotham
 	BeastSlowBindButton.TextSize = 13
 	BeastSlowBindButton.TextXAlignment = Enum.TextXAlignment.Left
 	BeastSlowBindButton.AutoButtonColor = false
-	BeastSlowBindButton.Parent = MainFrame
+	BeastSlowBindButton.Parent = PcFunctionsPage
 	noTextStroke(BeastSlowBindButton)
 	setTargetTransparency(BeastSlowBindButton, 1, 0)
 
+	PcNormalWallhopButton = createPcActionButton(PcFlicksPage, 8, "Normal Wallhop")
+	PcConsoleWallhopButton = createPcActionButton(PcFlicksPage, 46, "Console Wallhop")
+
+	PcCurrentUsingLabel = Instance.new("TextLabel")
+	PcCurrentUsingLabel.Size = UDim2.new(1, -36, 0, 34)
+	PcCurrentUsingLabel.Position = UDim2.new(0, 18, 0, 88)
+	PcCurrentUsingLabel.BackgroundTransparency = 1
+	PcCurrentUsingLabel.TextColor3 = Color3.fromRGB(200,200,200)
+	PcCurrentUsingLabel.Font = Enum.Font.Gotham
+	PcCurrentUsingLabel.TextSize = 13
+	PcCurrentUsingLabel.TextWrapped = true
+	PcCurrentUsingLabel.TextXAlignment = Enum.TextXAlignment.Left
+	PcCurrentUsingLabel.TextYAlignment = Enum.TextYAlignment.Top
+	PcCurrentUsingLabel.Parent = PcFlicksPage
+	noTextStroke(PcCurrentUsingLabel)
+	setTargetTransparency(PcCurrentUsingLabel, 1, 0)
 	local footer = Instance.new("TextLabel")
 	footer.Size = UDim2.new(1, -36, 0, 14)
 	footer.Position = UDim2.new(0, 18, 1, -16)
@@ -1207,6 +1476,14 @@ local function buildPCGui()
 		setMinimized(false)
 	end)
 
+	PcTabFunctions.MouseButton1Click:Connect(function()
+		switchPcTab("Functions")
+	end)
+
+	PcTabFlicks.MouseButton1Click:Connect(function()
+		switchPcTab("Flicks")
+	end)
+
 	HideGuiBindButton.MouseButton1Click:Connect(function()
 		waitingForHideKey = true
 		waitingForToggleKey = false
@@ -1237,8 +1514,18 @@ local function buildPCGui()
 		showNotice(isWallHopEnabled and "Wallhop enabled" or "Wallhop disabled")
 	end)
 
+	PcNormalWallhopButton.MouseButton1Click:Connect(function()
+		setFlickMode("Normal Wallhop")
+	end)
+
+	PcConsoleWallhopButton.MouseButton1Click:Connect(function()
+		setFlickMode("Console Wallhop")
+	end)
+
+	switchPcTab("Functions")
 	updateBindButtons()
-	elegantShow(MainFrame, UDim2.new(0, 315, 0, 190), MainFrame.Position, 0)
+	updateFlickButtons()
+	elegantShow(MainFrame, UDim2.new(0, 335, 0, 270), MainFrame.Position, 0)
 	showNotice("PC version loaded")
 end
 
@@ -1385,9 +1672,9 @@ local function pickNextFlick(useSpecialFirst)
 	local minAngle, maxAngle
 
 	if useSpecialFirst then
-		minAngle, maxAngle = 70, 90
+		minAngle, maxAngle = 70, 80
 	else
-		minAngle, maxAngle = 70, 85
+		minAngle, maxAngle = 65, 80
 	end
 
 	local attempt = 0
@@ -1406,7 +1693,7 @@ local function getFlickProfile(useSpecialFirst)
 	if useSpecialFirst then
 		return {
 			goSteps = math.random(2, 3),
-			goDelayMin = 0.0100,
+			goDelayMin = 0.0095,
 			goDelayMax = 0.0120,
 			holdTime = 0.01,
 			returnSteps = math.random(2, 3),
@@ -1423,38 +1710,38 @@ local function getFlickProfile(useSpecialFirst)
 	if flickRoll < 0.10 then
 		return {
 			goSteps = math.random(2, 3),
-			goDelayMin = 0.0095,
-			goDelayMax = 0.0120,
-			holdTime = 0.02,
+			goDelayMin = 0.0080,
+			goDelayMax = 0.0103,
+			holdTime = 0.01,
 			returnSteps = math.random(2, 3),
-			returnDelayMin = 0.0095,
-			returnDelayMax = 0.0120,
-			overshootMin = 16,
-			overshootMax = 20,
+			returnDelayMin = 0.0080,
+			returnDelayMax = 0.0103,
+			overshootMin = 12,
+			overshootMax = 18,
 			overshootBaseDelay = 0.0068
 		}
 	elseif flickRoll < 0.40 then
 		return {
 			goSteps = math.random(3, 4),
-			goDelayMin = 0.0120,
-			goDelayMax = 0.0140,
-			holdTime = 0.02,
+			goDelayMin = 0.0085,
+			goDelayMax = 0.0110,
+			holdTime = 0.01,
 			returnSteps = math.random(3, 4),
-			returnDelayMin = 0.0120,
-			returnDelayMax = 0.0140,
+			returnDelayMin = 0.0085,
+			returnDelayMax = 0.0110,
 			overshootMin = 14,
 			overshootMax = 20,
 			overshootBaseDelay = 0.0075
 		}
 	else
 		return {
-			goSteps = math.random(4, 5),
-			goDelayMin = 0.0140,
-			goDelayMax = 0.0160,
+			goSteps = math.random(2, 3),
+			goDelayMin = 0.0090,
+			goDelayMax = 0.0119,
 			holdTime = 0.01,
-			returnSteps = math.random(2, 4),
-			returnDelayMin = 0.0140,
-			returnDelayMax = 0.0160,
+			returnSteps = math.random(2, 3),
+			returnDelayMin = 0.0090,
+			returnDelayMax = 0.0119,
 			overshootMin = 16,
 			overshootMax = 22,
 			overshootBaseDelay = 0.0085
@@ -1462,7 +1749,7 @@ local function getFlickProfile(useSpecialFirst)
 	end
 end
 
-local function performVideoFlick()
+local function performNormalWallhop()
 	if isFlicking then
 		return
 	end
@@ -1502,7 +1789,7 @@ local function performVideoFlick()
 
 	local overshoot = math.rad(math.random(profile.overshootMin, profile.overshootMax) + 5)
 	local overshootBaseDelay = profile.overshootBaseDelay
-	local useOvershoot = math.random() < 0.50
+	local useOvershoot = math.random() < 0.40
 
 	for i = 1, goSteps do
 		local alpha = i / goSteps
@@ -1576,6 +1863,60 @@ local function performVideoFlick()
 	end)
 
 	isFlicking = false
+end
+
+local function performConsoleWallhop()
+	if isFlicking then
+		return
+	end
+
+	isFlicking = true
+	isWallHopping = true
+	lastWallHopTime = tick()
+	blockDoubleJump = true
+
+	local char = LocalPlayer.Character
+	local hum = char and char:FindFirstChild("Humanoid")
+	local hrp = char and char:FindFirstChild("HumanoidRootPart")
+	if not hum or not hrp then
+		isFlicking = false
+		return
+	end
+
+	hasWallhoppedSinceLanding = true
+	specialFirstFlickArmed = false
+
+	hum:ChangeState(Enum.HumanoidStateType.Jumping)
+
+	local look = Camera.CFrame.LookVector
+	local flat = Vector3.new(look.X, 0, look.Z)
+
+	if flat.Magnitude > 0 then
+		flat = flat.Unit
+		hrp.CFrame = CFrame.lookAt(hrp.Position, hrp.Position + flat)
+	end
+
+	if isSlowEnabled then
+		applyWallhopSlow(hum)
+	end
+
+	task.delay(0.01, function()
+		blockDoubleJump = false
+	end)
+
+	task.delay(0.06, function()
+		isWallHopping = false
+	end)
+
+	isFlicking = false
+end
+
+local function performSelectedWallhop()
+	if currentFlickMode == "Console Wallhop" then
+		performConsoleWallhop()
+	else
+		performNormalWallhop()
+	end
 end
 
 local function isPlayerCharacter(instance)
@@ -1736,7 +2077,7 @@ RunService.Heartbeat:Connect(function()
 	local backwardDirection = -horizontal * 1.55
 
 	local result = findValidWall(hrp, params, {
-	forwardDirection,
+		forwardDirection,
 		backwardDirection
 	})
 
@@ -1752,7 +2093,7 @@ RunService.Heartbeat:Connect(function()
 			if hrp.Velocity.Y < -0.8 and tick() - lastFlickTime > WALLHOP_COOLDOWN and farEnough then
 				lastFlickTime = tick()
 				lastHitPosition = result.Position
-				performVideoFlick()
+				performSelectedWallhop()
 			else
 				lastHitPosition = result.Position
 			end
@@ -1845,6 +2186,7 @@ createModeSelector(function(mode)
 
 	updateToggleButton()
 	updateMobilePanelButtons()
+	updateFlickButtons()
 	applyVisibility()
 end)
 
