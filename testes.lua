@@ -1888,12 +1888,63 @@ local function performConsoleWallhop()
 
 	hum:ChangeState(Enum.HumanoidStateType.Jumping)
 
-	local look = Camera.CFrame.LookVector
-	local flat = Vector3.new(look.X, 0, look.Z)
+	local function getCameraFlat()
+		local look = Camera.CFrame.LookVector
+		local flat = Vector3.new(look.X, 0, look.Z)
+		if flat.Magnitude <= 0 then
+			return nil
+		end
+		return flat.Unit
+	end
 
-	if flat.Magnitude > 0 then
-		flat = flat.Unit
-		hrp.CFrame = CFrame.lookAt(hrp.Position, hrp.Position + flat)
+	local function getYawFromVector(vec)
+		return math.atan2(-vec.X, -vec.Z)
+	end
+
+	local function wrapAngle(angle)
+		return math.atan2(math.sin(angle), math.cos(angle))
+	end
+
+	local camFlat = getCameraFlat()
+	if camFlat then
+		local targetYaw = getYawFromVector(camFlat)
+		local flickYaw = targetYaw - math.rad(85)
+
+		hrp.CFrame = CFrame.new(hrp.Position) * CFrame.Angles(0, flickYaw, 0)
+
+		task.spawn(function()
+			local returnSteps = 4
+			local stepDelay = 0.012
+
+			for i = 1, returnSteps do
+				if not hrp or not hrp.Parent then
+					break
+				end
+
+				local liveFlat = getCameraFlat()
+				if not liveFlat then
+					break
+				end
+
+				local liveTargetYaw = getYawFromVector(liveFlat)
+				local currentYaw = math.atan2(-hrp.CFrame.LookVector.X, -hrp.CFrame.LookVector.Z)
+				local delta = wrapAngle(liveTargetYaw - currentYaw)
+				local nextYaw = currentYaw + (delta * 0.55)
+
+				hrp.CFrame = CFrame.new(hrp.Position) * CFrame.Angles(0, nextYaw, 0)
+
+				if i < returnSteps then
+					RunService.RenderStepped:Wait()
+					task.wait(stepDelay)
+				end
+			end
+
+			local finalFlat = getCameraFlat()
+			if finalFlat and hrp and hrp.Parent then
+				local finalYaw = getYawFromVector(finalFlat)
+				hrp.CFrame = CFrame.new(hrp.Position) * CFrame.Angles(0, finalYaw, 0)
+			end
+		end)
 	end
 
 	if isSlowEnabled then
@@ -1904,7 +1955,7 @@ local function performConsoleWallhop()
 		blockDoubleJump = false
 	end)
 
-	task.delay(0.06, function()
+	task.delay(0.08, function()
 		isWallHopping = false
 	end)
 
@@ -1980,43 +2031,6 @@ local function findValidWall(hrp, params, directions)
 		for _, offset in ipairs(offsets) do
 			local origin = hrp.Position + offset
 			local ray = workspace:Raycast(origin, dir, params)
-
-			if ray and ray.Instance and ray.Instance.CanCollide and not isPlayerCharacter(ray.Instance) then
-				if isWallLikeSurface(ray.Normal) and hasValidHorizontalEdge(ray, params) then
-					return ray
-				end
-			end
-		end
-	end
-
-	return nil
-end
-
-local function findValidWallConsole(hrp, params)
-	local offsets = {
-		Vector3.new(0, -2.3, 0),
-		Vector3.new(0, -2.2, 0),
-		Vector3.new(0, -1.2, 0)
-	}
-
-	local directions = {
-		Vector3.new( 1, 0,  0),
-		Vector3.new(-1, 0,  0),
-		Vector3.new( 0, 0,  1),
-		Vector3.new( 0, 0, -1),
-
-		(Vector3.new( 1, 0,  1)).Unit,
-		(Vector3.new(-1, 0,  1)).Unit,
-		(Vector3.new( 1, 0, -1)).Unit,
-		(Vector3.new(-1, 0, -1)).Unit,
-	}
-
-	for _, dir in ipairs(directions) do
-		local castDir = dir * 1.55
-
-		for _, offset in ipairs(offsets) do
-			local origin = hrp.Position + offset
-			local ray = workspace:Raycast(origin, castDir, params)
 
 			if ray and ray.Instance and ray.Instance.CanCollide and not isPlayerCharacter(ray.Instance) then
 				if isWallLikeSurface(ray.Normal) and hasValidHorizontalEdge(ray, params) then
@@ -2110,19 +2124,13 @@ RunService.Heartbeat:Connect(function()
 
 	horizontal = horizontal.Unit
 
-	local result
+	local forwardDirection = horizontal * 1.55
+	local backwardDirection = -horizontal * 1.55
 
-	if currentFlickMode == "Console Wallhop" then
-		result = findValidWallConsole(hrp, params)
-	else
-		local forwardDirection = horizontal * 1.55
-		local backwardDirection = -horizontal * 1.55
-
-		result = findValidWall(hrp, params, {
-			forwardDirection,
-			backwardDirection
-		})
-	end
+	local result = findValidWall(hrp, params, {
+		forwardDirection,
+		backwardDirection
+	})
 
 	if result and result.Instance then
 		local validAngle = currentFlickMode == "Console Wallhop"
@@ -2234,4 +2242,4 @@ createModeSelector(function(mode)
 	applyVisibility()
 end)
 
-print("Best Flee The Facility | Made by Nyhito - Loaded Successfully ✅")
+print("Best Flee Thhhe Facility | Made by Nyhito - Loaded Successfully ✅")
