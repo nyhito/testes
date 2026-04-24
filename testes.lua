@@ -342,7 +342,6 @@ local function elegantHide(root, onDone)
 
 	local currentSize = root.Size
 	local currentPos = root.Position
-
 	local shrinkSize = UDim2.new(
 		currentSize.X.Scale * 0.965, math.floor(currentSize.X.Offset * 0.965),
 		currentSize.Y.Scale * 0.965, math.floor(currentSize.Y.Offset * 0.965)
@@ -418,6 +417,7 @@ local function showNotice(text)
 	Notice.BackgroundTransparency = 1
 	Notice.TextTransparency = 1
 	NoticeStroke.Transparency = 1
+
 	TweenService:Create(Notice, TweenInfo.new(0.2, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
 		BackgroundTransparency = 0.08,
 		TextTransparency = 0,
@@ -603,7 +603,6 @@ local function createSimpleRow(parent, yOffset, labelText)
 	row.Selectable = false
 	Instance.new("UICorner", row).CornerRadius = UDim.new(0, 12)
 	setTargetTransparency(row, 0, 1)
-
 	local label = Instance.new("TextLabel")
 	label.Name = "Label"
 	label.Size = UDim2.new(1, -24, 1, 0)
@@ -730,6 +729,7 @@ applyVisibility = function()
 		setMobileWallhopVisualHidden(mobileWallhopGuiHidden)
 	end
 end
+
 local function setGuiVisible(state)
 	guiVisible = state
 	applyVisibility()
@@ -847,7 +847,6 @@ local function bindFreeDrag(handle, target, onMove, holdTime)
 	local holdId = 0
 
 	holdTime = holdTime or 0
-
 	table.insert(dragConnections, handle.InputBegan:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
 			activeInput = input
@@ -979,9 +978,11 @@ local function buildMobileGui()
 	addTrueRoundedShadow(MobileButton, 14, 1.15, Color3.fromRGB(0, 0, 0))
 	setTargetTransparency(MobileButton, 0, 0)
 
+	local inset = GuiService:GetGuiInset()
+
 	MobileMenuButton = Instance.new("TextButton")
 	MobileMenuButton.Size = UDim2.new(0, 54, 0, 54)
-	MobileMenuButton.Position = UDim2.new(0, 20, 0, 180)
+	MobileMenuButton.Position = UDim2.new(0, 86, 0, inset.Y - 60)
 	MobileMenuButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 	MobileMenuButton.Text = "≡"
 	MobileMenuButton.TextColor3 = Color3.fromRGB(255,255,255)
@@ -1012,6 +1013,7 @@ local function buildMobileGui()
 	mobileDragHandle.Active = true
 	Instance.new("UICorner", mobileDragHandle).CornerRadius = UDim.new(1, 0)
 	setTargetTransparency(mobileDragHandle, 0, nil)
+
 	MobileTabFunctions = Instance.new("TextButton")
 	MobileTabFunctions.Size = UDim2.new(0, 82, 0, 26)
 	MobileTabFunctions.Position = UDim2.new(0, 7, 0, 24)
@@ -1074,12 +1076,11 @@ local function buildMobileGui()
 	setTargetTransparency(MobileCurrentUsingLabel, 1, 0)
 
 	local function placeMobileButtonDefault()
-		local inset = GuiService:GetGuiInset()
+		local insetNow = GuiService:GetGuiInset()
 		if not MobileButton:GetAttribute("CustomMoved") then
-			MobileButton.Position = UDim2.new(0, 150, 0, inset.Y - 58)
+			MobileButton.Position = UDim2.new(0, 150, 0, insetNow.Y - 58)
 		end
 	end
-
 	local function placePanelToRightOfWallhop()
 		local xOffset = MobileButton.Position.X.Offset + MobileButton.Size.X.Offset + 28
 		local yOffset = MobileButton.Position.Y.Offset + 6
@@ -1374,7 +1375,6 @@ local function buildPCGui()
 	HideGuiBindButton.Parent = PcFunctionsPage
 	noTextStroke(HideGuiBindButton)
 	setTargetTransparency(HideGuiBindButton, 1, 0)
-
 	ToggleBindButton = Instance.new("TextButton")
 	ToggleBindButton.Size = UDim2.new(1, -36, 0, 18)
 	ToggleBindButton.Position = UDim2.new(0, 18, 0, 30)
@@ -1417,6 +1417,7 @@ local function buildPCGui()
 	PcCurrentUsingLabel.Parent = PcFlicksPage
 	noTextStroke(PcCurrentUsingLabel)
 	setTargetTransparency(PcCurrentUsingLabel, 1, 0)
+
 	local footer = Instance.new("TextLabel")
 	footer.Size = UDim2.new(1, -36, 0, 14)
 	footer.Position = UDim2.new(0, 18, 1, -16)
@@ -1913,8 +1914,8 @@ local function performConsoleWallhop()
 		hrp.CFrame = CFrame.new(hrp.Position) * CFrame.Angles(0, flickYaw, 0)
 
 		task.spawn(function()
-			local returnSteps = 8
-			local stepDelay = 0.020
+			local returnSteps = 14
+			local stepDelay = 0.030
 
 			for i = 1, returnSteps do
 				if not hrp or not hrp.Parent then
@@ -1929,7 +1930,7 @@ local function performConsoleWallhop()
 				local liveTargetYaw = getYawFromVector(liveFlat)
 				local currentYaw = math.atan2(-hrp.CFrame.LookVector.X, -hrp.CFrame.LookVector.Z)
 				local delta = wrapAngle(liveTargetYaw - currentYaw)
-				local nextYaw = currentYaw + (delta * 0.32)
+				local nextYaw = currentYaw + (delta * 0.12)
 
 				hrp.CFrame = CFrame.new(hrp.Position) * CFrame.Angles(0, nextYaw, 0)
 
@@ -1938,12 +1939,6 @@ local function performConsoleWallhop()
 					task.wait(stepDelay)
 				end
 			end
-
-			local finalFlat = getCameraFlat()
-			if finalFlat and hrp and hrp.Parent then
-				local finalYaw = getYawFromVector(finalFlat)
-				hrp.CFrame = CFrame.new(hrp.Position) * CFrame.Angles(0, finalYaw, 0)
-			end
 		end)
 	end
 
@@ -1951,11 +1946,11 @@ local function performConsoleWallhop()
 		applyWallhopSlow(hum)
 	end
 
-	task.delay(0.01, function()
+	task.delay(0.12, function()
 		blockDoubleJump = false
 	end)
 
-	task.delay(0.08, function()
+	task.delay(0.45, function()
 		isWallHopping = false
 	end)
 
@@ -2242,4 +2237,4 @@ createModeSelector(function(mode)
 	applyVisibility()
 end)
 
-print("Best Flllee Thhhe Facility | Made by Nyhito - Loaded Successfully ✅")
+print("Best Flee The Facility | Made by Nyhito - Loaded Successfully ✅")
